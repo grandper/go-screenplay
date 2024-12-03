@@ -99,6 +99,19 @@ sessions). This method is automatically called when you use
 err := neo.Forget()
 ```
 
+### Actor specific session data
+Sometimes we need to store information in a step or rask and reuse it in a subsequent one.
+To do so, each actor can call the `remember` and `recall` methods to store and retrieve
+data in a key-value store.
+```go
+actor.Remember("the user id", 1234)
+userID := actor.Recall("the user id").(int)
+```
+An actor can forget the data it has stored using
+```go
+actor.Forget("the user id")
+```
+
 ### Actions
 An actor will interact with the test under code by performing actions.
 Actions can be used to set up your test or execute the operation that
@@ -340,6 +353,17 @@ We can create the negation of a resolution:
 err := theActor.Should(see.The(PageTitle, is.Not(Visible())))
 ```
 
+#### Working with contexts
+Contexts are hold by actors to share information across different part of a sequence of calls.
+```go
+ctx := context.Background()
+actor := screenplay.AnActorNamed("Alice").WithContext(ctx)
+```
+The context can later be retrieved using
+```go
+ctx := actor.Context()
+```
+
 ## Using Gherkin-like syntax to write tests
 You are maybe familiar with the Gherkin syntax that allow you to write
 tests using the _Given-When-Then_ structure. Each keyword as a specific role:
@@ -395,8 +419,6 @@ Then ability, actions, questions, and resolutions can also have their own folder
 
 ## Extensions
 You can find several extensions in the folder `extensions`. Each of them is used to extend the capability of the library to a specific use case.
-- `selenium`: support testing web applications with Selenium.
-- `playright`: support testing web applications with Playright.
 - `http`: support API testing using REST requests.
 - `cli`: support testing CLI applications.
 - `filesystem`: support testing file system interactions.

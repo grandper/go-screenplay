@@ -71,7 +71,7 @@ func TestAddHeaderAction(t *testing.T) {
 			"Authorization", "Bearer 84e7750a-582f-4ed7-9510-6e181d530686")
 		assert.Equal(
 			t,
-			"add the headers Content-Type = application/json, Authorization = Bearer 84e7750a-582f-4ed7-9510-6e181d530686",
+			"add the headers Authorization = Bearer 84e7750a-582f-4ed7-9510-6e181d530686, Content-Type = application/json",
 			addHeaders.String(),
 		)
 	})

@@ -1,6 +1,7 @@
 package screenplay
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -14,14 +15,45 @@ var (
 // Actor represents the end user.
 type Actor struct {
 	name                    string
+	ctx                     context.Context
 	abilities               map[string]Ability
 	orderedCleanupTasks     []Performable
 	independentCleanupTasks []Performable
+	memory                  map[string]any
 }
 
 // Name returns the name of the actor.
 func (a *Actor) Name() string {
 	return a.name
+}
+
+// Context returns the context of the actor.
+func (a *Actor) Context() context.Context {
+	if a.ctx == nil {
+		return context.Background()
+	}
+
+	return a.ctx
+}
+
+func (a *Actor) WithContext(ctx context.Context) *Actor {
+	a.ctx = ctx
+	return a
+}
+
+// Remember stores a value in the actor's memory.
+func (a *Actor) Remember(key string, value any) {
+	a.memory[key] = value
+}
+
+// Recall retrieves a value from the actor's memory.
+func (a *Actor) Recall(key string) any {
+	return a.memory[key]
+}
+
+// Forget removes a value from the actor's memory.
+func (a *Actor) Forget(key string) {
+	delete(a.memory, key)
 }
 
 // WhoCan defines abilities that the actor can use.
@@ -289,5 +321,6 @@ func ActorNamed(name string) *Actor {
 		abilities:               map[string]Ability{},
 		orderedCleanupTasks:     []Performable{},
 		independentCleanupTasks: []Performable{},
+		memory:                  map[string]any{},
 	}
 }

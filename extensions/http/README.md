@@ -67,20 +67,20 @@ After sending a request, an actor can ask questions about its response.
 
 You can request information about the status code of the previous request.
 ```go
-err := anActor.AttemptsTo(see.The(StatusCode(), is.EqualTo(200)))
-err := anActor.AttemptsTo(see.The(StatusCodeOfTheLastResponse(), is.EqualTo(200)))
+err := anActor.Should(see.The(StatusCode(), is.EqualTo(200)))
+err := anActor.Should(see.The(StatusCodeOfTheLastResponse(), is.EqualTo(200)))
 ```
 
 You can request information about the headers of the previous request.
 ```go
-err := anActor.AttemptsTo(see.The(Headers(), contains.TheEntry("Content-Type", "application/json")))
-err := anActor.AttemptsTo(see.The(HeadersOfTheLastResponse(), contains.TheEntry("Content-Type", "application/json")))
+err := anActor.Should(see.The(Headers(), contains.TheEntry("Content-Type", "application/json")))
+err := anActor.Should(see.The(HeadersOfTheLastResponse(), contains.TheEntry("Content-Type", "application/json")))
 ```
 
 You can request information about the body of the previous request.
 ```go
-err := anActor.AttemptsTo(see.The(Body(), contains.TheText("Hello World")))
-err := anActor.AttemptsTo(see.The(BodyOfTheLastResponse(), contains.TheText("Hello World")))
+err := anActor.Should(see.The(Body(), contains.TheText("Hello World")))
+err := anActor.Should(see.The(BodyOfTheLastResponse(), contains.TheText("Hello World")))
 ```
 
 ## Setting An Authorization Header

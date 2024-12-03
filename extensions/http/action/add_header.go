@@ -2,6 +2,7 @@ package action
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/grandper/go-screenplay/extensions/http/ability"
@@ -76,11 +77,13 @@ func (a *AddHeadersAction) logHeaders() string {
 		for header := range a.headers {
 			headers = append(headers, header+" = <secret>")
 		}
+		slices.Sort(headers)
 		return strings.Join(headers, ", ")
 	}
 	for header, value := range a.headers {
 		headers = append(headers, fmt.Sprintf("%s = %s", header, value))
 	}
+	slices.Sort(headers)
 	return strings.Join(headers, ", ")
 }
 

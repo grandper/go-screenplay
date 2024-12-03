@@ -1,6 +1,7 @@
 package screenplay_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -19,6 +20,43 @@ func TestActor(t *testing.T) {
 	t.Run("can be created using a name", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		assert.Equal(t, "Adam", adam.Name())
+	})
+
+	t.Run("has a default context", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		assert.Equal(t, context.Background(), adam.Context())
+	})
+
+	t.Run("can set a custom context", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), "key", "value")
+		adam := screenplay.ActorNamed("Adam").WithContext(ctx)
+		assert.Equal(t, ctx, adam.Context())
+		assert.NotEqual(t, context.Background(), adam.Context())
+	})
+
+	t.Run("can remember and recall information", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		adam.Remember("username", "adam123")
+		adam.Remember("is_logged_in", true)
+
+		username, ok := adam.Recall("username").(string)
+		require.True(t, ok)
+		assert.Equal(t, "adam123", username)
+
+		isLoggedIn, ok := adam.Recall("is_logged_in").(bool)
+		require.True(t, ok)
+		assert.True(t, isLoggedIn)
+
+		assert.Nil(t, adam.Recall("non_existent_key"))
+	})
+
+	t.Run("can forget information", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		adam.Remember("session_token", "abc123")
+		assert.Equal(t, "abc123", adam.Recall("session_token"))
+
+		adam.Forget("session_token")
+		assert.Nil(t, adam.Recall("session_token"))
 	})
 
 	t.Run("does not have ability at first", func(t *testing.T) {

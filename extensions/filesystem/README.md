@@ -85,10 +85,10 @@ err := anActor.AttemptsTo(ChangeDirectoryTo("MyDocuments"))
 ## New Questions
 You can check if a file or a directory exists using
 ```go
-err := anActor.AttemptsTo(see.The(FileNamed("foobar.txt"), exists()))
-err := anActor.AttemptsTo(see.The(DirectoryNamed("foobar"), exists()))
+err := anActor.Should(see.The(FileNamed("foobar.txt"), exists()))
+err := anActor.Should(see.The(DirectoryNamed("foobar"), exists()))
 ```
 You can also assert what the content of a file is:
 ```go
-err := anActor.AttemptsTo(see.The(ContentOfTheFileNamed("foobar.txt"), equals("Hello World")))
+err := anActor.Should(see.The(ContentOfTheFileNamed("foobar.txt"), equals("Hello World")))
 ```

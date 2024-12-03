@@ -14,7 +14,7 @@ func TheValue[T any](value T) *TheValueResolution[T] {
 	}
 }
 
-// TheValueResolution is a matcher to tell if a number is greater than a given number.
+// TheValueResolution is a matcher to tell if a map or a slice contains a given value.
 type TheValueResolution[T any] struct {
 	value T
 }
