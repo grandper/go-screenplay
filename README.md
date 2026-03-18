@@ -85,7 +85,7 @@ For example, you can make them use libraries, tools, and resources.
 
 To give your actor an ability you can simply use
 ```go
-neo := screeplay.ActorNamed("Neo").WhoCan(UseTerminalCommands())
+neo := screenplay.ActorNamed("Neo").WhoCan(UseTerminalCommands())
 ```
 Ability are then used to perform more actions. For example if you have
 an ability that contains database sessions, then you can create an
@@ -96,7 +96,7 @@ Finally, abilities all implement a `Forget() error` interface that is
 used to clean up the of what is inside the ability (e.g., closing
 sessions). This method is automatically called when you use
 ```go
-err := neo.Forget()
+err := neo.Exit()
 ```
 
 ### Actor specific session data
@@ -133,7 +133,7 @@ action := create.Folder().Named("my_folder")
 ```
 Now if we want to perform that action we can simply do one of the followings:
 ```go
-bob := screeplay.ActorNamed("Bob")
+bob := screenplay.ActorNamed("Bob")
 
 // All the following functions will give you the name result.
 err := bob.AttemptsTo(create.Folder().Named("my_folder"))
@@ -164,7 +164,7 @@ For example, we may want to create a `Login` task that will group the following 
 
 To do so, we can use
 ```go
-login := screenplay.Task.Where("login to the application", 
+login := screenplay.TaskWhere("login to the application", 
 	NavigateTo.TheHomePage(), 
 	Click.On(TheLoginButton), 
 	FillIn.TheField(Username).With(username), 
@@ -173,7 +173,7 @@ login := screenplay.Task.Where("login to the application",
 You can also wrap the call in a function to add parameters:
 ```go
 func LoginAs(username, password string) screenplay.Performable {
-	return screenplay.Task.Where("login to the application", 
+	return screenplay.TaskWhere("login to the application", 
 		NavigateTo.TheHomePage(), 
 		Click.On(TheLoginButton), 
 		FillIn.TheField(Username).With(username), 
@@ -262,7 +262,7 @@ err := adam.WasAbleTo(Eventually(CancelTheOrder).TryingFor(5).Seconds().PollingE
 If you need to log the answer to a question, you can use the `Log` action:
 ```go
 err := theActor.AttemptsTo(Log(HowManyBirdsAreInTheSky()))
-err := theActor.AttemptsTo(Log.The(Number.Of(ItemsInTheList)))
+err := theActor.AttemptsTo(Log(Number.Of(ItemsInTheList)))
 ```
 
 #### Working with multiple actions
@@ -357,7 +357,7 @@ err := theActor.Should(see.The(PageTitle, is.Not(Visible())))
 Contexts are hold by actors to share information across different part of a sequence of calls.
 ```go
 ctx := context.Background()
-actor := screenplay.AnActorNamed("Alice").WithContext(ctx)
+actor := screenplay.ActorNamed("Alice").WithContext(ctx)
 ```
 The context can later be retrieved using
 ```go
@@ -380,17 +380,17 @@ Here's an example:
 
 The library provide some functions to reproduce the Gherkin flow in your test:
 ```go
-adam := screeplay.ActorNamed("Adam")
+adam := screenplay.ActorNamed("Adam")
 screenplay.Given(adam).WasAbleTo(see.The(AccountBalance, is.Equal(2)))
 screenplay.When(adam).AttemptsTo(Deposit(100).Dollars())
 screenplay.Then(adam).Should(see.The(AccountBalance), is.EqualTo(102))
 ```
 
 ### Creating your own Performable/Task/Action
-You can use `screenplay.FromFunc` or the task tool.
+You can use `action.FromFunc` or the task tool.
 To make the code more fluent, one can use builder methods:
 ```go
-adam := screeplay.ActorNamed("Adam")
+adam := screenplay.ActorNamed("Adam")
 err := adam.AttemptsTo(FillIn().TheRegistrationForm().With(adamsData))
 ```
 
