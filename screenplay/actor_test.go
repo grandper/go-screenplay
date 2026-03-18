@@ -50,6 +50,48 @@ func TestActor(t *testing.T) {
 		assert.Nil(t, adam.Recall("non_existent_key"))
 	})
 
+	t.Run("can share information with another actor", func(t *testing.T) {
+		t.Run("copies the value to the target actor's memory", func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam")
+			bob := screenplay.ActorNamed("Bob")
+
+			adam.Remember("session_token", "abc123")
+			adam.Share("session_token").With(bob)
+
+			assert.Equal(t, "abc123", bob.Recall("session_token"))
+		})
+
+		t.Run("does not remove the value from the source actor", func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam")
+			bob := screenplay.ActorNamed("Bob")
+
+			adam.Remember("session_token", "abc123")
+			adam.Share("session_token").With(bob)
+
+			assert.Equal(t, "abc123", adam.Recall("session_token"))
+		})
+
+		t.Run("does nothing when the key does not exist in the source actor", func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam")
+			bob := screenplay.ActorNamed("Bob")
+
+			adam.Share("unknown_key").With(bob)
+
+			assert.Nil(t, bob.Recall("unknown_key"))
+		})
+
+		t.Run("overwrites the value in the target actor if the key already exists", func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam")
+			bob := screenplay.ActorNamed("Bob")
+
+			bob.Remember("session_token", "old_value")
+			adam.Remember("session_token", "new_value")
+			adam.Share("session_token").With(bob)
+
+			assert.Equal(t, "new_value", bob.Recall("session_token"))
+		})
+	})
+
 	t.Run("can forget information", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		adam.Remember("session_token", "abc123")
