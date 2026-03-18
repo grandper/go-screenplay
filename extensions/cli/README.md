@@ -6,7 +6,7 @@ The cli extension provides new abilities, actions, questions, and resolutions to
 This extension introduces a unique capability to interact with the command line.
 To use the new capability use
 ```go
-anActor := screeplay.ActorNamed("Boby").WhoCan(UseTheCommandLine())
+anActor := screenplay.ActorNamed("Boby").WhoCan(RunCLICommands())
 ```
 
 ## New Actions
@@ -49,10 +49,10 @@ You can ask for the value of an environment variable using the following questio
 err := anActor.Should(see.The(EnvironmentVariableNamed("PATH"), is.EqualTo("/usr/local/bin:/usr/bin:/bin")))
 ```
 
-### The Status Code
-You can request information about the status code of the last response.
+### The Error Code
+You can request information about the error code of the last response.
 ```go
-err := anActor.Should(see.The(StatusCodeOfTheLastResponse(), is.EqualTo(0)))
+err := anActor.Should(see.The(ErrorCodeOfTheLastResponse(), is.EqualTo(0)))
 ```
 
 ### The stdout

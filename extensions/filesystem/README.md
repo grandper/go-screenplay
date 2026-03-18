@@ -6,7 +6,7 @@ The filesystem extension provides new abilities, actions, questions, and resolut
 This extension introduces a unique capability to interract with the file system.
 To use the new capability use
 ```go
-anActor := screeplay.ActorNamed("boby").WhoCan(UseTheFileSystem())
+anActor := screenplay.ActorNamed("boby").WhoCan(UseTheFileSystem())
 ```
 
 ## New Actions

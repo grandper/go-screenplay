@@ -7,7 +7,7 @@ to perform HTTP requests.
 This extension introduces a unique capability to make api request.
 To use the new capability use
 ```go
-anActor := screeplay.ActorNamed("boby").WhoCan(MakeHTTPRequests())
+anActor := screenplay.ActorNamed("boby").WhoCan(MakeHTTPRequests())
 ```
 
 ## New Actions
@@ -42,8 +42,8 @@ err := anActor.AttemptsTo(SendHTTPRequest(http.MethodGet).To("http://www.example
 ```
 An HTTP request can be sent secretly, which means that the request body and headers will not be displayed in the output.
 ```go
-err := anActor.AttemptsTo(SendHTTPRequest(http.MethodGet, "http://www.example.com").WithBody(body).Secretly())
-err := anActor.AttemptsTo(SendHTTPRequest(http.MethodGet, "http://www.example.com").WithBody(body).WhichShouldBeKeptSecret())
+err := anActor.AttemptsTo(SendHTTPRequest(http.MethodGet).To("http://www.example.com").WithBody(body).Secretly())
+err := anActor.AttemptsTo(SendHTTPRequest(http.MethodGet).To("http://www.example.com").WithBody(body).WhichShouldBeKeptSecret())
 ```
 
 For readability sake, you can also use the following shortcuts.
@@ -67,19 +67,16 @@ After sending a request, an actor can ask questions about its response.
 
 You can request information about the status code of the previous request.
 ```go
-err := anActor.Should(see.The(StatusCode(), is.EqualTo(200)))
 err := anActor.Should(see.The(StatusCodeOfTheLastResponse(), is.EqualTo(200)))
 ```
 
 You can request information about the headers of the previous request.
 ```go
-err := anActor.Should(see.The(Headers(), contains.TheEntry("Content-Type", "application/json")))
 err := anActor.Should(see.The(HeadersOfTheLastResponse(), contains.TheEntry("Content-Type", "application/json")))
 ```
 
 You can request information about the body of the previous request.
 ```go
-err := anActor.Should(see.The(Body(), contains.TheText("Hello World")))
 err := anActor.Should(see.The(BodyOfTheLastResponse(), contains.TheText("Hello World")))
 ```
 
@@ -87,9 +84,9 @@ err := anActor.Should(see.The(BodyOfTheLastResponse(), contains.TheText("Hello W
 
 A common scenario is to login to get a bearer token and use it for the following request.
 ```go
-anActor := AnActor.WhoCan(MakeHTTPRequests())
-anActor.AttemptsTo(SendPOSTRequest.To(loginURL).WithAuth(username, password))
+anActor := screenplay.ActorNamed("anActor").WhoCan(MakeHTTPRequests())
+anActor.AttemptsTo(SendPostRequest().To(loginURL).WithAuth(username, password))
 
-bearerToken := BodyOfTheLastResponse.AnsweredBy(anActor)["token"]
+bearerToken := BodyOfTheLastResponse().AnsweredBy(anActor)["token"]
 anActor.AttemptsTo(AddHeader("Authorization", "Bearer " + bearerToken))
 ```
