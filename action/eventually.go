@@ -16,8 +16,8 @@ var (
 
 // Eventually retries a task or action until it eventually succeed.
 // This action will try until a given timeout is reached.
-// If the action cannot be achieved until the timeout is reached, an error containing the
-// last failure error is raised.
+// If the action cannot be achieved until the timeout is reached, an error containing all
+// unique failure errors encountered during retries is raised.
 func Eventually(performable screenplay.Performable) *EventuallyAction {
 	return &EventuallyAction{
 		performable: performable,
@@ -30,8 +30,8 @@ func Eventually(performable screenplay.Performable) *EventuallyAction {
 
 // EventuallyAction is an action that retries a task or action until it eventually succeed.
 // This action will try until a given timeout is reached.
-// If the action cannot be achieved until the timeout is reached, an error containing the
-// last failure error is raised.
+// If the action cannot be achieved until the timeout is reached, an error containing all
+// unique failure errors encountered during retries is raised.
 type EventuallyAction struct {
 	performable screenplay.Performable
 	polling     time.Duration
@@ -53,6 +53,8 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 			ErrPollingPeriodMustBeLessThanOrEqualToTimeout,
 		)
 	}
+
+	a.uniqueErrs = []error{}
 
 	timeoutTimer := time.NewTimer(a.timeout)
 	defer timeoutTimer.Stop()
@@ -83,7 +85,7 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 			localCount := count
 			mutex.RUnlock()
 			return fmt.Errorf("an error occurred when %s tried to eventually %s %d times over %f seconds: %w",
-				theActor.Name(), a.performable, localCount, a.timeout.Seconds(), a.caughtErr)
+				theActor.Name(), a.performable, localCount, a.timeout.Seconds(), errors.Join(a.uniqueErrs...))
 		case <-tick:
 			tick = nil
 
@@ -93,9 +95,23 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 				return nil
 			}
 
+			if !containsErr(a.uniqueErrs, a.caughtErr) {
+				a.uniqueErrs = append(a.uniqueErrs, a.caughtErr)
+			}
+
 			tick = pollingTicker.C
 		}
 	}
+}
+
+// containsErr reports whether err is already represented in errs by message.
+func containsErr(errs []error, err error) bool {
+	for _, e := range errs {
+		if e.Error() == err.Error() {
+			return true
+		}
+	}
+	return false
 }
 
 // For sets the time during which the actor keeps on trying.
