@@ -63,12 +63,11 @@ func hasMatchingItem(regex *regexp.Regexp, obj any) (bool, error) {
 }
 
 func itemInChanMatchesRegex(regex *regexp.Regexp, objValue reflect.Value) (bool, error) {
-	continueScanning := true
-	var chanValue reflect.Value
-	var found bool
-
-	for continueScanning {
-		chanValue, continueScanning = objValue.Recv()
+	for {
+		chanValue, ok := objValue.Recv()
+		if !ok {
+			return false, nil
+		}
 
 		matched, err := valueMatchesRegex(regex, chanValue)
 		if err != nil {
@@ -76,11 +75,9 @@ func itemInChanMatchesRegex(regex *regexp.Regexp, objValue reflect.Value) (bool,
 		}
 
 		if matched {
-			found = true
+			return true, nil
 		}
 	}
-
-	return found, nil
 }
 
 func itemInSliceMatchesRegex(regex *regexp.Regexp, objValue reflect.Value) (bool, error) {
