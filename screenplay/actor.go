@@ -284,12 +284,9 @@ func (a *Actor) Exit() error {
 }
 
 func (a *Actor) cleansUp() error {
-	err := a.cleansUpIndependentTasks()
-	if err != nil {
-		return err
-	}
-
-	return a.cleansUpOrderedTasks()
+	independentErr := a.cleansUpIndependentTasks()
+	orderedErr := a.cleansUpOrderedTasks()
+	return errors.Join(independentErr, orderedErr)
 }
 
 func (a *Actor) cleansUpIndependentTasks() error {

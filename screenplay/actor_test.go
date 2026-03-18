@@ -234,6 +234,20 @@ func TestActor(t *testing.T) {
 		assert.Equal(t, []int{1, 3}, record)
 	})
 
+	t.Run("should still run ordered cleanup tasks when an independent cleanup task fails", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		var record []int
+		independent := testOrderedTask{id: 1, record: &record, err: errors.New("independent task failed")}
+		ordered := testOrderedTask{id: 2, record: &record, err: nil}
+
+		adam.HasIndependentCleanupTasks(independent)
+		adam.HasOrderedCleanupTasks(ordered)
+
+		err := adam.Exit()
+		require.Error(t, err)
+		assert.Equal(t, []int{2}, record, "ordered task must run even though independent task failed")
+	})
+
 	t.Run("should not re-run independent cleanup tasks on a second Exit call after partial failure", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		var record []int
