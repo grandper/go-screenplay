@@ -303,11 +303,11 @@ func (a *Actor) cleansUpIndependentTasks() error {
 		}
 	}
 
+	a.independentCleanupTasks = []Performable{}
+
 	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}
-
-	a.independentCleanupTasks = []Performable{}
 
 	return nil
 }
