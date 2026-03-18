@@ -234,6 +234,23 @@ func TestActor(t *testing.T) {
 		assert.Equal(t, []int{1, 3}, record)
 	})
 
+	t.Run("should not re-run independent cleanup tasks on a second Exit call after partial failure", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		var record []int
+		task1 := testOrderedTask{id: 1, record: &record, err: nil}
+		task2 := testOrderedTask{id: 2, record: &record, err: errors.New("task 2 failed")}
+		task3 := testOrderedTask{id: 3, record: &record, err: nil}
+
+		adam.HasIndependentCleanupTasks(task1, task2, task3)
+
+		require.Error(t, adam.Exit())
+		assert.Equal(t, []int{1, 3}, record)
+
+		// Second Exit must not replay any task — the list was cleared despite the error.
+		require.NoError(t, adam.Exit())
+		assert.Equal(t, []int{1, 3}, record)
+	})
+
 	openTheHomePage := fixture.NewFakePerformable("open the home page", nil)
 	openTheHomePageButFailed := fixture.NewFakePerformable(
 		"open the home page",
