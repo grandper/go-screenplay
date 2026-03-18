@@ -82,7 +82,7 @@ func (a *PauseAction) String() string {
 func (a *PauseAction) PerformAs(_ *screenplay.Actor) error {
 	if a.reason == "" {
 		return errors.New(
-			"failed to PauseActionBuilder: cannot PauseActionBuilder with a reason: you must call the .Because() method",
+			"failed to PauseActionBuilder: cannot PauseActionBuilder without a reason: you must call the .Because() method",
 		)
 	}
 	time.Sleep(a.duration)
