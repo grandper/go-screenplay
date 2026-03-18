@@ -8,6 +8,10 @@ import (
 	"github.com/grandper/go-screenplay/screenplay"
 )
 
+type headerPair struct {
+	key, value string
+}
+
 // SetHeader sets a header to the actor's HTTP session.
 // This actions will remove any headers previously set in the session.
 func SetHeader(key, value string) *SetHeadersAction {
@@ -15,10 +19,8 @@ func SetHeader(key, value string) *SetHeadersAction {
 		panic("a key cannot be empty")
 	}
 	return &SetHeadersAction{
-		headers: map[string]string{
-			key: value,
-		},
-		secret: false,
+		headers: []headerPair{{key, value}},
+		secret:  false,
 	}
 }
 
@@ -35,9 +37,9 @@ func SetHeaders(args ...string) *SetHeadersAction {
 
 	numHeaders := numArgs / 2 //nolint:mnd // the number is explicitly divided by 2
 
-	headers := make(map[string]string, numHeaders)
+	headers := make([]headerPair, 0, numHeaders)
 	for i := 0; i < numArgs; i += 2 {
-		headers[args[i]] = args[i+1]
+		headers = append(headers, headerPair{args[i], args[i+1]})
 	}
 	return &SetHeadersAction{
 		headers: headers,
@@ -47,7 +49,7 @@ func SetHeaders(args ...string) *SetHeadersAction {
 
 // SetHeadersAction sets a header to the actor's HTTP session.
 type SetHeadersAction struct {
-	headers map[string]string
+	headers []headerPair
 	secret  bool
 }
 
@@ -75,13 +77,13 @@ func (a *SetHeadersAction) String() string {
 func (a *SetHeadersAction) logHeaders() string {
 	headerStrs := make([]string, 0, len(a.headers))
 	if a.secret {
-		for header := range a.headers {
-			headerStrs = append(headerStrs, header+" = <secret>")
+		for _, h := range a.headers {
+			headerStrs = append(headerStrs, h.key+" = <secret>")
 		}
 		return strings.Join(headerStrs, ", ")
 	}
-	for header, value := range a.headers {
-		headerStrs = append(headerStrs, fmt.Sprintf("%s = %s", header, value))
+	for _, h := range a.headers {
+		headerStrs = append(headerStrs, fmt.Sprintf("%s = %s", h.key, h.value))
 	}
 	return strings.Join(headerStrs, ", ")
 }
@@ -93,8 +95,8 @@ func (a *SetHeadersAction) PerformAs(theActor *screenplay.Actor) error {
 		return err
 	}
 	makeHTTPRequests.ResetHeaders()
-	for key, value := range a.headers {
-		makeHTTPRequests.ToAddTheHeader(key, value)
+	for _, h := range a.headers {
+		makeHTTPRequests.ToAddTheHeader(h.key, h.value)
 	}
 	return nil
 }
