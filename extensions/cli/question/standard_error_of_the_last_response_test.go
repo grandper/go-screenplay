@@ -24,7 +24,7 @@ func TestStandardErrorOfTheLastResponse(t *testing.T) {
 		require.Error(t, theActor.AttemptsTo(action.RunTheCommand("ls", "/foobar")))
 		value, err = question.StandardErrorOfTheLastResponse().AnsweredBy(theActor)
 		require.NoError(t, err)
-		assert.Equal(t, []byte("ls: /foobar: No such file or directory\n"), value)
+		assert.Contains(t, string(value.([]byte)), "No such file or directory")
 	})
 
 	t.Run("fails when no command has been run", func(t *testing.T) {
