@@ -33,6 +33,8 @@ type RunCLICommandsAbility struct {
 
 // Type types the content in the input of an interactive command.
 func (a *RunCLICommandsAbility) Type(input string) error {
+	a.mutex.RLock()
+	defer a.mutex.RUnlock()
 	if a.stdin == nil {
 		return ErrNoCommandCurrentlyRunning
 	}
@@ -75,8 +77,10 @@ func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error {
 	if err != nil {
 		return err
 	}
+	a.mutex.Lock()
 	a.stdin = stdinPipe
 	a.currentCmd = c
+	a.mutex.Unlock()
 
 	err = c.Start()
 
