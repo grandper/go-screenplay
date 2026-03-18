@@ -125,6 +125,39 @@ func TestRunCLICommands(t *testing.T) {
 		require.NoError(t, runCLICommands.Forget())
 	})
 
+	t.Run("captures the Wait error in the result for interactive commands", func(t *testing.T) {
+		t.Run("is nil when the command succeeds", func(t *testing.T) {
+			runCLICommands := ability.RunCLICommands()
+			require.NoError(t, runCLICommands.Run(ctx, &ability.Command{
+				Program:     "sh",
+				Args:        []string{"-c", "exit 0"},
+				Interactive: true,
+			}))
+
+			time.Sleep(200 * time.Millisecond)
+
+			responses := runCLICommands.Responses()
+			require.Len(t, responses, 1)
+			assert.NoError(t, responses[0].Err())
+		})
+
+		t.Run("is non-nil when the command exits with a non-zero code", func(t *testing.T) {
+			runCLICommands := ability.RunCLICommands()
+			require.NoError(t, runCLICommands.Run(ctx, &ability.Command{
+				Program:     "sh",
+				Args:        []string{"-c", "exit 42"},
+				Interactive: true,
+			}))
+
+			time.Sleep(200 * time.Millisecond)
+
+			responses := runCLICommands.Responses()
+			require.Len(t, responses, 1)
+			assert.Error(t, responses[0].Err())
+			assert.Equal(t, 42, responses[0].ExitCode())
+		})
+	})
+
 	t.Run("Type is safe to call concurrently with a finishing interactive command", func(t *testing.T) {
 		runCLICommands := ability.RunCLICommands()
 		err := runCLICommands.Run(ctx, &ability.Command{

@@ -85,13 +85,14 @@ func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error {
 	err = c.Start()
 
 	go func() {
-		_ = c.Wait()
+		waitErr := c.Wait()
 		a.mutex.Lock()
 		defer a.mutex.Unlock()
 		result := &Result{
 			exitCode: c.ProcessState.ExitCode(),
 			stdOut:   outBuf.Bytes(),
 			stdErr:   errBuf.Bytes(),
+			err:      waitErr,
 		}
 		a.stdin = nil
 		a.currentCmd = nil
