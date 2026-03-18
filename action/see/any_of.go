@@ -1,16 +1,21 @@
 package see
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/grandper/go-screenplay/screenplay"
 )
 
+// ErrInvalidAnyOfArguments is returned when the arguments passed to AnyOf are not valid question-resolution pairs.
+var ErrInvalidAnyOfArguments = errors.New("invalid arguments: you should provide question-resolution pairs to the see.AnyOf function")
+
 // AnyOf creates an action to see if any of the answers to different questions match its expectation.
 func AnyOf(tuples ...any) *AnyOfAction {
 	if len(tuples)%2 != 0 {
-		panic("you should provide question-resolution pairs to the see.AnyOf function")
+		return &AnyOfAction{err: ErrInvalidAnyOfArguments}
 	}
 
 	action := &AnyOfAction{
@@ -20,12 +25,12 @@ func AnyOf(tuples ...any) *AnyOfAction {
 	for i := 0; i < len(tuples); i++ {
 		question, isAQuestion := tuples[i].(screenplay.Question)
 		if !isAQuestion {
-			panic("the tuple must contain a question")
+			return &AnyOfAction{err: errors.New("invalid arguments: expected a Question at position " + strconv.Itoa(i))}
 		}
 		i++
 		resolution, isAResolution := tuples[i].(screenplay.Resolution)
 		if !isAResolution {
-			panic("the tuple must contain a resolution")
+			return &AnyOfAction{err: errors.New("invalid arguments: expected a Resolution at position " + strconv.Itoa(i))}
 		}
 
 		action.tests = append(action.tests, The(question, resolution))
@@ -37,6 +42,7 @@ func AnyOf(tuples ...any) *AnyOfAction {
 // AnyOfAction is an action to see if any of the answers to different questions matches the resolution.
 type AnyOfAction struct {
 	tests []*TheAction
+	err   error
 }
 
 // String describes the action.
@@ -51,6 +57,10 @@ func (a *AnyOfAction) String() string {
 
 // PerformAs performs the task or the action as the provided actor.
 func (a *AnyOfAction) PerformAs(actor *screenplay.Actor) error {
+	if a.err != nil {
+		return a.err
+	}
+
 	if len(a.tests) == 0 {
 		return nil
 	}
