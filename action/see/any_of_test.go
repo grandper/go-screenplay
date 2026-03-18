@@ -74,32 +74,22 @@ func TestSeeAnyOfAction(t *testing.T) {
 
 	t.Run("fails when the argument list is incomplete", func(t *testing.T) {
 		t.Parallel()
-		assert.Panics(t, func() {
-			//nolint:staticcheck // the tuple is incomplete by design in this test.
-			assert.NoError(t, adam.AttemptsTo(see.AnyOf(profilWidget)))
-		})
+		require.Error(t, adam.AttemptsTo(see.AnyOf(profilWidget)))
 
-		assert.Panics(t, func() {
-			require.NoError(t, adam.AttemptsTo(see.AnyOf(
-				//nolint:staticcheck // the tuple is incomplete by design in this test.
-				profilWidget, contains.TheText("Foobar"),
-				loginForm,
-			)))
-		})
+		require.Error(t, adam.AttemptsTo(see.AnyOf(
+			profilWidget, contains.TheText("Foobar"),
+			loginForm,
+		)))
 	})
 
 	t.Run("fails when a resolution is passed instead of a question", func(t *testing.T) {
 		t.Parallel()
-		assert.Panics(t, func() {
-			require.NoError(t, adam.AttemptsTo(see.AnyOf(profilWidget, loginForm)))
-		})
+		require.Error(t, adam.AttemptsTo(see.AnyOf(profilWidget, loginForm)))
 	})
 
 	t.Run("fails when a question is passed instead of a resolution", func(t *testing.T) {
 		t.Parallel()
-		assert.Panics(t, func() {
-			require.NoError(t, adam.AttemptsTo(see.AnyOf(contains.TheText("Foobar"), profilWidget)))
-		})
+		require.Error(t, adam.AttemptsTo(see.AnyOf(contains.TheText("Foobar"), profilWidget)))
 	})
 
 	t.Run("fails when the actor fails to answer all the questions", func(t *testing.T) {
