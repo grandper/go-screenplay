@@ -112,6 +112,61 @@ An actor can forget the data it has stored using
 actor.Forget("the user id")
 ```
 
+### Cast
+A cast provisions actors with abilities when they enter the stage.
+It decouples the creation of actors from the abilities they need, so you only
+define the setup once and every actor gets it automatically.
+
+The simplest cast creates actors with no predefined abilities:
+```go
+cast := screenplay.CastOfStandardActors()
+```
+When all actors in a scenario share the same abilities, you can use:
+```go
+cast := screenplay.CastWhereEveryoneCan(MakeHTTPRequests(), UseDatabase())
+```
+For more control over how each actor is prepared you can supply a function:
+```go
+cast := screenplay.CastFunc(func(actor *screenplay.Actor) {
+	actor.WhoCan(MakeHTTPRequests())
+	actor.Remember("role", "reviewer")
+})
+```
+
+### Stage
+The stage manages all actors in a test scenario and tracks which one is
+currently in the spotlight. It works together with a cast so that actors
+are automatically prepared when they first appear.
+
+To create a stage, provide it with a cast:
+```go
+stage := screenplay.SetTheStage(screenplay.CastWhereEveryoneCan(MakeHTTPRequests()))
+```
+Use `TheActorCalled` to retrieve an actor by name. If the actor does not exist
+yet, the stage creates one and lets the cast prepare it. Calling it a second
+time with the same name returns the same actor instance (name matching is
+case-insensitive). The actor is also placed in the spotlight.
+```go
+adam := stage.TheActorCalled("Adam")
+sameAdam := stage.TheActorCalled("adam") // returns the same actor
+```
+You can retrieve the actor currently in the spotlight at any time:
+```go
+actor, err := stage.TheActorInTheSpotlight()
+```
+To check whether any actor is currently on stage before accessing the spotlight:
+```go
+if stage.AnActorIsOnStage() {
+	actor, _ := stage.TheActorInTheSpotlight()
+	// use actor
+}
+```
+At the end of a scenario, draw the curtain to make every actor exit and clean
+up their abilities:
+```go
+err := stage.DrawTheCurtain()
+```
+
 ### Actions
 An actor will interact with the test under code by performing actions.
 Actions can be used to set up your test or execute the operation that
