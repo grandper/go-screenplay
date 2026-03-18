@@ -2,6 +2,7 @@ package action_test
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -51,7 +52,9 @@ func TestStopAction(t *testing.T) {
 	})
 
 	t.Run("fails if the attempt continuously failed", func(t *testing.T) {
-		require.Error(t, adam.AttemptsTo(action.Stop().UntilThe(formField, is.EqualTo("hello world"))))
+		err := adam.AttemptsTo(action.Stop().UntilThe(formField, is.EqualTo("hello world")))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), fmt.Sprintf("stopped for %s,", screenplay.DefaultTimeout))
 	})
 
 	t.Run("fails when the question fails", func(t *testing.T) {

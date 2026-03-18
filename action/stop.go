@@ -64,7 +64,7 @@ func (a *StopAction) PerformAs(actor *screenplay.Actor) error {
 		return nil
 	}
 	if err := actor.AttemptsTo(Eventually(see.The(a.question, a.resolution))); err != nil {
-		return fmt.Errorf("%s stopped for %s seconds, but %s was never %s",
+		return fmt.Errorf("%s stopped for %s, but %s was never %s",
 			actor.Name(), screenplay.DefaultTimeout, a.question.String(), a.resolution.String())
 	}
 	return nil
