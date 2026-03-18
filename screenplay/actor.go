@@ -165,8 +165,7 @@ func (a *Actor) WithOrderedCleanupTasks(tasks ...Performable) {
 
 // HasIndependentCleanupTasks assigns one or more tasks to an actor.
 // Those tasks will be performed when the actor exit the stage.
-// Ordered cleanup tasks will all be performed even if some of them failed.
-// When a task fails, the subsequent tasks won't be done.
+// Independent cleanup tasks will all be performed even if some of them failed.
 func (a *Actor) HasIndependentCleanupTasks(tasks ...Performable) {
 	a.independentCleanupTasks = append(a.independentCleanupTasks, tasks...)
 }
