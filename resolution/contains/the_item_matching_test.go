@@ -3,6 +3,7 @@ package contains_test
 import (
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -114,6 +115,30 @@ func TestContainsTheItemMatchingResolution(t *testing.T) {
 			testdata.AssertMatcherFails(t, matcher1, map[string]int{"a": 1, "b": 2, "c": 3})
 			testdata.AssertMatcherFails(t, matcher2, map[string]int{"a": 1, "b": 2, "c": 3})
 		})
+	})
+
+	t.Run("returns immediately on first match without draining the rest of the channel", func(t *testing.T) {
+		t.Parallel()
+
+		// An open (never-closed) channel: old code would block forever after
+		// consuming all buffered items; fixed code returns true on first match.
+		ch := make(chan string, 3)
+		ch <- "no match"
+		ch <- "Hello world!" // matching item
+		ch <- "never read"   // must never be consumed
+
+		done := make(chan struct{})
+		go func() {
+			testdata.AssertMatch(t, matcher1, ch)
+			close(done)
+		}()
+
+		select {
+		case <-done:
+			// good — returned before trying to read beyond the match
+		case <-time.After(time.Second):
+			t.Fatal("TheItemMatching blocked on an open channel instead of returning on first match")
+		}
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
