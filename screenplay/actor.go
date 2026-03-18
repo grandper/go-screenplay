@@ -51,6 +51,30 @@ func (a *Actor) Recall(key string) any {
 	return a.memory[key]
 }
 
+// Share starts sharing a value from the actor's memory.
+// Usage: actor.Share("mykey").With(anotherActor).
+func (a *Actor) Share(key string) *ShareAction {
+	return &ShareAction{
+		source: a,
+		key:    key,
+	}
+}
+
+// ShareAction holds the context for sharing a memory value between actors.
+type ShareAction struct {
+	source *Actor
+	key    string
+}
+
+// With completes the share by copying the value into the target actor's memory.
+func (s *ShareAction) With(target *Actor) {
+	value := s.source.Recall(s.key)
+	if value == nil {
+		return
+	}
+	target.Remember(s.key, value)
+}
+
 // Forget removes a value from the actor's memory.
 func (a *Actor) Forget(key string) {
 	delete(a.memory, key)
