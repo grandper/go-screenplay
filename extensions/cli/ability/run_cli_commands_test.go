@@ -3,6 +3,7 @@ package ability_test
 import (
 	"context"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -122,5 +123,32 @@ func TestRunCLICommands(t *testing.T) {
 	t.Run("should be able to forget", func(t *testing.T) {
 		runCLICommands := ability.RunCLICommands()
 		require.NoError(t, runCLICommands.Forget())
+	})
+
+	t.Run("Type is safe to call concurrently with a finishing interactive command", func(t *testing.T) {
+		runCLICommands := ability.RunCLICommands()
+		err := runCLICommands.Run(ctx, &ability.Command{
+			Program:     "sh",
+			Args:        []string{"-c", "read name; echo Hello, $name"},
+			Interactive: true,
+		})
+		require.NoError(t, err)
+
+		// Write input and let the command finish while a concurrent reader checks stdin.
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+			_ = runCLICommands.Type("Alice\n")
+		}()
+
+		go func() {
+			defer wg.Done()
+			// Calling Type concurrently races with the goroutine that sets stdin=nil on exit.
+			_ = runCLICommands.Type("Bob\n")
+		}()
+
+		wg.Wait()
 	})
 }
