@@ -21,7 +21,9 @@ func TestPauseAction(t *testing.T) {
 	})
 
 	t.Run("fails if no reason is provided for the PauseActionBuilder", func(t *testing.T) {
-		require.Error(t, adam.AttemptsTo(action.PauseFor(10).Seconds()))
+		err := adam.AttemptsTo(action.PauseFor(10).Seconds())
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "without a reason")
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
