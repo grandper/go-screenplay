@@ -408,6 +408,39 @@ We can create the negation of a resolution:
 err := theActor.Should(see.The(PageTitle, is.Not(Visible())))
 ```
 
+#### Creating an Anonymous Resolution
+It happens sometimes that we need a one-off resolution without creating a dedicated struct.
+We usually do this for simple or ad-hoc assertions that are not worth extracting into a reusable type.
+
+For example, we may want to assert that a value satisfies a custom condition inline:
+```go
+isPositive := screenplay.ResolutionToSeeThatTheObject("is positive", func() screenplay.Matcher {
+	return func(obj any) (bool, error) {
+		n, ok := obj.(int)
+		if !ok {
+			return false, fmt.Errorf("expected an int, got %T", obj)
+		}
+		return n > 0, nil
+	}
+})
+```
+You can also wrap the call in a function to add parameters:
+```go
+func IsEqualTo(expected any) screenplay.Resolution {
+	return screenplay.ResolutionToSeeThatTheObject(fmt.Sprintf("is equal to %v", expected), func() screenplay.Matcher {
+		return func(obj any) (bool, error) {
+			return obj == expected, nil
+		}
+	})
+}
+```
+
+Anonymous resolutions implement the `Resolution` interface just like any other resolution so that an actor
+can use them the same way:
+```go
+err := theActor.Should(see.The(CashAccount.Balance(), IsEqualTo(2000)))
+```
+
 #### Working with contexts
 Contexts are hold by actors to share information across different part of a sequence of calls.
 ```go
