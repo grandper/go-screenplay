@@ -482,6 +482,25 @@ adam := screenplay.ActorNamed("Adam")
 err := adam.AttemptsTo(FillIn().TheRegistrationForm().With(adamsData))
 ```
 
+When the parameters of a task come from questions an actor must ask first, use
+`action.FromFuncAndQuestions`. It asks each question, converts the answers to
+the parameters of the function, and performs the returned task. The first
+argument is a `fmt.Sprintf` format string used to describe the action — the
+answers to the questions are passed as its format arguments:
+```go
+err := actor.AttemptsTo(
+    action.FromFuncAndQuestions(
+        "connect to %s on port %d",
+        func(actor *screenplay.Actor, url string, port int) screenplay.Performable {
+            return connect.To(url).On(port)
+        },
+        UrlQuestion{}, PortQuestion{},
+    ),
+)
+```
+The first parameter of the function must be `*screenplay.Actor` and the remaining
+parameters must match, in order and type, the answers returned by the questions.
+
 ### Organizing Your Files
 The organization of your test code is important. An easy way to organize the code is to group the different concept together.
 
