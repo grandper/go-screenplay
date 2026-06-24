@@ -359,6 +359,11 @@ err := theActor.Should(see.The(Text.OfThe(PageTile), EndsWith("World!")))
 err := theActor.should(see.The(Text.OfThe(PageTitle), contains.TheText("lo Wor")))
 ```
 
+You can check if a slice of bytes contains another slice of bytes:
+```go
+err := theActor.Should(see.The(BytesOfThe(LastResponse), contains.TheBytes([]byte("lo Wor"))))
+```
+
 You can match a text exactly:
 ```go
 err := theActor.Should(see.The(Text.OfThe(PageTile), ReadsExactly("Hello World!")))
