@@ -412,6 +412,15 @@ err := theActor.Should(see.The(last.Of(items.InThe(TodoList)), ReadsExactly("by 
 Both fail with `ErrAnswerIsNotASlice` if the wrapped question does not answer with a slice,
 and with `ErrAnswerIsEmpty` if it answers with an empty one.
 
+When a question answers with a struct, you may want to assert against its `Body` field rather
+than the whole value. The `body` question wraps another question and answers with the `Body`
+field of the struct it returns, whatever its type:
+```go
+err := theActor.Should(see.The(body.Of(TheLastResponse), is.EqualTo("created")))
+```
+It fails with `ErrAnswerIsNotAStruct` if the wrapped question does not answer with a struct (or a
+pointer to one), and with `ErrFieldNotFound` if the struct has no `Body` field.
+
 #### Logical Operations
 We can create the negation of a resolution:
 ```go
