@@ -402,6 +402,16 @@ err := theActor.Should(see.The(HeadersOf(TheLastResponse), contains.TheKey("Cont
 err := theActor.Should(see.The(HeadersOf(TheLastResponse), contains.TheEntry("Content-Type", "application/json")))
 ```
 
+When a question answers with a slice, you may want to assert against a single element of it
+rather than the whole collection. The `first` and `last` questions wrap another question and
+answer with, respectively, the first and last element of the slice it returns:
+```go
+err := theActor.Should(see.The(first.Of(items.InThe(TodoList)), ReadsExactly("Add tests for the Go package")))
+err := theActor.Should(see.The(last.Of(items.InThe(TodoList)), ReadsExactly("by the end of the year")))
+```
+Both fail with `ErrAnswerIsNotASlice` if the wrapped question does not answer with a slice,
+and with `ErrAnswerIsEmpty` if it answers with an empty one.
+
 #### Logical Operations
 We can create the negation of a resolution:
 ```go
