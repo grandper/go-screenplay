@@ -15,19 +15,19 @@ var ErrAnswerIsNotASlice = errors.New("the answer of the question is not a slice
 var ErrAnswerIsEmpty = errors.New("the answer of the question is an empty slice")
 
 // Of creates a question whose answer is the first element of the slice answered by the wrapped question.
-func Of(question screenplay.Question) *FirstOfQuestion {
-	return &FirstOfQuestion{
+func Of(question screenplay.Question) *OfQuestion {
+	return &OfQuestion{
 		question: question,
 	}
 }
 
-// FirstOfQuestion is a question whose answer is the first element of the answer of the wrapped question.
-type FirstOfQuestion struct {
+// OfQuestion is a question whose answer is the first element of the answer of the wrapped question.
+type OfQuestion struct {
 	question screenplay.Question
 }
 
 // AnsweredBy returns the first element of the slice answered by the wrapped question.
-func (q *FirstOfQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
+func (q *OfQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
 	answer, err := q.question.AnsweredBy(actor)
 	if err != nil {
 		return nil, err
@@ -46,9 +46,9 @@ func (q *FirstOfQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
 }
 
 // String describes the question.
-func (q *FirstOfQuestion) String() string {
+func (q *OfQuestion) String() string {
 	return "first of " + q.question.String()
 }
 
-// FirstOfQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*FirstOfQuestion)(nil)
+// OfQuestion implements the screenplay.Question interface.
+var _ screenplay.Question = (*OfQuestion)(nil)

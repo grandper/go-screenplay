@@ -421,6 +421,15 @@ err := theActor.Should(see.The(body.Of(TheLastResponse), is.EqualTo("created")))
 It fails with `ErrAnswerIsNotAStruct` if the wrapped question does not answer with a struct (or a
 pointer to one), and with `ErrFieldNotFound` if the struct has no `Body` field.
 
+When a question answers with a slice or a map, you may want to assert against the number of
+elements it contains. The `number` question wraps another question and answers with the count
+of elements in the slice or map it returns:
+```go
+err := theActor.Should(see.The(number.Of(items.InThe(TodoList)), is.EqualTo(2)))
+```
+It fails with `ErrAnswerIsNotACollection` if the wrapped question does not answer with a slice or
+a map.
+
 #### Logical Operations
 We can create the negation of a resolution:
 ```go

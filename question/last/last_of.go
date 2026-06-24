@@ -15,19 +15,19 @@ var ErrAnswerIsNotASlice = errors.New("the answer of the question is not a slice
 var ErrAnswerIsEmpty = errors.New("the answer of the question is an empty slice")
 
 // Of creates a question whose answer is the last element of the slice answered by the wrapped question.
-func Of(question screenplay.Question) *LastOfQuestion {
-	return &LastOfQuestion{
+func Of(question screenplay.Question) *OfQuestion {
+	return &OfQuestion{
 		question: question,
 	}
 }
 
-// LastOfQuestion is a question whose answer is the last element of the answer of the wrapped question.
-type LastOfQuestion struct {
+// OfQuestion is a question whose answer is the last element of the answer of the wrapped question.
+type OfQuestion struct {
 	question screenplay.Question
 }
 
 // AnsweredBy returns the last element of the slice answered by the wrapped question.
-func (q *LastOfQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
+func (q *OfQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
 	answer, err := q.question.AnsweredBy(actor)
 	if err != nil {
 		return nil, err
@@ -46,9 +46,9 @@ func (q *LastOfQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
 }
 
 // String describes the question.
-func (q *LastOfQuestion) String() string {
+func (q *OfQuestion) String() string {
 	return "last of " + q.question.String()
 }
 
-// LastOfQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*LastOfQuestion)(nil)
+// OfQuestion implements the screenplay.Question interface.
+var _ screenplay.Question = (*OfQuestion)(nil)
