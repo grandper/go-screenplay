@@ -42,7 +42,20 @@ func (a *Actor) WithContext(ctx context.Context) *Actor {
 }
 
 // Remember stores a value in the actor's memory.
+// When the value is a Question, the actor answers it and stores the answer instead.
+// If the question fails to be answered, nil is stored for the key.
 func (a *Actor) Remember(key string, value any) {
+	if question, isAQuestion := value.(Question); isAQuestion {
+		answer, err := question.AnsweredBy(a)
+		if err != nil {
+			a.memory[key] = nil
+			return
+		}
+
+		a.memory[key] = answer
+		return
+	}
+
 	a.memory[key] = value
 }
 

@@ -107,6 +107,13 @@ data in a key-value store.
 actor.Remember("the user id", 1234)
 userID := actor.Recall("the user id").(int)
 ```
+You can also hand `Remember` a question directly. The actor answers it and stores
+the answer instead of the question. If the question fails to be answered, `nil` is
+stored for the key:
+```go
+actor.Remember("the user id", UserID())
+userID := actor.Recall("the user id").(int)
+```
 An actor can forget the data it has stored using
 ```go
 actor.Forget("the user id")
@@ -318,6 +325,25 @@ If you need to log the answer to a question, you can use the `Log` action:
 ```go
 err := theActor.AttemptsTo(Log(HowManyBirdsAreInTheSky()))
 err := theActor.AttemptsTo(Log(Number.Of(ItemsInTheList)))
+```
+
+#### Remembering answers to questions
+When you need to ask a question and reuse its answer later, the `Remember` action
+stores the answer in the actor's memory under a given key. You can then retrieve it
+with `Recall` (see [Actor specific session data](#actor-specific-session-data)):
+```go
+err := theActor.AttemptsTo(Remember(StatusCode()).As("statusCode"))
+statusCode := theActor.Recall("statusCode").(int)
+```
+By default the action fails if the question returns a `nil` answer. Use `AllowingNil`
+to store it anyway:
+```go
+err := theActor.AttemptsTo(Remember(OptionalData()).As("data").AllowingNil())
+```
+Like any other action, it can be combined with `Eventually` to retry until an answer
+is available:
+```go
+err := theActor.AttemptsTo(Eventually(Remember(UserProfile()).As("profile")).TryingFor(10).Seconds())
 ```
 
 #### Working with multiple actions

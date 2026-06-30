@@ -50,6 +50,23 @@ func TestActor(t *testing.T) {
 		assert.Nil(t, adam.Recall("non_existent_key"))
 	})
 
+	t.Run("remembers the answer when the value is a question", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		adam.Remember("status_code", fixture.NewFakeQuestion("status code", 200))
+
+		assert.Equal(t, 200, adam.Recall("status_code"))
+	})
+
+	t.Run("remembers nil when the question fails to be answered", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		adam.Remember("status_code", fixture.NewFailingFakeQuestion(
+			"status code",
+			errors.New("failed to get the status code"),
+		))
+
+		assert.Nil(t, adam.Recall("status_code"))
+	})
+
 	t.Run("can share information with another actor", func(t *testing.T) {
 		t.Run("copies the value to the target actor's memory", func(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam")
