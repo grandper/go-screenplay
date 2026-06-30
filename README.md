@@ -351,6 +351,13 @@ err := theActor.Should(see.AllOf(
 			loginForm, contains.TheText("Login")))
 ```
 
+You can check that all, any, or none of a set of questions match a resolution:
+```go
+err := theActor.Should(see.ThatAllOfThe(profilWidget, loginForm)(contains.TheText("Adam")))
+err := theActor.Should(see.ThatAnyOfThe(profilWidget, loginForm)(contains.TheText("Adam")))
+err := theActor.Should(see.ThatNoneOfThe(profilWidget, loginForm)(contains.TheText("Adam")))
+```
+
 #### Checking texts
 You can check if a text starts with, ends with, or contains a string:
 ```go
