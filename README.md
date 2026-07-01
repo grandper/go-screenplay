@@ -379,6 +379,36 @@ Finally, you can cap the number of actions running at the same time with `WithLi
 err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat(), DoSomethingElse()).WithLimit(2).WaitingForAll())
 ```
 
+#### Doing actions asynchronously
+When you want the actor to keep going without waiting for the actions to finish,
+use `Asynchronously`. Contrary to `Concurrently`, `AttemptsTo` returns immediately
+and the actions keep running in the background:
+```go
+err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()))
+```
+Because the actor does not wait, the errors are not returned by `AttemptsTo`. They
+are collected instead, and you can investigate them later with the
+`AsynchronousErrors` question. Answering it waits for every pending asynchronous
+action to complete and returns the slice of non-nil errors they produced:
+```go
+theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()))
+answer, _ := theActor.AsksFor(AsynchronousErrors())
+errs := answer.([]error)
+```
+Like `Concurrently`, several flavors of execution are available. By default (or
+with an explicit `WaitingForAll`) it waits for every action to complete before
+collecting the errors. Use `CancelOnError` to cancel the remaining actions as soon
+as one of them fails, or `IgnoringErrors` to discard the errors altogether:
+```go
+err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).WaitingForAll())
+err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).CancelOnError())
+err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).IgnoringErrors())
+```
+You can also cap the number of actions running at the same time with `WithLimit`:
+```go
+err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat(), DoSomethingElse()).WithLimit(2).WaitingForAll())
+```
+
 #### Trying an action or doing an alternate actions
 Sometimes you want the actor to try to do an action, and in case of failure do another one.
 You can achieve this using `Either`:
