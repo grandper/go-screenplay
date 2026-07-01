@@ -3,6 +3,8 @@ package screenplay_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -371,6 +373,35 @@ func TestActor(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, answer)
 	})
+}
+
+// TestActorIsThreadSafe exercises the actor from many goroutines at once. It is
+// meant to be run with the race detector (go test -race) to make sure the
+// concurrent access to the actor's memory and abilities is properly guarded.
+func TestActorIsThreadSafe(t *testing.T) {
+	adam := screenplay.ActorNamed("Adam")
+
+	const goroutines = 50
+
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		go func(i int) {
+			defer waitGroup.Done()
+
+			key := fmt.Sprintf("key-%d", i)
+
+			adam.Remember(key, i)
+			_ = adam.Recall(key)
+			adam.Can(flyInTheSkyAbility{})
+			_ = adam.HasAbilityTo(flyInTheSkyAbility{})
+			_ = adam.NumAbilities()
+			adam.Forget(key)
+		}(i)
+	}
+
+	waitGroup.Wait()
 }
 
 type testOrderedTask struct {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 )
 
 var (
@@ -13,9 +14,15 @@ var (
 )
 
 // Actor represents the end user.
+//
+// An Actor is safe for concurrent use: its memory, abilities and cleanup tasks
+// are guarded by a mutex so that actions running in parallel (for example with
+// action.Concurrently or action.Asynchronously) can call Remember, Recall,
+// Forget or use abilities without racing.
 type Actor struct {
 	name                    string
 	ctx                     context.Context
+	mu                      sync.RWMutex
 	abilities               map[string]Ability
 	orderedCleanupTasks     []Performable
 	independentCleanupTasks []Performable
@@ -46,21 +53,34 @@ func (a *Actor) WithContext(ctx context.Context) *Actor {
 // If the question fails to be answered, nil is stored for the key.
 func (a *Actor) Remember(key string, value any) {
 	if question, isAQuestion := value.(Question); isAQuestion {
+		// AnsweredBy is called without holding the lock: it may itself call
+		// Recall or Remember on the same actor, which would deadlock otherwise.
 		answer, err := question.AnsweredBy(a)
 		if err != nil {
-			a.memory[key] = nil
+			a.store(key, nil)
 			return
 		}
 
-		a.memory[key] = answer
+		a.store(key, answer)
 		return
 	}
+
+	a.store(key, value)
+}
+
+// store writes a value into the actor's memory under the actor's lock.
+func (a *Actor) store(key string, value any) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	a.memory[key] = value
 }
 
 // Recall retrieves a value from the actor's memory.
 func (a *Actor) Recall(key string) any {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
 	return a.memory[key]
 }
 
@@ -90,11 +110,17 @@ func (s *ShareAction) With(target *Actor) {
 
 // Forget removes a value from the actor's memory.
 func (a *Actor) Forget(key string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	delete(a.memory, key)
 }
 
 // WhoCan defines abilities that the actor can use.
 func (a *Actor) WhoCan(abilities ...Ability) *Actor {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	for _, ability := range abilities {
 		str := abilityStr(ability)
 		a.abilities[str] = ability
@@ -111,9 +137,20 @@ func (a *Actor) Can(abilities ...Ability) *Actor {
 // HasAbilityTo returns whether an actor has an ability or not.
 func (a *Actor) HasAbilityTo(ability Ability) bool {
 	str := abilityStr(ability)
-	_, ok := a.abilities[str]
+
+	_, ok := a.ability(str)
 
 	return ok
+}
+
+// ability returns the ability stored under the given name under the actor's lock.
+func (a *Actor) ability(name string) (Ability, bool) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	ability, ok := a.abilities[name]
+
+	return ability, ok
 }
 
 // UseAbilityTo is used to access the ability of an actor.
@@ -131,7 +168,7 @@ func (ae UseAbility[A]) Of(actor *Actor) (A, error) {
 	var ability A
 
 	str := abilityStr(ability)
-	if v, found := actor.abilities[str]; found {
+	if v, found := actor.ability(str); found {
 		var ok bool
 		if ability, ok = v.(A); ok {
 			return ability, nil
@@ -160,6 +197,9 @@ func abilityStr(a Ability) string {
 
 // NumAbilities returns the number of abilities of the actor.
 func (a *Actor) NumAbilities() int {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
 	return len(a.abilities)
 }
 
@@ -168,6 +208,9 @@ func (a *Actor) NumAbilities() int {
 // Ordered cleanup tasks will be performed in order.
 // When a task fails, the subsequent tasks won't be done.
 func (a *Actor) HasOrderedCleanupTasks(tasks ...Performable) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	a.orderedCleanupTasks = append(a.orderedCleanupTasks, tasks...)
 }
 
@@ -180,6 +223,9 @@ func (a *Actor) WithOrderedCleanupTasks(tasks ...Performable) {
 // Those tasks will be performed when the actor exit the stage.
 // Independent cleanup tasks will all be performed even if some of them failed.
 func (a *Actor) HasIndependentCleanupTasks(tasks ...Performable) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	a.independentCleanupTasks = append(a.independentCleanupTasks, tasks...)
 }
 
@@ -309,16 +355,21 @@ func (a *Actor) cleansUp() error {
 }
 
 func (a *Actor) cleansUpIndependentTasks() error {
+	// The tasks are snapshotted under the lock and performed without holding it,
+	// as a task may call back into the actor (Remember, Recall, ...).
+	a.mu.Lock()
+	tasks := a.independentCleanupTasks
+	a.independentCleanupTasks = []Performable{}
+	a.mu.Unlock()
+
 	var errs []error
 
-	for _, task := range a.independentCleanupTasks {
+	for _, task := range tasks {
 		err := task.PerformAs(a)
 		if err != nil {
 			errs = append(errs, err)
 		}
 	}
-
-	a.independentCleanupTasks = []Performable{}
 
 	if len(errs) > 0 {
 		return errors.Join(errs...)
@@ -328,27 +379,39 @@ func (a *Actor) cleansUpIndependentTasks() error {
 }
 
 func (a *Actor) cleansUpOrderedTasks() error {
-	for _, task := range a.orderedCleanupTasks {
+	a.mu.Lock()
+	tasks := a.orderedCleanupTasks
+	a.orderedCleanupTasks = []Performable{}
+	a.mu.Unlock()
+
+	for _, task := range tasks {
 		err := task.PerformAs(a)
 		if err != nil {
 			return err
 		}
 	}
 
-	a.orderedCleanupTasks = []Performable{}
-
 	return nil
 }
 
 func (a *Actor) forgetsAbilities() error {
+	a.mu.RLock()
+	abilities := make([]Ability, 0, len(a.abilities))
 	for _, ability := range a.abilities {
+		abilities = append(abilities, ability)
+	}
+	a.mu.RUnlock()
+
+	for _, ability := range abilities {
 		err := ability.Forget()
 		if err != nil {
 			return err
 		}
 	}
 
+	a.mu.Lock()
 	a.abilities = map[string]Ability{}
+	a.mu.Unlock()
 
 	return nil
 }

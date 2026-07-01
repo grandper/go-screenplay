@@ -118,6 +118,9 @@ An actor can forget the data it has stored using
 ```go
 actor.Forget("the user id")
 ```
+The actor's memory and abilities are safe to access from several goroutines at
+once, so `Remember`, `Recall` and `Forget` can be called from actions that run in
+parallel. See [Thread safety](#thread-safety) for the details and the caveats.
 
 ### Cast
 A cast provisions actors with abilities when they enter the stage.
@@ -418,6 +421,35 @@ You can also cap the number of actions running at the same time with `WithLimit`
 err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat(), DoSomethingElse()).WithLimit(2).WaitingForAll())
 ```
 
+#### Thread safety
+When you use `Concurrently` or `Asynchronously`, several actions run in parallel
+while sharing the **same** actor. The actor is safe for concurrent use: its
+memory (`Remember`, `Recall`, `Forget`) and its abilities (`Can`/`WhoCan`,
+`HasAbilityTo`, `UseAbilityTo`) are guarded by an internal mutex, so those calls
+will not race even when made from different goroutines at the same time.
+
+This protects the actor's own state, but it does not automatically make **your**
+actions and abilities thread-safe. Keep the following in mind when actions can run
+concurrently:
+
+- Any state your actions or abilities own (a shared HTTP client's fields, a
+  buffer, a counter, a slice you append to, ...) must be protected by your own
+  synchronization if several concurrent actions touch it.
+- The value you store with `Remember` is stored as-is. Storing a mutable value
+  (a pointer, a map, a slice) and then mutating it from several actions is still a
+  data race — the mutex only guards the storing and retrieving, not what you do
+  with the value afterwards.
+- Reading a value with `Recall` in one action while another action overwrites the
+  same key with `Remember` is safe, but the order in which concurrent actions run
+  is not guaranteed. Do not rely on one concurrent action seeing the memory
+  written by another.
+
+A good way to catch races in your own code is to run your tests with the Go race
+detector:
+```sh
+go test -race ./...
+```
+
 #### Trying an action or doing an alternate actions
 Sometimes you want the actor to try to do an action, and in case of failure do another one.
 You can achieve this using `Either`:
@@ -582,6 +614,46 @@ The context can later be retrieved using
 ```go
 ctx := actor.Context()
 ```
+When no context has been set, `actor.Context()` returns `context.Background()`, so
+it is always safe to call.
+
+##### Context propagation and cancellation
+The actor's context is how cancellation and deadlines are propagated to the
+actions it performs. Give the actor a cancellable context (for example one derived
+from `context.WithTimeout` or `context.WithCancel`, or the one provided by your
+test framework), and every action can observe it through `actor.Context()`:
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+actor := screenplay.ActorNamed("Alice").WithContext(ctx)
+```
+Actions are expected to respect this context. If an action does long-running work
+(a network call, a loop, polling, ...), it should check
+`actor.Context().Done()` periodically and stop early when the context is
+cancelled, returning `actor.Context().Err()`:
+```go
+func (a *MyAction) PerformAs(actor *screenplay.Actor) error {
+    for _, item := range a.items {
+        select {
+        case <-actor.Context().Done():
+            return actor.Context().Err()
+        default:
+        }
+
+        if err := process(item); err != nil {
+            return err
+        }
+    }
+
+    return nil
+}
+```
+Any operation that already accepts a `context.Context` (HTTP requests, database
+queries, ...) should be handed `actor.Context()` so that cancellation flows all
+the way down. This matters in particular for `Concurrently` with
+`StoppingOnError` and for `Asynchronously` with `CancelOnError`: the remaining
+actions are cancelled through the context, so they only actually stop if they are
+watching it.
 
 ## Using Gherkin-like syntax to write tests
 You are maybe familiar with the Gherkin syntax that allow you to write
