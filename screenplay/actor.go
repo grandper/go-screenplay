@@ -190,11 +190,17 @@ func (a *Actor) WithIndependentCleanupTasks(tasks ...Performable) {
 
 // AttemptsTo makes the actor perform a list of actions and return
 // an error when the first action failed.
+// Nil actions are ignored so that optional or conditionally built actions can be
+// passed without guarding against nil.
 // Aliases:
 //
 //	WasAbleTo, Does, Did, Will, TriesTo, TriedTo, Should, Shall
 func (a *Actor) AttemptsTo(actions ...Performable) error {
 	for _, action := range actions {
+		if action == nil {
+			continue
+		}
+
 		err := action.PerformAs(a)
 		if err != nil {
 			return err

@@ -12,6 +12,26 @@ import (
 	"github.com/grandper/go-screenplay/screenplay"
 )
 
+// countingPerformable is a performable that counts how many times it is performed.
+type countingPerformable struct {
+	count int
+}
+
+// PerformAs records that the performable has been performed.
+func (c *countingPerformable) PerformAs(_ *screenplay.Actor) error {
+	c.count++
+
+	return nil
+}
+
+// String describes the performable.
+func (c *countingPerformable) String() string {
+	return "counting performable"
+}
+
+// countingPerformable implements the screenplay.Performable interface.
+var _ screenplay.Performable = (*countingPerformable)(nil)
+
 func TestActor(t *testing.T) {
 	performTesting := performTestingAbility{}
 	checkErrors := checkErrorsAbility{}
@@ -296,6 +316,26 @@ func TestActor(t *testing.T) {
 	t.Run("should return an error when he failed to perform a task", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		require.Error(t, adam.AttemptsTo(openTheHomePageButFailed))
+	})
+
+	t.Run("should ignore nil actions", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		require.NoError(t, adam.AttemptsTo(nil))
+	})
+
+	t.Run("should perform non-nil actions and ignore the nil ones", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		firstAction := &countingPerformable{}
+		secondAction := &countingPerformable{}
+
+		require.NoError(t, adam.AttemptsTo(nil, firstAction, nil, secondAction, nil))
+		assert.Equal(t, 1, firstAction.count)
+		assert.Equal(t, 1, secondAction.count)
+	})
+
+	t.Run("should ignore nil actions but still report the error of a failing action", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		require.Error(t, adam.AttemptsTo(nil, openTheHomePageButFailed))
 	})
 
 	thePhoneNumber := fixture.NewFakeQuestion("phone number", "0123456789")

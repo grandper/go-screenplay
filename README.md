@@ -352,6 +352,15 @@ provide a list of actions to your actor:
 ```go
 err := theActor.AttemptsTo(DoThis(), DoThat())
 ```
+`AttemptsTo` (and its aliases) ignores `nil` actions. This lets you build the list
+of actions conditionally without having to guard against `nil`:
+```go
+var maybeLogin screenplay.Performable
+if needsLogin {
+	maybeLogin = Login()
+}
+err := theActor.AttemptsTo(maybeLogin, OpenTheDashboard())
+```
 
 #### Doing actions concurrently
 When your actor needs to perform several actions in parallel, use `Concurrently`
