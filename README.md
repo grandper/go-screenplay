@@ -353,6 +353,32 @@ provide a list of actions to your actor:
 err := theActor.AttemptsTo(DoThis(), DoThat())
 ```
 
+#### Doing actions concurrently
+When your actor needs to perform several actions in parallel, use `Concurrently`
+(or its alias `Simultaneously`):
+```go
+err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat(), DoSomethingElse()))
+```
+By default the actor waits for every action to complete and returns all the errors
+that occurred, joined together with `errors.Join`. Calling `WaitingForAll` is optional
+and makes this default explicit:
+```go
+err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat()).WaitingForAll())
+```
+Use `StoppingOnError` to cancel the remaining actions as soon as one of them fails.
+This mode relies on an `errgroup` and its context cancellation:
+```go
+err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat()).StoppingOnError())
+```
+Use `IgnoringErrors` to run every action and discard the errors that occurred:
+```go
+err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat()).IgnoringErrors())
+```
+Finally, you can cap the number of actions running at the same time with `WithLimit`:
+```go
+err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat(), DoSomethingElse()).WithLimit(2).WaitingForAll())
+```
+
 #### Trying an action or doing an alternate actions
 Sometimes you want the actor to try to do an action, and in case of failure do another one.
 You can achieve this using `Either`:
