@@ -322,6 +322,15 @@ err := adam.Should(Eventually(see.The(Text.OfThe(PageTitle), ContainsTheText("He
 err := adam.AttemptsTo(Eventually(Click.OnThe(SaveButton)).TryingEvery(100).Milliseconds())
 err := adam.WasAbleTo(Eventually(CancelTheOrder).TryingFor(5).Seconds().PollingEvery(500).Milliseconds())
 ```
+`Eventually` bounds its retry loop with a `RetryWindow`: the total time it keeps
+trying and the interval it waits between two tries. Both are configured with a
+fluent, natural-language vocabulary. To set how long the actor keeps trying use
+`For`, `TryingFor`, `TryingForNoLongerThan`, or `WaitingFor`; to set how often it
+tries use `Polling`, `PollingEvery`, or `TryingEvery`. Each of them returns a
+`utils.TimeFrameBuilder` so you then pick a unit (`Milliseconds`, `Seconds`, ...):
+```go
+err := adam.WasAbleTo(Eventually(CancelTheOrder).WaitingFor(5).Seconds().Polling(500).Milliseconds())
+```
 
 #### Logging
 If you need to log the answer to a question, you can use the `Log` action:
@@ -703,6 +712,81 @@ err := actor.AttemptsTo(
 ```
 The first parameter of the function must be `*screenplay.Actor` and the remaining
 parameters must match, in order and type, the answers returned by the questions.
+
+### Reusable builders (the `utils` package)
+The `utils` package holds small, dependency-free building blocks you can reuse
+when writing your own actions, questions, and resolutions.
+
+`TimeFrameBuilder[T]` gives any builder a fluent time API (for example
+`.For(100).Milliseconds()` or `.During(5).Seconds()`) without re-implementing the
+amount-to-`time.Duration` conversion. It follows a simple pattern — an `amount`,
+a `unit`, and a `duration` — and is generic over the parent builder type `T`. You
+hand it a pointer to the `time.Duration` field it should fill in; the unit methods
+write `amount * unit` into that field and return the parent so the fluent chain
+keeps flowing. Pointing several builders at different fields is how a parent can
+describe more than one time frame (for example how long to keep trying and how
+long to wait between tries).
+
+You supply the amount fluently with the ready-made wording vocabulary — `For`,
+`During`, `TryingFor`, `TryingForNoLongerThan`, `WaitingFor`, `Every`,
+`PollingEvery`, `TryingEvery` — so your API reads naturally without you
+re-declaring those aliases:
+```go
+func (a *MyAction) For(amount int) *utils.TimeFrameBuilder[MyAction] {
+    return utils.NewTimeFrameBuilder(a, &a.timeout).For(amount)
+}
+
+// enables: MyAction{}.For(30).Seconds()
+```
+```go
+func (a *MyAction) Polling() *utils.TimeFrameBuilder[MyAction] {
+    return utils.NewTimeFrameBuilder(a, &a.polling)
+}
+
+// enables: MyAction{}.Polling().Every(5).Seconds()
+```
+
+Its `String` method describes the time frame and matches the unit to the amount,
+so it reads `1 second` but `20 seconds`. This lets an action delegate its own
+description to the builder — for example `PauseFor(1).Second().Because("...")`
+prints `... for 1 second because ...` while `PauseFor(20).Milliseconds()` prints
+`... for 20 milliseconds ...`.
+
+`RetryWindow` bundles the two durations that bound a retry loop: the `Total` time
+during which the actor keeps trying (for how long we repeat) and the `Interval`
+it waits between two tries (how much time between every trial). It exposes a
+`Valid` method that reports whether the interval is not larger than the total:
+```go
+window := utils.NewRetryWindow(2*time.Second, 500*time.Millisecond)
+if !window.Valid() {
+    // the interval between tries is larger than the total time
+}
+```
+
+`RetryWindowBuilder[T]` layers a fluent, natural-language vocabulary on top of a
+`RetryWindow`. It is generic over the parent builder type `T` and wires a
+`TimeFrameBuilder` to each field of the window: the timeout methods (`For`,
+`TryingFor`, `TryingForNoLongerThan`, `WaitingFor`) fill in `Total`, while the
+polling methods (`Polling`, `PollingEvery`, `TryingEvery`) fill in `Interval`.
+Embed a `*RetryWindowBuilder[T]` into your builder to expose the whole vocabulary
+without re-declaring every alias:
+```go
+type MyAction struct {
+    *utils.RetryWindowBuilder[MyAction]
+    window utils.RetryWindow
+}
+
+func NewMyAction() *MyAction {
+    a := &MyAction{window: utils.NewRetryWindow(2*time.Second, 500*time.Millisecond)}
+    a.RetryWindowBuilder = utils.NewRetryWindowBuilder(a, &a.window)
+    return a
+}
+
+// enables: NewMyAction().TryingFor(5).Seconds().PollingEvery(500).Milliseconds()
+```
+This is exactly how `Eventually` configures its timeout and polling period: it
+stores them in a `RetryWindow` and embeds a `RetryWindowBuilder`, which is how the
+same wording drives two different time frames.
 
 ### Organizing Your Files
 The organization of your test code is important. An easy way to organize the code is to group the different concept together.
