@@ -58,14 +58,11 @@ func TestFromFuncAndQuestions(t *testing.T) {
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		var capturedURL string
-		var capturedPort int
 		performable := action.FromFuncAndQuestions(
-			"connect to %s on port %d",
+			"connect to the server",
 			func(_ *screenplay.Actor, url string, port int) screenplay.Performable {
 				return action.FromFunc("connect", func(_ *screenplay.Actor) error {
-					capturedURL = url
-					capturedPort = port
+					_, _ = url, port
 					return nil
 				})
 			},
@@ -73,11 +70,9 @@ func TestFromFuncAndQuestions(t *testing.T) {
 			fixture.NewFakeQuestion("the port", 8080),
 		)
 
-		assert.Equal(t, "connect to %s on port %d", performable.String())
+		assert.Equal(t, "connect to the server", performable.String())
 		require.NoError(t, adam.AttemptsTo(performable))
-		assert.Equal(t, "connect to https://example.com on port 8080", performable.String())
-		assert.Equal(t, "https://example.com", capturedURL)
-		assert.Equal(t, 8080, capturedPort)
+		assert.Equal(t, "connect to the server", performable.String())
 	})
 
 	t.Run("converts the answer when it is convertible to the expected type", func(t *testing.T) {

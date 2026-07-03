@@ -687,8 +687,18 @@ screenplay.Then(adam).Should(see.The(AccountBalance), is.EqualTo(102))
 ```
 
 ### Creating your own Performable/Task/Action
-You can use `action.FromFunc` or the task tool.
-To make the code more fluent, one can use builder methods:
+The quickest way to create a performable is `action.FromFunc`. It wraps a plain
+function of type `func(actor *screenplay.Actor) error` into a `Performable`, using
+the `description` you provide as the result of its `String` method:
+```go
+greet := action.FromFunc("greet the world", func(actor *screenplay.Actor) error {
+    fmt.Printf("Hello from %s\n", actor)
+    return nil
+})
+err := adam.AttemptsTo(greet)
+```
+To make the code more fluent, one can wrap `action.FromFunc` (or the task tool)
+behind builder methods:
 ```go
 adam := screenplay.ActorNamed("Adam")
 err := adam.AttemptsTo(FillIn().TheRegistrationForm().With(adamsData))
@@ -697,12 +707,11 @@ err := adam.AttemptsTo(FillIn().TheRegistrationForm().With(adamsData))
 When the parameters of a task come from questions an actor must ask first, use
 `action.FromFuncAndQuestions`. It asks each question, converts the answers to
 the parameters of the function, and performs the returned task. The first
-argument is a `fmt.Sprintf` format string used to describe the action — the
-answers to the questions are passed as its format arguments:
+argument is the description of the action:
 ```go
 err := actor.AttemptsTo(
     action.FromFuncAndQuestions(
-        "connect to %s on port %d",
+        "connect to the server",
         func(actor *screenplay.Actor, url string, port int) screenplay.Performable {
             return connect.To(url).On(port)
         },

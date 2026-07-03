@@ -2,7 +2,6 @@ package action
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 
 	"github.com/grandper/go-screenplay/screenplay"
@@ -48,52 +47,34 @@ var (
 	ErrAnswerNotAssignable    = errors.New("cannot assign or convert answer to expected type")
 )
 
-// FromFuncAndQuestions creates a performable from a description format string,
-// a function and questions. When String is called, the answers to the
-// questions are asked to the actor that performed the action (if any) and
-// passed as arguments to fmt.Sprintf with the format string.
+// FromFuncAndQuestions creates a performable from a description, a function and
+// questions. When performed, the answers to the questions are asked to the actor,
+// converted to the parameters of the function, and the returned task is performed.
 func FromFuncAndQuestions(
 	description string,
 	taskFunc any,
 	questions ...screenplay.Question,
 ) screenplay.Performable {
 	return &funcWithQuestionsPerformable{
-		descriptionFormat: description,
-		taskFunc:          taskFunc,
-		questions:         questions,
+		description: description,
+		taskFunc:    taskFunc,
+		questions:   questions,
 	}
 }
 
 type funcWithQuestionsPerformable struct {
-	descriptionFormat string
-	taskFunc          any
-	questions         []screenplay.Question
-	actor             *screenplay.Actor
+	description string
+	taskFunc    any
+	questions   []screenplay.Question
 }
 
-// String describes the action by asking the questions to the actor that
-// performed (or is performing) the action, and formatting descriptionFormat
-// with their answers using fmt.Sprintf. If PerformAs has not been called yet,
-// or if a question fails to answer, the format string is returned unchanged.
+// String describes the action.
 func (p *funcWithQuestionsPerformable) String() string {
-	if p.actor == nil {
-		return p.descriptionFormat
-	}
-	answers := make([]any, 0, len(p.questions))
-	for _, q := range p.questions {
-		answer, err := q.AnsweredBy(p.actor)
-		if err != nil {
-			return p.descriptionFormat
-		}
-		answers = append(answers, answer)
-	}
-
-	return fmt.Sprintf(p.descriptionFormat, answers...)
+	return p.description
 }
 
 // PerformAs performs the task or the action as the provided actor.
 func (p *funcWithQuestionsPerformable) PerformAs(actor *screenplay.Actor) error {
-	p.actor = actor
 	funcValue := reflect.ValueOf(p.taskFunc)
 	funcType := funcValue.Type()
 	if funcType.Kind() != reflect.Func {
