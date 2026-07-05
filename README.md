@@ -467,6 +467,37 @@ theActor.Will(Either(DoAction()).Or(DoDifferentAction())
 theActor.Will(Either(DoAction()).Otherwise(DoDifferentAction()))
 ```
 
+#### Performing an action conditionally
+Whereas `Either` falls back when an action *fails*, `Conditionally` chooses which
+branch to run based on a *condition being true*. Wrap the action (or actions) with
+`Conditionally` and attach the condition; only one branch is ever performed:
+```go
+theActor.AttemptsTo(
+	Conditionally(AddHeader("content-type", "application/json")).
+		If(theActor.Knows("hostname")).
+		Otherwise(GuessTheContentType()),
+)
+```
+The condition can be either a **boolean expression** (`If`, or its alias `When`) or a
+**question and a resolution** (`IfThe`, or its alias `WhenThe`) — the screenplay-native
+condition also used by `see.The`:
+```go
+theActor.AttemptsTo(
+	Conditionally(AddHeader("content-type", "application/json")).
+		IfThe(HostName, is.KnownBy(theActor)).
+		Otherwise(GuessTheContentType()),
+)
+```
+Both forms have a negation, `Unless` and `UnlessThe`:
+```go
+theActor.AttemptsTo(Conditionally(Log(TheLastResponse)).Unless(response.IsOK()))
+theActor.AttemptsTo(Conditionally(Retry()).UnlessThe(StatusCode, is.EqualTo(200)))
+```
+The `Otherwise` branch is optional. When it is omitted and the condition does not hold,
+the actor does nothing and no error is returned. A boolean condition is evaluated
+eagerly (where it is written); use the question/resolution form when the condition must
+be evaluated at the moment the action is performed.
+
 #### Observing things
 The simplest way to ask a question is tu use the action `see`.
 ```go
