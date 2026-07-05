@@ -586,7 +586,7 @@ We usually do this for simple or ad-hoc assertions that are not worth extracting
 
 For example, we may want to assert that a value satisfies a custom condition inline:
 ```go
-isPositive := screenplay.ResolutionToSeeThatTheObject("is positive", func() screenplay.Matcher {
+isPositive := resolution.FromFunc("is positive", func() screenplay.Matcher {
 	return func(obj any) (bool, error) {
 		n, ok := obj.(int)
 		if !ok {
@@ -599,7 +599,7 @@ isPositive := screenplay.ResolutionToSeeThatTheObject("is positive", func() scre
 You can also wrap the call in a function to add parameters:
 ```go
 func IsEqualTo(expected any) screenplay.Resolution {
-	return screenplay.ResolutionToSeeThatTheObject(fmt.Sprintf("is equal to %v", expected), func() screenplay.Matcher {
+	return resolution.FromFunc(fmt.Sprintf("is equal to %v", expected), func() screenplay.Matcher {
 		return func(obj any) (bool, error) {
 			return obj == expected, nil
 		}
@@ -721,6 +721,19 @@ err := actor.AttemptsTo(
 ```
 The first parameter of the function must be `*screenplay.Actor` and the remaining
 parameters must match, in order and type, the answers returned by the questions.
+
+### Creating your own Question
+The quickest way to create a question is `question.FromFunc`. It wraps a plain
+function of type `func(theActor *screenplay.Actor) (any, error)` into a `Question`,
+using the `description` you provide as the result of its `String` method:
+```go
+theAnswer := question.FromFunc("the answer", func(theActor *screenplay.Actor) (any, error) {
+    return 42, nil
+})
+answer, err := theAnswer.AnsweredBy(adam)
+```
+As with actions, you can wrap the call behind builder methods to make the code
+more fluent when the answer depends on parameters.
 
 ### Reusable builders (the `utils` package)
 The `utils` package holds small, dependency-free building blocks you can reuse
