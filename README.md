@@ -498,6 +498,39 @@ the actor does nothing and no error is returned. A boolean condition is evaluate
 eagerly (where it is written); use the question/resolution form when the condition must
 be evaluated at the moment the action is performed.
 
+#### Choosing one action out of many
+`Choose` is the multi-way generalisation of `Conditionally`: it performs the first branch
+whose condition holds. Each branch is a `To(action)` closed by its condition — `When` for
+a boolean, `WhenThe` for a question and a resolution (the multi-way `If`/`IfThe`) — and
+the fallback is a `To(action)` closed by `Otherwise()`:
+```go
+theActor.AttemptsTo(
+	Choose().
+		To(Log("success")).WhenThe(StatusCode, is.EqualTo(200)).
+		To(FollowTheRedirect()).WhenThe(StatusCode, is.EqualTo(404)).
+		To(RetryTheRequest()).When(retriesLeft > 0).
+		To(AbortTheRequest()).Otherwise(),
+)
+```
+This reads as *"choose to log success when the status code is equal to 200, to follow the
+redirect when it is equal to 404, to retry the request when …, or to abort the request
+otherwise"*. Only the first matching branch runs; there is no fall-through.
+
+When every branch switches on the **same** value, `ChooseBasedOnThe` names the question
+once and answers it a single time, taking a bare resolution per branch:
+```go
+theActor.AttemptsTo(
+	ChooseBasedOnThe(StatusCode).
+		To(Log("success")).When(is.EqualTo(200)).
+		To(FollowTheRedirect()).When(is.EqualTo(404)).
+		To(AbortTheRequest()).Otherwise(),
+)
+```
+The closing `Otherwise()` is optional; without it, an unmatched choice does nothing and
+returns no error. A `When` boolean is evaluated eagerly (where it is written); a `WhenThe`
+branch is evaluated when it is reached, so an earlier matching branch means a later
+branch's question is never asked.
+
 #### Observing things
 The simplest way to ask a question is tu use the action `see`.
 ```go
