@@ -63,21 +63,22 @@ err := anActor.AttemptsTo(SendGetRequest().To("http://www.example.com").WithCred
 ```
 
 ## New Questions
-After sending a request, an actor can ask questions about its response.
+After sending a request, an actor can ask about the HTTP responses it has
+received. `Responses()` returns every response, so it composes with the generic
+questions in the `question` package (`last.Of`, `status.CodeOf`, ...) to ask
+about a single response.
 
 You can request information about the status code of the previous request.
 ```go
-err := anActor.Should(see.The(StatusCodeOfTheLastResponse(), is.EqualTo(200)))
+err := anActor.Should(see.The(status.CodeOf(last.Of(Responses())), is.EqualTo(200)))
 ```
 
-You can request information about the headers of the previous request.
+You can request the last response itself and read its body or headers through
+its getters.
 ```go
-err := anActor.Should(see.The(HeadersOfTheLastResponse(), contains.TheEntry("Content-Type", "application/json")))
-```
-
-You can request information about the body of the previous request.
-```go
-err := anActor.Should(see.The(BodyOfTheLastResponse(), contains.TheText("Hello World")))
+response, _ := last.Of(Responses()).AnsweredBy(anActor)
+body := response.(*ability.HTTPResponse).Body()
+contentType := response.(*ability.HTTPResponse).Headers()["Content-Type"]
 ```
 
 ## Setting An Authorization Header
@@ -87,6 +88,7 @@ A common scenario is to login to get a bearer token and use it for the following
 anActor := screenplay.ActorNamed("anActor").WhoCan(MakeHTTPRequests())
 anActor.AttemptsTo(SendPostRequest().To(loginURL).WithAuth(username, password))
 
-bearerToken := BodyOfTheLastResponse().AnsweredBy(anActor)["token"]
+response, _ := last.Of(Responses()).AnsweredBy(anActor)
+bearerToken := response.(*ability.HTTPResponse).Body()
 anActor.AttemptsTo(AddHeader("Authorization", "Bearer " + bearerToken))
 ```

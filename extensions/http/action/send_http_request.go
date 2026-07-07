@@ -1,6 +1,7 @@
 package action
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,7 +15,6 @@ func SendHTTPRequest(method string) *SendHTTPRequestAction {
 	return &SendHTTPRequestAction{
 		method: method,
 		url:    "127.0.0.1",
-		body:   nil,
 		secret: false,
 	}
 }
@@ -58,7 +58,9 @@ func SendPutRequest() *SendHTTPRequestAction {
 type SendHTTPRequestAction struct {
 	method     string
 	url        string
-	body       io.Reader
+	body       []byte
+	hasBody    bool
+	bodyErr    error
 	credential *ability.Credential
 	secret     bool
 }
@@ -69,9 +71,17 @@ func (a *SendHTTPRequestAction) To(url string) *SendHTTPRequestAction {
 	return a
 }
 
-// WithBody sets the body of the request.
+// WithBody sets the body of the request. The reader is buffered so that the
+// body can be described (String) and sent (PerformAs) without being consumed,
+// and so the action can be performed more than once.
 func (a *SendHTTPRequestAction) WithBody(body io.Reader) *SendHTTPRequestAction {
-	a.body = body
+	if body == nil {
+		return a
+	}
+
+	a.hasBody = true
+	a.body, a.bodyErr = io.ReadAll(body)
+
 	return a
 }
 
@@ -107,23 +117,33 @@ func (a *SendHTTPRequestAction) String() string {
 	if a.secret {
 		return "send a secret HTTP request"
 	}
-	if a.body != nil {
-		body, err := io.ReadAll(a.body)
-		if err != nil {
-			body = []byte("failed to read the body")
+	if a.hasBody {
+		body := string(a.body)
+		if a.bodyErr != nil {
+			body = "failed to read the body"
 		}
-		return fmt.Sprintf("send a %s request to %s with body '%s'", a.method, a.url, string(body))
+		return fmt.Sprintf("send a %s request to %s with body '%s'", a.method, a.url, body)
 	}
 	return fmt.Sprintf("send a %s request to %s", a.method, a.url)
 }
 
 // PerformAs performs the task or the action as the provided actor.
 func (a *SendHTTPRequestAction) PerformAs(theActor *screenplay.Actor) error {
+	if a.bodyErr != nil {
+		return fmt.Errorf("failed to read the request body: %w", a.bodyErr)
+	}
+
 	makeHTTPRequests, err := screenplay.UseAbilityTo[*ability.MakeHTTPRequestsAbility]().Of(theActor)
 	if err != nil {
 		return err
 	}
-	return makeHTTPRequests.ToSend(a.method, a.url, a.body, a.credential)
+
+	var body io.Reader
+	if a.hasBody {
+		body = bytes.NewReader(a.body)
+	}
+
+	return makeHTTPRequests.ToSend(a.method, a.url, body, a.credential)
 }
 
 // SendHTTPRequest implements the screenplay.Action interface.
