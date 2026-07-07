@@ -6,6 +6,8 @@ import (
 	action2 "github.com/grandper/go-screenplay/action"
 	"github.com/grandper/go-screenplay/action/see"
 	"github.com/grandper/go-screenplay/extensions/cli/question"
+	"github.com/grandper/go-screenplay/extensions/cli/question/standard"
+	"github.com/grandper/go-screenplay/question/last"
 	"github.com/grandper/go-screenplay/resolution/is"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,7 +33,7 @@ func TestType(t *testing.T) {
 
 			require.NoError(t,
 				adam.AttemptsTo(
-					action2.Eventually(see.The(question.StandardOutputOfTheLastResponse()).
+					action2.Eventually(see.The(standard.OutputOf(last.Of(question.Responses()))).
 						Is(is.EqualTo([]byte("Alice in Wonderland\n"))))))
 		})
 

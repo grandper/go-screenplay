@@ -8,42 +8,41 @@ import (
 
 	"github.com/grandper/go-screenplay/extensions/cli/ability"
 	"github.com/grandper/go-screenplay/extensions/cli/action"
-
 	"github.com/grandper/go-screenplay/extensions/cli/question"
 	"github.com/grandper/go-screenplay/screenplay"
 )
 
-func TestStandardOutputOfTheLastResponse(t *testing.T) {
-	t.Run("returns the standard output of the last response", func(t *testing.T) {
+func TestResponses(t *testing.T) {
+	t.Run("returns all the responses", func(t *testing.T) {
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
 		require.NoError(t, theActor.AttemptsTo(action.RunTheCommand("echo", "Hello World")))
-		value, err := question.StandardOutputOfTheLastResponse().AnsweredBy(theActor)
+		require.NoError(t, theActor.AttemptsTo(action.RunTheCommand("echo", "Goodbye World")))
+		value, err := question.Responses().AnsweredBy(theActor)
 		require.NoError(t, err)
-		assert.Equal(t, []byte("Hello World\n"), value)
-
-		require.Error(t, theActor.AttemptsTo(action.RunTheCommand("ls", "/foobar")))
-		value, err = question.StandardOutputOfTheLastResponse().AnsweredBy(theActor)
-		require.NoError(t, err)
-		assert.Equal(t, []byte(""), value)
+		responses, ok := value.([]*ability.Result)
+		require.True(t, ok)
+		require.Len(t, responses, 2)
+		assert.Equal(t, []byte("Hello World\n"), responses[0].StdOut())
+		assert.Equal(t, []byte("Goodbye World\n"), responses[1].StdOut())
 	})
 
-	t.Run("fails when no command has been run", func(t *testing.T) {
+	t.Run("returns an empty slice when no command has been run", func(t *testing.T) {
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
-		value, err := question.StandardOutputOfTheLastResponse().AnsweredBy(theActor)
-		require.ErrorIs(t, err, question.ErrNoResponses)
-		assert.Nil(t, value)
+		value, err := question.Responses().AnsweredBy(theActor)
+		require.NoError(t, err)
+		assert.Empty(t, value)
 	})
 
 	t.Run("fails when the actor does not have the ability RunCLICommands",
 		func(t *testing.T) {
 			theActor := screenplay.ActorNamed("Adam")
-			value, err := question.StandardOutputOfTheLastResponse().AnsweredBy(theActor)
+			value, err := question.Responses().AnsweredBy(theActor)
 			require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
 			assert.Nil(t, value)
 		})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		q := question.StandardOutputOfTheLastResponse()
-		assert.Equal(t, "standard output of the last response", q.String())
+		q := question.Responses()
+		assert.Equal(t, "responses", q.String())
 	})
 }

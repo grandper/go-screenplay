@@ -7,6 +7,8 @@ import (
 	"github.com/grandper/go-screenplay/extensions/cli/ability"
 	"github.com/grandper/go-screenplay/extensions/cli/action"
 	"github.com/grandper/go-screenplay/extensions/cli/question"
+	"github.com/grandper/go-screenplay/extensions/cli/question/standard"
+	"github.com/grandper/go-screenplay/question/last"
 	"github.com/grandper/go-screenplay/screenplay"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,7 +20,7 @@ func TestRunTheCommand(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
 			require.NoError(t, adam.AttemptsTo(action.RunTheCommand("echo", "Hello, World!")))
 
-			value, err := question.StandardOutputOfTheLastResponse().AnsweredBy(adam)
+			value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
 			require.NoError(t, err)
 			assert.Equal(t, []byte("Hello, World!\n"), value)
 		})
@@ -28,7 +30,7 @@ func TestRunTheCommand(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
 			require.NoError(t, adam.AttemptsTo(action.RunTheCommand("pwd").InTheWorkingDirectory(dir)))
 
-			value, err := question.StandardOutputOfTheLastResponse().AnsweredBy(adam)
+			value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
 			require.NoError(t, err)
 			assert.Contains(t, string(value.([]byte)), dir+"\n")
 		})
@@ -38,7 +40,7 @@ func TestRunTheCommand(t *testing.T) {
 			require.NoError(t, adam.AttemptsTo(action.RunTheCommand("echo", "Hello, World!").Interactively()))
 
 			time.Sleep(time.Second)
-			value, err := question.StandardOutputOfTheLastResponse().AnsweredBy(adam)
+			value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
 			require.NoError(t, err)
 			assert.Equal(t, []byte("Hello, World!\n"), value)
 		})
@@ -50,7 +52,7 @@ func TestRunTheCommand(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
 			require.NoError(t, adam.AttemptsTo(action.RunTheCommand("sh", "-c", "echo $GREETING").WithEnv(env)))
 
-			value, err := question.StandardOutputOfTheLastResponse().AnsweredBy(adam)
+			value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
 			require.NoError(t, err)
 			assert.Equal(t, []byte("Hello, World!\n"), value)
 		})
@@ -60,7 +62,7 @@ func TestRunTheCommand(t *testing.T) {
 			require.NoError(t, adam.AttemptsTo(action.RunTheCommand("sh", "-c", "echo $GREETING").
 				WithEnvVar("GREETING", "Hello, World!")))
 
-			value, err := question.StandardOutputOfTheLastResponse().AnsweredBy(adam)
+			value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
 			require.NoError(t, err)
 			assert.Equal(t, []byte("Hello, World!\n"), value)
 		})

@@ -49,20 +49,29 @@ You can ask for the value of an environment variable using the following questio
 err := anActor.Should(see.The(EnvironmentVariableNamed("PATH"), is.EqualTo("/usr/local/bin:/usr/bin:/bin")))
 ```
 
-### The Error Code
-You can request information about the error code of the last response.
+### The Responses
+You can ask for all the responses recorded so far using the following question:
 ```go
-err := anActor.Should(see.The(ErrorCodeOfTheLastResponse(), is.EqualTo(0)))
+err := anActor.Should(see.The(Responses(), resolution.HasLength(2)))
+```
+The responses are returned in the order the commands were run.
+Combine it with the `first` or `last` questions to focus on a single response,
+and with the `errorcode` and `standard` questions to extract a specific field from a response.
+
+### The Error Code
+You can request information about the error code of a response.
+```go
+err := anActor.Should(see.The(errorcode.Of(last.Of(Responses())), is.EqualTo(0)))
 ```
 
 ### The stdout
-You can request information about the standard output of the last response.
+You can request information about the standard output of a response.
 ```go
-err := anActor.Should(see.The(StandardOutputOfTheLastResponse(), contains.TheText("Hello World")))
+err := anActor.Should(see.The(standard.OutputOf(last.Of(Responses())), contains.TheText("Hello World")))
 ```
 
 ### The stderr
-You can request information about the standard error of the last response.
+You can request information about the standard error of a response.
 ```go
-err := anActor.Should(see.The(StandardErrorOfTheLastResponse(), contains.TheText("unknown parameter '-x'")))
+err := anActor.Should(see.The(standard.ErrorOf(last.Of(Responses())), contains.TheText("unknown parameter '-x'")))
 ```
