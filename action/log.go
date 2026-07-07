@@ -1,28 +1,23 @@
 package action
 
 import (
-	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/grandper/go-screenplay/screenplay"
 )
 
-// Log logs the answer to a question.
-// This can be used for debugging purpose.
+// Log asks a question so its answer is narrated, which is handy for debugging.
+// The line is rendered by whatever adapters are attached to the actor's
+// narrator; with no adapter attached it is silent.
 func Log(question screenplay.Question) *LogAction {
 	return &LogAction{
 		question: question,
-		logFn: func(format string, args ...any) {
-			slog.Default().InfoContext(context.Background(), format, args...)
-		},
 	}
 }
 
 // LogAction is an action to log the answer to a question.
 type LogAction struct {
 	question screenplay.Question
-	logFn    func(string, ...any)
 }
 
 // String describes the action.
@@ -30,15 +25,12 @@ func (a *LogAction) String() string {
 	return fmt.Sprintf("log the %s", a.question.String())
 }
 
-// PerformAs performs the task or the action as the provided actor.
+// PerformAs asks the question through the actor so the narrator reveals its
+// answer, and returns any error the question produced.
 func (a *LogAction) PerformAs(actor *screenplay.Actor) error {
-	answer, err := a.question.AnsweredBy(actor)
-	if err != nil {
-		return err
-	}
+	_, err := actor.AsksFor(a.question)
 
-	a.logFn("the value of the '%s' is '%s'", a.question.String(), answer)
-	return nil
+	return err
 }
 
 // LogAction implements the screenplay.Performable interface.

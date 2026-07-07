@@ -332,12 +332,126 @@ tries use `Polling`, `PollingEvery`, or `TryingEvery`. Each of them returns a
 err := adam.WasAbleTo(Eventually(CancelTheOrder).WaitingFor(5).Seconds().Polling(500).Milliseconds())
 ```
 
-#### Logging
-If you need to log the answer to a question, you can use the `Log` action:
+#### Logging and narration
+As actors perform actions and ask questions, the library can emit a readable,
+hierarchical narrative of what is happening — an idea borrowed from
+[ScreenPy's narration model](https://screenpy-docs.readthedocs.io/en/latest/narration.html):
+```
+Wanda sends a GET request to /birds
+    Wanda sets the 'Accept' header to 'application/json'
+    Wanda sends a GET request to /birds
+Wanda asks for the status code of the last response
+    => 200
+```
+
+Narration is **backend independent**: the library does not force a logging
+library on you. It exposes a small `screenplay.Adapter` interface and ships two
+reference adapters — one over the standard `log` package and one over `log/slog`.
+
+By default **nothing is narrated**: an actor with no adapter attached behaves
+exactly as it does without narration, so this feature is entirely opt-in.
+
+##### Attaching a narrator
+A `Narrator` is the microphone: it fans every narrated line out to the adapters
+attached to it. The recommended way to configure it once, for the whole scenario,
+is a `Production` — an explicit configuration root you build at the top of your
+program or test:
+```go
+import (
+    "log/slog"
+
+    "github.com/grandper/go-screenplay/narrator/slogadapter"
+    "github.com/grandper/go-screenplay/screenplay"
+)
+
+narrator := screenplay.NewNarrator(slogadapter.New(slog.Default()))
+production := screenplay.NewProduction(screenplay.WithNarrator(narrator))
+
+stage := production.SetTheStage(screenplay.CastWhereEveryoneCan(MakeHTTPRequests()))
+wanda := stage.TheActorCalled("Wanda") // already narrating
+```
+Every actor the production's stage creates narrates through that same narrator:
+each actor keeps a pointer back to the production and reads the narrator from it.
+An actor built by hand with `ActorNamed`, outside any production, has no narrator
+and stays silent.
+
+##### The reference adapters
+The `log` adapter renders an indented, human-readable tree:
+```go
+import (
+    "log"
+
+    "github.com/grandper/go-screenplay/narrator/logadapter"
+)
+
+narrator := screenplay.NewNarrator(logadapter.New(log.Default()))
+```
+The `slog` adapter emits one structured record per step, preserving the actor,
+kind, depth and error as attributes:
+```go
+logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+narrator := screenplay.NewNarrator(slogadapter.New(logger))
+```
+You can attach several adapters at once; every event is delivered to each of them:
+```go
+narrator := screenplay.NewNarrator(logadapter.New(log.Default()))
+narrator.AttachAdapter(slogadapter.New(slog.Default()))
+```
+
+##### Writing a custom adapter
+Anything implementing the one-method `screenplay.Adapter` interface works, so you
+can render the narrative through `zap`, `zerolog`, an Allure-style reporter, a
+`testing.TB` (so the narrative shows up in `go test -v`), an in-memory recorder
+for asserting on it in tests, and so on:
+```go
+type TestingAdapter struct{ t testing.TB }
+
+func (a TestingAdapter) Narrate(event screenplay.Event) {
+    if event.Phase == screenplay.PhaseEnd && event.Err == nil && event.Answer == nil {
+        return
+    }
+    a.t.Logf("%s%s", strings.Repeat("  ", event.Depth), event.Message)
+}
+```
+The `fixture` package ships a ready-made `fixture.Recorder` that records every
+`screenplay.Event`, which is handy to assert on the narrative a scenario produces.
+
+##### The `Log` action
+The `Log` action asks a question so the narrator reveals its answer, honouring
+whatever adapters you configured (with none attached it stays silent):
 ```go
 err := theActor.AttemptsTo(Log(HowManyBirdsAreInTheSky()))
 err := theActor.AttemptsTo(Log(Number.Of(ItemsInTheList)))
 ```
+
+##### Silencing steps with `Silently`
+Wrap a performable with `action.Silently` (or a question with `question.Silently`)
+to mute the narration its steps would produce: the nested beats and asides it
+would emit never reach the adapters, collapsing a whole sub-tree into a single,
+opaque line. It keeps secrets out of the logs — a step that types a password or
+sets an authorization header can be silenced so its value never reaches an
+adapter — and trims the noise of a verbose task:
+```go
+err := theActor.AttemptsTo(action.Silently(LogInAs("wanda", secret)))
+answer, err := theActor.AsksFor(question.Silently(TheAuthToken()))
+```
+Only the wrapped step's own line is still narrated; everything underneath is
+dropped. `Silently` mutes a private view of the actor rather than the actor
+itself, so it is safe under `Concurrently`: a silenced branch never mutes another
+branch running at the same time.
+
+##### Forcing all narration
+When debugging, you often want to see every step — including the ones a
+`Silently` would hide. Build the production with `WithForceAllNarration` and
+every action and question narrates as usual, even the steps a `Silently` would
+otherwise mute:
+```go
+production := screenplay.NewProduction(
+    screenplay.WithNarrator(narrator),
+    screenplay.WithForceAllNarration(),
+)
+```
+`production.ForceAllNarration()` reports whether it is set.
 
 #### Remembering answers to questions
 When you need to ask a question and reuse its answer later, the `Remember` action

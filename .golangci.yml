@@ -440,6 +440,11 @@ linters:
       - text: 'comment on exported \S+ \S+ should be of the form ".+"'
         source: '// ?(nolint|TODO)'
         linters: [ revive, staticcheck ]
+      # The logadapter package deliberately bridges narration onto the standard
+      # library "log" package, so it is exempt from the log/slog depguard rule.
+      - path: 'narrator/logadapter/'
+        linters:
+          - depguard
       - path: '_test\.go'
         linters:
           - bodyclose

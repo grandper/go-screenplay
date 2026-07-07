@@ -1,7 +1,9 @@
 package action_test
 
 import (
+	"bytes"
 	"errors"
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,5 +30,21 @@ func TestLogAction(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		action1 := action.Log(formField)
 		assert.Equal(t, "log the form field", action1.String())
+	})
+
+	t.Run("produces no output when no adapter is attached", func(t *testing.T) {
+		var buffer bytes.Buffer
+
+		// Capture the default slog logger, the sink the action historically
+		// wrote to, so the test fails if any output is produced without an
+		// adapter attached.
+		previousDefault := slog.Default()
+		slog.SetDefault(slog.New(slog.NewTextHandler(&buffer, nil)))
+		t.Cleanup(func() { slog.SetDefault(previousDefault) })
+
+		silentActor := screenplay.ActorNamed("Adam") // no narrator, no adapter
+
+		require.NoError(t, silentActor.AttemptsTo(action.Log(formField)))
+		assert.Empty(t, buffer.String())
 	})
 }

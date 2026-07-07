@@ -11,9 +11,10 @@ var (
 
 // Stage manages actors and tracks which one is in the spotlight.
 type Stage struct {
-	cast      Cast
-	actors    map[string]*Actor
-	spotlight *Actor
+	cast       Cast
+	production *Production
+	actors     map[string]*Actor
+	spotlight  *Actor
 }
 
 // SetTheStage creates a new stage with the given cast.
@@ -32,6 +33,7 @@ func (s *Stage) TheActorCalled(name string) *Actor {
 	actor, exists := s.actors[key]
 	if !exists {
 		actor = ActorNamed(name)
+		actor.production = s.production
 		s.cast.Prepare(actor)
 		s.actors[key] = actor
 	}

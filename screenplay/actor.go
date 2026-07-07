@@ -20,8 +20,19 @@ var (
 // action.Concurrently or action.Asynchronously) can call Remember, Recall,
 // Forget or use abilities without racing.
 type Actor struct {
+	*actorCore
+	muted bool // a view's own flag; the actor itself is never muted
+}
+
+// actorCore holds the state shared by every view of an actor. A view (see
+// Muted) shares this core by pointer, so all views see the same memory,
+// abilities, cleanup tasks and production while each may decide on its own
+// whether to narrate. This lets a decorator mute a scoped run without ever
+// touching state other goroutines read.
+type actorCore struct {
 	name                    string
 	ctx                     context.Context
+	production              *Production
 	mu                      sync.RWMutex
 	abilities               map[string]Ability
 	orderedCleanupTasks     []Performable
@@ -43,9 +54,46 @@ func (a *Actor) Context() context.Context {
 	return a.ctx
 }
 
+// WithContext sets the context the actor uses for cancellation and deadlines.
 func (a *Actor) WithContext(ctx context.Context) *Actor {
 	a.ctx = ctx
 	return a
+}
+
+// narrator returns the microphone the actor narrates through, never nil: its
+// production's narrator, or a silent one when it has no production, so it is
+// always safe to narrate.
+func (a *Actor) narrator() *Narrator {
+	if a.production != nil {
+		if narrator := a.production.Narrator(); narrator != nil {
+			return narrator
+		}
+	}
+
+	return &Narrator{}
+}
+
+// narrates reports whether the actor should narrate its next step: it has an
+// active narrator and is either not muted or forced to narrate anyway by a
+// production configured with WithForceAllNarration.
+func (a *Actor) narrates() bool {
+	if a.muted && !(a.production != nil && a.production.forceAllNarration) {
+		return false
+	}
+
+	return a.narrator().active()
+}
+
+// Muted returns a view of the actor whose narration is muted: the steps it
+// performs emit nothing, unless its production forces all narration. The view
+// shares the actor's memory, abilities and cleanup tasks, so muting never
+// touches the actor itself nor any concurrent branch. It is how action.Silently
+// and question.Silently suppress narration.
+func (a *Actor) Muted() *Actor {
+	return &Actor{
+		actorCore: a.actorCore,
+		muted:     true,
+	}
 }
 
 // Remember stores a value in the actor's memory.
@@ -247,7 +295,23 @@ func (a *Actor) AttemptsTo(actions ...Performable) error {
 			continue
 		}
 
-		err := action.PerformAs(a)
+		// When the actor is not narrating (no adapter, or muted without a
+		// production forcing narration) the action is performed directly, without
+		// paying for its description (String may be costly or, for some actions,
+		// have side effects).
+		if !a.narrates() {
+			if err := action.PerformAs(a); err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		message := fmt.Sprintf("%s %s", a.name, action.String())
+
+		err := a.narrator().StatesTheFact(a.name, message, func() error {
+			return action.PerformAs(a)
+		})
 		if err != nil {
 			return err
 		}
@@ -328,7 +392,18 @@ func (a *Actor) Should(actions ...Performable) error {
 
 // AsksFor asks the given question.
 func (a *Actor) AsksFor(question Question) (any, error) {
-	return question.AnsweredBy(a)
+	if !a.narrates() {
+		return question.AnsweredBy(a)
+	}
+
+	narrator := a.narrator()
+	message := fmt.Sprintf("%s asks for %s", a.name, question.String())
+	narrator.WhispersTheAside(a.name, message)
+
+	answer, err := question.AnsweredBy(a)
+	narrator.RevealsTheAnswer(a.name, message, answer, err)
+
+	return answer, err
 }
 
 // Sees asks a question about what the actor sees on the screen.
@@ -419,10 +494,12 @@ func (a *Actor) forgetsAbilities() error {
 // ActorNamed creates a new actor with the provided name.
 func ActorNamed(name string) *Actor {
 	return &Actor{
-		name:                    name,
-		abilities:               map[string]Ability{},
-		orderedCleanupTasks:     []Performable{},
-		independentCleanupTasks: []Performable{},
-		memory:                  map[string]any{},
+		actorCore: &actorCore{
+			name:                    name,
+			abilities:               map[string]Ability{},
+			orderedCleanupTasks:     []Performable{},
+			independentCleanupTasks: []Performable{},
+			memory:                  map[string]any{},
+		},
 	}
 }
