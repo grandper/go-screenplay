@@ -33,7 +33,7 @@ func AnyOf(tuples ...any) *AnyOfAction {
 			return &AnyOfAction{err: errors.New("invalid arguments: expected a Resolution at position " + strconv.Itoa(i))}
 		}
 
-		action.tests = append(action.tests, The(question, resolution))
+		action.tests = append(action.tests, The(question).Is(resolution))
 	}
 
 	return action

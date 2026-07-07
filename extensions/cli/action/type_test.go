@@ -31,8 +31,8 @@ func TestType(t *testing.T) {
 
 			require.NoError(t,
 				adam.AttemptsTo(
-					action2.Eventually(see.The(question.StandardOutputOfTheLastResponse(),
-						is.EqualTo([]byte("Alice in Wonderland\n"))))))
+					action2.Eventually(see.The(question.StandardOutputOfTheLastResponse()).
+						Is(is.EqualTo([]byte("Alice in Wonderland\n"))))))
 		})
 
 		t.Run("fails when no command is running", func(t *testing.T) {

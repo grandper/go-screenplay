@@ -28,14 +28,14 @@ func TestHeadersOfTheLastResponseQuestion(t *testing.T) {
 		assert.NoError(
 			t,
 			adam.AttemptsTo(
-				see.The(question.HeadersOfTheLastResponse(), contains.TheEntry("Content-Type", "application/json")),
+				see.The(question.HeadersOfTheLastResponse()).Does(contains.TheEntry("Content-Type", "application/json")),
 			),
 		)
 	})
 
 	t.Run("fails to get the headers of the last response when no request has been made", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
-		assert.Error(t, adam.AttemptsTo(see.The(question.HeadersOfTheLastResponse(), contains.TheText("Hello World"))))
+		assert.Error(t, adam.AttemptsTo(see.The(question.HeadersOfTheLastResponse()).Does(contains.TheText("Hello World"))))
 	})
 
 	t.Run(
@@ -44,7 +44,7 @@ func TestHeadersOfTheLastResponseQuestion(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam")
 			assert.Error(
 				t,
-				adam.AttemptsTo(see.The(question.HeadersOfTheLastResponse(), contains.TheText("Hello World"))),
+				adam.AttemptsTo(see.The(question.HeadersOfTheLastResponse()).Is(contains.TheText("Hello World"))),
 			)
 		},
 	)

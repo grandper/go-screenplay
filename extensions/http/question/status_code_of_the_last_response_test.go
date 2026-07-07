@@ -24,19 +24,19 @@ func TestStatusCodeOfTheLastResponseQuestion(t *testing.T) {
 		defer server.Close()
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
 		assert.NoError(t, adam.AttemptsTo(action.SendGetRequest().To(server.URL)))
-		assert.NoError(t, adam.AttemptsTo(see.The(question.StatusCodeOfTheLastResponse(), is.EqualTo(200))))
+		assert.NoError(t, adam.AttemptsTo(see.The(question.StatusCodeOfTheLastResponse()).Is(is.EqualTo(200))))
 	})
 
 	t.Run("fails to get the status code of the last response when no request has been made", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
-		assert.Error(t, adam.AttemptsTo(see.The(question.StatusCodeOfTheLastResponse(), is.EqualTo(200))))
+		assert.Error(t, adam.AttemptsTo(see.The(question.StatusCodeOfTheLastResponse()).Is(is.EqualTo(200))))
 	})
 
 	t.Run(
 		"fails to get the status code of the last response if the actor does not have the ability MakeHttpRequest",
 		func(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam")
-			assert.Error(t, adam.AttemptsTo(see.The(question.StatusCodeOfTheLastResponse(), is.EqualTo(200))))
+			assert.Error(t, adam.AttemptsTo(see.The(question.StatusCodeOfTheLastResponse()).Is(is.EqualTo(200))))
 		},
 	)
 

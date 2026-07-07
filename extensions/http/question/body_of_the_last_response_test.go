@@ -24,12 +24,12 @@ func TestBodyOfTheLastResponseQuestion(t *testing.T) {
 		defer server.Close()
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
 		assert.NoError(t, adam.AttemptsTo(action.SendGetRequest().To(server.URL)))
-		assert.NoError(t, adam.AttemptsTo(see.The(question.BodyOfTheLastResponse(), contains.TheText("Hello World"))))
+		assert.NoError(t, adam.AttemptsTo(see.The(question.BodyOfTheLastResponse()).Does(contains.TheText("Hello World"))))
 	})
 
 	t.Run("fails to get the body of the last response when no request has been made", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
-		assert.Error(t, adam.AttemptsTo(see.The(question.BodyOfTheLastResponse(), contains.TheText("Hello World"))))
+		assert.Error(t, adam.AttemptsTo(see.The(question.BodyOfTheLastResponse()).Does(contains.TheText("Hello World"))))
 	})
 
 	t.Run(
@@ -38,7 +38,7 @@ func TestBodyOfTheLastResponseQuestion(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam")
 			assert.Error(
 				t,
-				adam.AttemptsTo(see.The(question.BodyOfTheLastResponse(), contains.TheText("Hello World"))),
+				adam.AttemptsTo(see.The(question.BodyOfTheLastResponse()).Is(contains.TheText("Hello World"))),
 			)
 		},
 	)

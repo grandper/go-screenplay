@@ -289,7 +289,7 @@ For example, if we have a question `TitleOfThePage` that returns the title of an
 and a resolution that checks that the value is equal to "Some great title", then we can use
 the action `see.The` to perform our test.
 ```go
-err := theActor.Should(see.The(Text.OfThe(TitleOfThePage), is.EqualTo("Some great title")))
+err := theActor.Should(see.The(Text.OfThe(TitleOfThePage)).Is(is.EqualTo("Some great title")))
 ```
 
 ## Usage
@@ -318,7 +318,7 @@ However, if you need to wait until something happens, you may want to use `Stop`
 
 Finally, if you expect an action to fail repeatedly until finally it succeeds, you should use `Eventually`.
 ```go
-err := adam.Should(Eventually(see.The(Text.OfThe(PageTitle), ContainsTheText("Hello World!"))))
+err := adam.Should(Eventually(see.The(Text.OfThe(PageTitle)).Does(ContainsTheText("Hello World!"))))
 err := adam.AttemptsTo(Eventually(Click.OnThe(SaveButton)).TryingEvery(100).Milliseconds())
 err := adam.WasAbleTo(Eventually(CancelTheOrder).TryingFor(5).Seconds().PollingEvery(500).Milliseconds())
 ```
@@ -534,7 +534,7 @@ branch's question is never asked.
 #### Observing things
 The simplest way to ask a question is tu use the action `see`.
 ```go
-err := theActor.Should(see.The(Text.OfThe(PageTile), StartsWith("Hello")))
+err := theActor.Should(see.The(Text.OfThe(PageTile)).Does(StartsWith("Hello")))
 ```
 
 It is possible to check if the actor sees any or all of a list of question-resolution pair.
@@ -557,39 +557,39 @@ err := theActor.Should(see.ThatNoneOfThe(profilWidget, loginForm)(contains.TheTe
 #### Checking texts
 You can check if a text starts with, ends with, or contains a string:
 ```go
-err := theActor.Should(see.The(Text.OfThe(PageTile), StartsWith("Hello")))
-err := theActor.Should(see.The(Text.OfThe(PageTile), EndsWith("World!")))
-err := theActor.should(see.The(Text.OfThe(PageTitle), contains.TheText("lo Wor")))
+err := theActor.Should(see.The(Text.OfThe(PageTile)).Does(StartsWith("Hello")))
+err := theActor.Should(see.The(Text.OfThe(PageTile)).Does(EndsWith("World!")))
+err := theActor.should(see.The(Text.OfThe(PageTitle)).Does(contains.TheText("lo Wor")))
 ```
 
 You can check if a slice of bytes contains another slice of bytes:
 ```go
-err := theActor.Should(see.The(BytesOfThe(LastResponse), contains.TheBytes([]byte("lo Wor"))))
+err := theActor.Should(see.The(BytesOfThe(LastResponse)).Does(contains.TheBytes([]byte("lo Wor"))))
 ```
 
 You can match a text exactly:
 ```go
-err := theActor.Should(see.The(Text.OfThe(PageTile), ReadsExactly("Hello World!")))
+err := theActor.Should(see.The(Text.OfThe(PageTile)).Does(ReadsExactly("Hello World!")))
 ```
 
 You can use regex to match a text:
 ```go
-err := theActor.Should(see.The(Text.OfThe(PageTitle), Matches(`^Hello \w+`)))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(Matches(`^Hello \w+`)))
 pattern := regexp.MustCompile(`^Hello \w+`)
-err := theActor.Should(see.The(Text.OfThe(PageTitle), Matches(pattern))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(Matches(pattern))
 ```
 
 #### Checking numbers
 You can assess the value of numbers as follows:
 ```go
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList)), is.EqualTo(0)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList)), is.LessThan(1)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList)), is.LessThanOrEqualTo(1)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList)), is.GreaterThan(1)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList)), is.GreaterThanOrEqualTo(1)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(is.EqualTo(0)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(is.LessThan(1)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(is.LessThanOrEqualTo(1)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(is.GreaterThan(1)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(is.GreaterThanOrEqualTo(1)))
 delta := 25
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList)), is.CloseTo(101, delta)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList)), is.InRange(1, 5)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(is.CloseTo(101, delta)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(is.InRange(1, 5)))
 ```
 
 #### Checking collections
@@ -597,25 +597,25 @@ There are a couple of collection types in Golan such as slices and maps.
 
 There exists a couple of resolutions to check slices:
 ```go
-err := theActor.Should(see.The(List.OfAll(items.InThe(TodoList)), is.Empty()))
-err := theActor.Should(see.The(items.InThe(TodoList), contains.TheItem("Add tests for the Go package")))
-err := theActor.Should(see.The(items.InThe(TodoList), has.Length(5)))
-err := theActor.should(see.The(Text.OfAll(items.InThe(TodoList)), contains.TheItem("by the end of the year")))
+err := theActor.Should(see.The(List.OfAll(items.InThe(TodoList))).Is(is.Empty()))
+err := theActor.Should(see.The(items.InThe(TodoList)).Does(contains.TheItem("Add tests for the Go package")))
+err := theActor.Should(see.The(items.InThe(TodoList)).Has(has.Length(5)))
+err := theActor.should(see.The(Text.OfAll(items.InThe(TodoList))).Does(contains.TheItem("by the end of the year")))
 ```
 
 Here are a couple of options to test maps:
 ```go
-err := theActor.Should(see.The(HeadersOf(TheLastResponse), contains.TheValue("application/json")))
-err := theActor.Should(see.The(HeadersOf(TheLastResponse), contains.TheKey("Content-Type")))
-err := theActor.Should(see.The(HeadersOf(TheLastResponse), contains.TheEntry("Content-Type", "application/json")))
+err := theActor.Should(see.The(HeadersOf(TheLastResponse)).Does(contains.TheValue("application/json")))
+err := theActor.Should(see.The(HeadersOf(TheLastResponse)).Does(contains.TheKey("Content-Type")))
+err := theActor.Should(see.The(HeadersOf(TheLastResponse)).Does(contains.TheEntry("Content-Type", "application/json")))
 ```
 
 When a question answers with a slice, you may want to assert against a single element of it
 rather than the whole collection. The `first` and `last` questions wrap another question and
 answer with, respectively, the first and last element of the slice it returns:
 ```go
-err := theActor.Should(see.The(first.Of(items.InThe(TodoList)), ReadsExactly("Add tests for the Go package")))
-err := theActor.Should(see.The(last.Of(items.InThe(TodoList)), ReadsExactly("by the end of the year")))
+err := theActor.Should(see.The(first.Of(items.InThe(TodoList))).Does(ReadsExactly("Add tests for the Go package")))
+err := theActor.Should(see.The(last.Of(items.InThe(TodoList))).Does(ReadsExactly("by the end of the year")))
 ```
 Both fail with `ErrAnswerIsNotASlice` if the wrapped question does not answer with a slice,
 and with `ErrAnswerIsEmpty` if it answers with an empty one.
@@ -625,9 +625,9 @@ than the whole value. The `body`, `data`, and `header` questions wrap another qu
 with, respectively, the `Body`, `Data`, and `Header` field of the struct it returns, whatever its
 type:
 ```go
-err := theActor.Should(see.The(body.Of(TheLastResponse), is.EqualTo("created")))
-err := theActor.Should(see.The(data.Of(last.Of(NATSMessages)), is.EqualTo("payload")))
-err := theActor.Should(see.The(header.Of(last.Of(HTTPResponses)), is.EqualTo("application/json")))
+err := theActor.Should(see.The(body.Of(TheLastResponse)).Is(is.EqualTo("created")))
+err := theActor.Should(see.The(data.Of(last.Of(NATSMessages))).Is(is.EqualTo("payload")))
+err := theActor.Should(see.The(header.Of(last.Of(HTTPResponses))).Is(is.EqualTo("application/json")))
 ```
 They fail with `ErrAnswerIsNotAStruct` if the wrapped question does not answer with a struct (or a
 pointer to one), and with `ErrFieldNotFound` if the struct has no matching field.
@@ -636,16 +636,24 @@ When a question answers with a slice or a map, you may want to assert against th
 elements it contains. The `number` question wraps another question and answers with the count
 of elements in the slice or map it returns:
 ```go
-err := theActor.Should(see.The(number.Of(items.InThe(TodoList)), is.EqualTo(2)))
+err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Is(is.EqualTo(2)))
 ```
 It fails with `ErrAnswerIsNotACollection` if the wrapped question does not answer with a slice or
 a map.
 
-#### Logical Operations
-We can create the negation of a resolution:
+#### Choosing the verb, and negating
+`see.The(question)` returns a builder on which you pick the verb — and its negation — that
+makes the assertion read as plain English. Every verb has a positive and a negated method:
+`Is`/`IsNot`, `Are`/`AreNot`, `Does`/`DoesNot`, `Do`/`DoNot`, `Has`/`HasNot`, `Have`/`HaveNot`,
+`Had`/`HadNot`, `Was`/`WasNot`, `Were`/`WereNot`.
 ```go
-err := theActor.Should(see.The(PageTitle, is.Not(Visible())))
+err := theActor.Should(see.The(PageTitle).Is(Visible()))
+err := theActor.Should(see.The(PageTitle).IsNot(Visible()))
+err := theActor.Should(see.The(TheResponse).DoesNot(contains.TheText("error")))
+err := theActor.Should(see.The(TheItems).AreNot(is.Empty()))
 ```
+The negated methods simply invert the resolution's outcome, so the same resolution is used
+for both the positive and the negative assertion — there are no separate "not" resolutions.
 
 #### Creating an Anonymous Resolution
 It happens sometimes that we need a one-off resolution without creating a dedicated struct.
@@ -677,7 +685,7 @@ func IsEqualTo(expected any) screenplay.Resolution {
 Anonymous resolutions implement the `Resolution` interface just like any other resolution so that an actor
 can use them the same way:
 ```go
-err := theActor.Should(see.The(CashAccount.Balance(), IsEqualTo(2000)))
+err := theActor.Should(see.The(CashAccount.Balance()).Is(IsEqualTo(2000)))
 ```
 
 #### Working with contexts
@@ -748,9 +756,9 @@ Here's an example:
 The library provide some functions to reproduce the Gherkin flow in your test:
 ```go
 adam := screenplay.ActorNamed("Adam")
-screenplay.Given(adam).WasAbleTo(see.The(AccountBalance, is.Equal(2)))
+screenplay.Given(adam).WasAbleTo(see.The(AccountBalance).Is(is.Equal(2)))
 screenplay.When(adam).AttemptsTo(Deposit(100).Dollars())
-screenplay.Then(adam).Should(see.The(AccountBalance), is.EqualTo(102))
+screenplay.Then(adam).Should(see.The(AccountBalance).Is(is.EqualTo(102)))
 ```
 
 ### Creating your own Performable/Task/Action
