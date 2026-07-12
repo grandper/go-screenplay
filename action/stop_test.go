@@ -12,7 +12,7 @@ import (
 
 	"github.com/grandper/go-screenplay/action"
 	"github.com/grandper/go-screenplay/fixture"
-	"github.com/grandper/go-screenplay/resolution/is"
+	"github.com/grandper/go-screenplay/resolution/equal"
 	"github.com/grandper/go-screenplay/resolution/testdata"
 	"github.com/grandper/go-screenplay/screenplay"
 )
@@ -48,17 +48,17 @@ func TestStopAction(t *testing.T) {
 			formFieldWillChange.AnswerWith("hello world")
 		}()
 
-		require.NoError(t, adam.AttemptsTo(action.Stop().UntilThe(formFieldWillChange, is.EqualTo("hello world"))))
+		require.NoError(t, adam.AttemptsTo(action.Stop().UntilThe(formFieldWillChange, equal.To("hello world"))))
 	})
 
 	t.Run("fails if the attempt continuously failed", func(t *testing.T) {
-		err := adam.AttemptsTo(action.Stop().UntilThe(formField, is.EqualTo("hello world")))
+		err := adam.AttemptsTo(action.Stop().UntilThe(formField, equal.To("hello world")))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), fmt.Sprintf("stopped for %s,", screenplay.DefaultTimeout))
 	})
 
 	t.Run("fails when the question fails", func(t *testing.T) {
-		require.Error(t, adam.AttemptsTo(action.Stop().UntilThe(failingFormField, is.EqualTo("hello world"))))
+		require.Error(t, adam.AttemptsTo(action.Stop().UntilThe(failingFormField, equal.To("hello world"))))
 	})
 
 	t.Run("fails when the resolution fails", func(t *testing.T) {
@@ -69,7 +69,7 @@ func TestStopAction(t *testing.T) {
 		action1 := action.Stop()
 		assert.Equal(t, "stop until the 'enter' key is pressed", action1.String())
 
-		action2 := action.Stop().UntilThe(formField, is.EqualTo("finished"))
+		action2 := action.Stop().UntilThe(formField, equal.To("finished"))
 		assert.Equal(t, "stop until the form field is equal to finished", action2.String())
 	})
 

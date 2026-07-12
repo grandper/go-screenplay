@@ -20,9 +20,12 @@ var (
 // If the action cannot be achieved until the timeout is reached, an error containing all
 // unique failure errors encountered during retries is raised.
 func Eventually(performable screenplay.Performable) *EventuallyAction {
+	// The window starts unset (zero durations): each side is filled from the
+	// actor's production at PerformAs unless the caller overrides it through the
+	// RetryWindowBuilder (For, Polling, ...).
 	action := &EventuallyAction{
 		performable: performable,
-		window:      utils.NewRetryWindow(screenplay.DefaultTimeout, screenplay.DefaultPolling),
+		window:      utils.NewRetryWindow(0, 0),
 		caughtErr:   nil,
 		uniqueErrs:  []error{},
 	}
@@ -50,7 +53,9 @@ func (a *EventuallyAction) String() string {
 
 // PerformAs performs the task or the action as the provided actor.
 func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
-	if !a.window.Valid() {
+	window := a.windowFor(theActor)
+
+	if !window.Valid() {
 		return fmt.Errorf(
 			"failed to eventually performed the action: %w",
 			ErrPollingPeriodMustBeLessThanOrEqualToTimeout,
@@ -59,10 +64,10 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 
 	a.uniqueErrs = []error{}
 
-	timeoutTimer := time.NewTimer(a.window.Total)
+	timeoutTimer := time.NewTimer(window.Total)
 	defer timeoutTimer.Stop()
 
-	pollingTicker := time.NewTicker(a.window.Interval)
+	pollingTicker := time.NewTicker(window.Interval)
 	defer pollingTicker.Stop()
 
 	errCh := make(chan error, 1)
@@ -88,7 +93,7 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 			localCount := count
 			mutex.RUnlock()
 			return fmt.Errorf("an error occurred when %s tried to eventually %s %d times over %f seconds: %w",
-				theActor.Name(), a.performable, localCount, a.window.Total.Seconds(), errors.Join(a.uniqueErrs...))
+				theActor.Name(), a.performable, localCount, window.Total.Seconds(), errors.Join(a.uniqueErrs...))
 		case <-tick:
 			tick = nil
 
@@ -105,6 +110,25 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 			tick = pollingTicker.C
 		}
 	}
+}
+
+// windowFor resolves the retry window used for a given actor. It returns a copy
+// of the configured window with any side left unset (zero) filled from the
+// actor's production timeout and polling interval, so the action reads timeout
+// and polling from the production while still honoring explicit overrides made
+// through the RetryWindowBuilder.
+func (a *EventuallyAction) windowFor(theActor *screenplay.Actor) utils.RetryWindow {
+	window := a.window
+
+	if window.Total == 0 {
+		window.Total = theActor.Timeout()
+	}
+
+	if window.Interval == 0 {
+		window.Interval = theActor.Polling()
+	}
+
+	return window
 }
 
 // containsErr reports whether err is already represented in errs by message.

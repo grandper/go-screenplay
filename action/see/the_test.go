@@ -9,7 +9,7 @@ import (
 
 	"github.com/grandper/go-screenplay/action/see"
 	"github.com/grandper/go-screenplay/fixture"
-	"github.com/grandper/go-screenplay/resolution/is"
+	"github.com/grandper/go-screenplay/resolution/equal"
 	"github.com/grandper/go-screenplay/resolution/testdata"
 	"github.com/grandper/go-screenplay/screenplay"
 )
@@ -27,17 +27,17 @@ func TestSeeTheAction(t *testing.T) {
 
 	t.Run("should see something", func(t *testing.T) {
 		t.Parallel()
-		require.NoError(t, adam.AttemptsTo(see.The(formField).Is(is.EqualTo("hello world"))))
+		require.NoError(t, adam.AttemptsTo(see.The(formField).Is(equal.To("hello world"))))
 	})
 
 	t.Run("fails when there is nothing to see", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, adam.AttemptsTo(see.The(formField).Is(is.EqualTo("hello everybody"))))
+		require.Error(t, adam.AttemptsTo(see.The(formField).Is(equal.To("hello everybody"))))
 	})
 
 	t.Run("fails when the actor fails to answer the question", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, adam.AttemptsTo(see.The(missingFormField).Is(is.EqualTo("hello everybody"))))
+		require.Error(t, adam.AttemptsTo(see.The(missingFormField).Is(equal.To("hello everybody"))))
 	})
 
 	t.Run("fails when the resolution fails", func(t *testing.T) {
@@ -47,12 +47,12 @@ func TestSeeTheAction(t *testing.T) {
 
 	t.Run("sees the negation when the resolution does not match", func(t *testing.T) {
 		t.Parallel()
-		require.NoError(t, adam.AttemptsTo(see.The(formField).IsNot(is.EqualTo("hello everybody"))))
+		require.NoError(t, adam.AttemptsTo(see.The(formField).IsNot(equal.To("hello everybody"))))
 	})
 
 	t.Run("fails the negation when the resolution matches", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, adam.AttemptsTo(see.The(formField).IsNot(is.EqualTo("hello world"))))
+		require.Error(t, adam.AttemptsTo(see.The(formField).IsNot(equal.To("hello world"))))
 	})
 
 	t.Run("propagates the resolution error through a negation", func(t *testing.T) {
@@ -63,17 +63,17 @@ func TestSeeTheAction(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		t.Parallel()
 
-		action := see.The(formField).Is(is.EqualTo("hello world"))
+		action := see.The(formField).Is(equal.To("hello world"))
 		assert.Equal(t, "see if the form field is equal to hello world", action.String())
 
-		negated := see.The(formField).IsNot(is.EqualTo("hello world"))
+		negated := see.The(formField).IsNot(equal.To("hello world"))
 		assert.Equal(t, "see if the form field is not equal to hello world", negated.String())
 	})
 
 	t.Run("supports every verb and its negation", func(t *testing.T) {
 		t.Parallel()
 
-		resolution := is.EqualTo("hello world")
+		resolution := equal.To("hello world")
 		for _, testCase := range []struct {
 			action *see.TheAction
 			reads  string

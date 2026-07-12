@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 )
 
 var (
@@ -71,6 +72,28 @@ func (a *Actor) narrator() *Narrator {
 	}
 
 	return &Narrator{}
+}
+
+// Timeout returns the timeout the actor's production configures for actions that
+// wait on something, falling back to DefaultTimeout when the actor has no
+// production.
+func (a *Actor) Timeout() time.Duration {
+	if a.production != nil {
+		return a.production.Timeout()
+	}
+
+	return DefaultTimeout
+}
+
+// Polling returns the polling interval the actor's production configures for
+// actions that wait on something, falling back to DefaultPolling when the actor
+// has no production.
+func (a *Actor) Polling() time.Duration {
+	if a.production != nil {
+		return a.production.Polling()
+	}
+
+	return DefaultPolling
 }
 
 // narrates reports whether the actor should narrate its next step: it has an

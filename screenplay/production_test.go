@@ -50,7 +50,7 @@ func TestProduction(t *testing.T) {
 			screenplay.WithNarrator(screenplay.NewNarrator(recorder)))
 
 		stage := production.SetTheStage(screenplay.CastOfStandardActors())
-		adam := stage.TheActorCalled("Adam")
+		adam := stage.ActorNamed("Adam")
 
 		require.NoError(t, adam.AttemptsTo(fixture.NewFakePerformable("waves", nil)))
 		assert.Equal(t, []string{"Adam waves", "Adam waves"}, recorder.Messages())
@@ -60,7 +60,7 @@ func TestProduction(t *testing.T) {
 		t.Parallel()
 
 		stage := screenplay.NewProduction().SetTheStage(screenplay.CastOfStandardActors())
-		adam := stage.TheActorCalled("Adam")
+		adam := stage.ActorNamed("Adam")
 
 		assert.Equal(t, "Adam", adam.Name())
 	})

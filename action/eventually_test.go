@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,6 +55,42 @@ func TestEventuallyAction(t *testing.T) {
 		require.NotEqual(t, -1, first, "expected error message to contain the underlying error")
 		second := strings.Index(errMsg[first+1:], underlyingErr.Error())
 		assert.Equal(t, -1, second, "expected the underlying error to appear only once (deduplicated)")
+	})
+
+	t.Run("reads the timeout and polling from the production when not overridden", func(t *testing.T) {
+		underlyingErr := errors.New("still failing")
+		failing := fixture.NewFakePerformable("failing action", underlyingErr)
+
+		production := screenplay.NewProduction(
+			screenplay.WithTimeout(100*time.Millisecond),
+			screenplay.WithPolling(10*time.Millisecond),
+		)
+		stage := production.SetTheStage(screenplay.CastOfStandardActors())
+		bob := stage.ActorNamed("Bob")
+
+		err := bob.AttemptsTo(action.Eventually(failing))
+		require.Error(t, err)
+		// The timeout in the message reflects the production's timeout (0.1s), not
+		// the DefaultTimeout of 2s.
+		assert.Contains(t, err.Error(), "over 0.100000 seconds")
+	})
+
+	t.Run("explicit overrides win over the production timeout and polling", func(t *testing.T) {
+		underlyingErr := errors.New("still failing")
+		failing := fixture.NewFakePerformable("failing action", underlyingErr)
+
+		production := screenplay.NewProduction(
+			screenplay.WithTimeout(10*time.Second),
+			screenplay.WithPolling(5*time.Second),
+		)
+		stage := production.SetTheStage(screenplay.CastOfStandardActors())
+		bob := stage.ActorNamed("Bob")
+
+		err := bob.AttemptsTo(
+			action.Eventually(failing).For(100).Milliseconds().PollingEvery(10).Milliseconds(),
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "over 0.100000 seconds")
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {

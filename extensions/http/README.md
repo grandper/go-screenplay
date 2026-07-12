@@ -70,7 +70,7 @@ about a single response.
 
 You can request information about the status code of the previous request.
 ```go
-err := anActor.Should(see.The(status.CodeOf(last.Of(Responses())), is.EqualTo(200)))
+err := anActor.Should(see.The(status.CodeOf(last.Of(Responses())), equal.To(200)))
 ```
 
 You can request the last response itself and read its body or headers through

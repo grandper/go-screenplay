@@ -9,7 +9,7 @@ import (
 
 	"github.com/grandper/go-screenplay/action/see"
 	"github.com/grandper/go-screenplay/fixture"
-	"github.com/grandper/go-screenplay/resolution/contains"
+	"github.com/grandper/go-screenplay/resolution/contain"
 	"github.com/grandper/go-screenplay/resolution/testdata"
 	"github.com/grandper/go-screenplay/screenplay"
 )
@@ -33,8 +33,8 @@ func TestSeeAllOfAction(t *testing.T) {
 	t.Run("should see any of the list items", func(t *testing.T) {
 		t.Parallel()
 		assert.NoError(t, adam.AttemptsTo(see.AllOf(
-			profilWidget, contains.TheText("Adam"),
-			loginForm, contains.TheText("adam@google.com"))))
+			profilWidget, contain.TheText("Adam"),
+			loginForm, contain.TheText("adam@google.com"))))
 	})
 
 	t.Run("will succeed without error when no expectation is provided", func(t *testing.T) {
@@ -45,16 +45,16 @@ func TestSeeAllOfAction(t *testing.T) {
 	t.Run("fails when there is nothing to see", func(t *testing.T) {
 		t.Parallel()
 		require.Error(t, adam.AttemptsTo(see.AllOf(
-			profilWidget, contains.TheText("Foobar"),
-			loginForm, contains.TheText("adam@google.com"))))
+			profilWidget, contain.TheText("Foobar"),
+			loginForm, contain.TheText("adam@google.com"))))
 
 		require.Error(t, adam.AttemptsTo(see.AllOf(
-			profilWidget, contains.TheText("Adam"),
-			loginForm, contains.TheText("foo@bar.com"))))
+			profilWidget, contain.TheText("Adam"),
+			loginForm, contain.TheText("foo@bar.com"))))
 
 		require.Error(t, adam.AttemptsTo(see.AllOf(
-			profilWidget, contains.TheText("Foobar"),
-			loginForm, contains.TheText("foo@bar.com"))))
+			profilWidget, contain.TheText("Foobar"),
+			loginForm, contain.TheText("foo@bar.com"))))
 	})
 
 	t.Run("fails when the argument list is incomplete", func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestSeeAllOfAction(t *testing.T) {
 		require.Error(t, adam.AttemptsTo(see.AllOf(profilWidget)))
 
 		require.Error(t, adam.AttemptsTo(see.AllOf(
-			profilWidget, contains.TheText("Foobar"),
+			profilWidget, contain.TheText("Foobar"),
 			loginForm,
 		)))
 	})
@@ -74,20 +74,20 @@ func TestSeeAllOfAction(t *testing.T) {
 
 	t.Run("fails when a question is passed instead of a resolution", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, adam.AttemptsTo(see.AllOf(contains.TheText("Foobar"), profilWidget)))
+		require.Error(t, adam.AttemptsTo(see.AllOf(contain.TheText("Foobar"), profilWidget)))
 	})
 
 	t.Run("fails when the actor fails to answer any the questions", func(t *testing.T) {
 		t.Parallel()
 		require.Error(t, adam.AttemptsTo(see.AllOf(
-			missingProfileWidget, contains.TheText("Adam"),
-			loginForm, contains.TheText("adam@google.com"))))
+			missingProfileWidget, contain.TheText("Adam"),
+			loginForm, contain.TheText("adam@google.com"))))
 	})
 
 	t.Run("fails when the resolution fails for any of the resolution", func(t *testing.T) {
 		t.Parallel()
 		require.Error(t, adam.AttemptsTo(see.AllOf(
-			profilWidget, contains.TheText("Adam"),
+			profilWidget, contain.TheText("Adam"),
 			loginForm, containsTheTextButFails)))
 	})
 
@@ -95,8 +95,8 @@ func TestSeeAllOfAction(t *testing.T) {
 		t.Parallel()
 
 		action := see.AllOf(
-			profilWidget, contains.TheText("Adam"),
-			loginForm, contains.TheText("adam@google.com"))
+			profilWidget, contain.TheText("Adam"),
+			loginForm, contain.TheText("adam@google.com"))
 
 		assert.Equal(
 			t,

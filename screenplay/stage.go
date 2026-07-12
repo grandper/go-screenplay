@@ -25,9 +25,9 @@ func SetTheStage(cast Cast) *Stage {
 	}
 }
 
-// TheActorCalled returns an actor by name, creating and preparing
+// ActorNamed returns an actor by name, creating and preparing
 // one through the cast if needed. The actor is placed in the spotlight.
-func (s *Stage) TheActorCalled(name string) *Actor {
+func (s *Stage) ActorNamed(name string) *Actor {
 	key := strings.ToLower(name)
 
 	actor, exists := s.actors[key]

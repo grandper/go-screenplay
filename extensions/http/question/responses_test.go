@@ -14,7 +14,7 @@ import (
 	"github.com/grandper/go-screenplay/extensions/http/question"
 	"github.com/grandper/go-screenplay/extensions/http/question/status"
 	"github.com/grandper/go-screenplay/question/last"
-	"github.com/grandper/go-screenplay/resolution/is"
+	"github.com/grandper/go-screenplay/resolution/equal"
 	"github.com/grandper/go-screenplay/screenplay"
 )
 
@@ -47,7 +47,7 @@ func TestResponsesQuestion(t *testing.T) {
 		assert.NoError(t, adam.AttemptsTo(action.SendGetRequest().To(server.URL)))
 		assert.NoError(
 			t,
-			adam.AttemptsTo(see.The(status.CodeOf(last.Of(question.Responses()))).Is(is.EqualTo(200))),
+			adam.AttemptsTo(see.The(status.CodeOf(last.Of(question.Responses()))).Is(equal.To(200))),
 		)
 	})
 

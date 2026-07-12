@@ -73,7 +73,7 @@ func TestSilentlyQuestion(t *testing.T) {
 			screenplay.WithNarrator(screenplay.NewNarrator(recorder)),
 			screenplay.WithForceAllNarration(),
 		)
-		adam := production.SetTheStage(screenplay.CastOfStandardActors()).TheActorCalled("Adam")
+		adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
 
 		inner := fixture.NewFakeQuestion("the inner value", "secret")
 		chatty := question.FromFunc("the token", func(theActor *screenplay.Actor) (any, error) {
@@ -99,5 +99,5 @@ func narratedActor(recorder *fixture.Recorder) *screenplay.Actor {
 	production := screenplay.NewProduction(
 		screenplay.WithNarrator(screenplay.NewNarrator(recorder)))
 
-	return production.SetTheStage(screenplay.CastOfStandardActors()).TheActorCalled("Adam")
+	return production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
 }

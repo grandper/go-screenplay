@@ -214,5 +214,5 @@ func narratedActor(recorder *fixture.Recorder) *screenplay.Actor {
 	production := screenplay.NewProduction(
 		screenplay.WithNarrator(screenplay.NewNarrator(recorder)))
 
-	return production.SetTheStage(screenplay.CastOfStandardActors()).TheActorCalled("Adam")
+	return production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
 }

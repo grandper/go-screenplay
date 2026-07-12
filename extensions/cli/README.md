@@ -46,7 +46,7 @@ err := anActor.AttemptsTo(Type("%s %s", "Hello", "World"))
 ### Environment Variables
 You can ask for the value of an environment variable using the following question:
 ```go
-err := anActor.Should(see.The(EnvironmentVariableNamed("PATH"), is.EqualTo("/usr/local/bin:/usr/bin:/bin")))
+err := anActor.Should(see.The(EnvironmentVariableNamed("PATH"), equal.To("/usr/local/bin:/usr/bin:/bin")))
 ```
 
 ### The Responses
@@ -61,17 +61,17 @@ and with the `errorcode` and `standard` questions to extract a specific field fr
 ### The Error Code
 You can request information about the error code of a response.
 ```go
-err := anActor.Should(see.The(errorcode.Of(last.Of(Responses())), is.EqualTo(0)))
+err := anActor.Should(see.The(errorcode.Of(last.Of(Responses())), equal.To(0)))
 ```
 
 ### The stdout
 You can request information about the standard output of a response.
 ```go
-err := anActor.Should(see.The(standard.OutputOf(last.Of(Responses())), contains.TheText("Hello World")))
+err := anActor.Should(see.The(standard.OutputOf(last.Of(Responses())), contain.TheText("Hello World")))
 ```
 
 ### The stderr
 You can request information about the standard error of a response.
 ```go
-err := anActor.Should(see.The(standard.ErrorOf(last.Of(Responses())), contains.TheText("unknown parameter '-x'")))
+err := anActor.Should(see.The(standard.ErrorOf(last.Of(Responses())), contain.TheText("unknown parameter '-x'")))
 ```

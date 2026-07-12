@@ -9,7 +9,7 @@ import (
 
 	"github.com/grandper/go-screenplay/action/see"
 	"github.com/grandper/go-screenplay/fixture"
-	"github.com/grandper/go-screenplay/resolution/contains"
+	"github.com/grandper/go-screenplay/resolution/contain"
 	"github.com/grandper/go-screenplay/screenplay"
 )
 
@@ -23,12 +23,12 @@ func TestSeeThatAllOfThe(t *testing.T) {
 		assert.NoError(t, adam.AttemptsTo(see.ThatAllOfThe(
 			fixture.NewFakeQuestion("widget", "hello Adam"),
 			fixture.NewFakeQuestion("widget", "hello Eve"),
-		)(contains.TheText("hello"))))
+		)(contain.TheText("hello"))))
 	})
 
 	t.Run("succeeds when there is no question to see", func(t *testing.T) {
 		t.Parallel()
-		assert.NoError(t, adam.AttemptsTo(see.ThatAllOfThe()(contains.TheText("hello"))))
+		assert.NoError(t, adam.AttemptsTo(see.ThatAllOfThe()(contain.TheText("hello"))))
 	})
 
 	t.Run("fails when one of the questions does not match the resolution", func(t *testing.T) {
@@ -36,7 +36,7 @@ func TestSeeThatAllOfThe(t *testing.T) {
 		require.Error(t, adam.AttemptsTo(see.ThatAllOfThe(
 			fixture.NewFakeQuestion("widget", "hello Adam"),
 			fixture.NewFakeQuestion("widget", "goodbye Eve"),
-		)(contains.TheText("hello"))))
+		)(contain.TheText("hello"))))
 	})
 
 	t.Run("fails when the actor fails to answer one of the questions", func(t *testing.T) {
@@ -44,7 +44,7 @@ func TestSeeThatAllOfThe(t *testing.T) {
 		require.Error(t, adam.AttemptsTo(see.ThatAllOfThe(
 			fixture.NewFakeQuestion("widget", "hello Adam"),
 			fixture.NewFailingFakeQuestion("widget", errors.New("failed to get the widget")),
-		)(contains.TheText("hello"))))
+		)(contain.TheText("hello"))))
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestSeeThatAllOfThe(t *testing.T) {
 		action := see.ThatAllOfThe(
 			fixture.NewFakeQuestion("widget", "hello Adam"),
 			fixture.NewFakeQuestion("widget", "hello Eve"),
-		)(contains.TheText("hello"))
+		)(contain.TheText("hello"))
 
 		assert.Equal(
 			t,

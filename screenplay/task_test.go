@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/action"
 	"github.com/grandper/go-screenplay/fixture"
 	"github.com/grandper/go-screenplay/screenplay"
 )
@@ -29,7 +28,7 @@ func TestTask(t *testing.T) {
 			t.Parallel()
 
 			logFormField := screenplay.TaskWhere("log the form field",
-				action.Log(formField))
+				screenplay.Log(formField))
 			assert.Equal(t, "log the form field", logFormField.String())
 			assert.NoError(t, adam.AttemptsTo(logFormField))
 		})
@@ -38,7 +37,7 @@ func TestTask(t *testing.T) {
 			t.Parallel()
 
 			logFormField := screenplay.TaskWhere("log the form field",
-				action.Log(missingFormField))
+				screenplay.Log(missingFormField))
 			assert.Equal(t, "log the form field", logFormField.String())
 			assert.Error(t, adam.AttemptsTo(logFormField))
 		})

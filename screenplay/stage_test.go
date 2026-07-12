@@ -22,7 +22,7 @@ func TestStage(t *testing.T) {
 			t.Parallel()
 
 			stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
-			adam := stage.TheActorCalled("Adam")
+			adam := stage.ActorNamed("Adam")
 
 			assert.Equal(t, "Adam", adam.Name())
 		})
@@ -31,8 +31,8 @@ func TestStage(t *testing.T) {
 			t.Parallel()
 
 			stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
-			adam := stage.TheActorCalled("Adam")
-			sameAdam := stage.TheActorCalled("Adam")
+			adam := stage.ActorNamed("Adam")
+			sameAdam := stage.ActorNamed("Adam")
 
 			assert.Same(t, adam, sameAdam)
 		})
@@ -41,8 +41,8 @@ func TestStage(t *testing.T) {
 			t.Parallel()
 
 			stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
-			adam := stage.TheActorCalled("Adam")
-			sameAdam := stage.TheActorCalled("adam")
+			adam := stage.ActorNamed("Adam")
+			sameAdam := stage.ActorNamed("adam")
 
 			assert.Same(t, adam, sameAdam)
 		})
@@ -52,7 +52,7 @@ func TestStage(t *testing.T) {
 
 			performTesting := performTestingAbility{}
 			stage := screenplay.SetTheStage(screenplay.CastWhereEveryoneCan(performTesting))
-			adam := stage.TheActorCalled("Adam")
+			adam := stage.ActorNamed("Adam")
 
 			assert.True(t, adam.HasAbilityTo(performTesting))
 		})
@@ -61,7 +61,7 @@ func TestStage(t *testing.T) {
 			t.Parallel()
 
 			stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
-			adam := stage.TheActorCalled("Adam")
+			adam := stage.ActorNamed("Adam")
 
 			spotlight, err := stage.TheActorInTheSpotlight()
 			require.NoError(t, err)
@@ -72,8 +72,8 @@ func TestStage(t *testing.T) {
 			t.Parallel()
 
 			stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
-			stage.TheActorCalled("Adam")
-			bob := stage.TheActorCalled("Bob")
+			stage.ActorNamed("Adam")
+			bob := stage.ActorNamed("Bob")
 
 			spotlight, err := stage.TheActorInTheSpotlight()
 			require.NoError(t, err)
@@ -104,7 +104,7 @@ func TestStage(t *testing.T) {
 			t.Parallel()
 
 			stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
-			stage.TheActorCalled("Adam")
+			stage.ActorNamed("Adam")
 			assert.True(t, stage.AnActorIsOnStage())
 		})
 	})
@@ -115,8 +115,8 @@ func TestStage(t *testing.T) {
 
 			performTesting := performTestingAbility{}
 			stage := screenplay.SetTheStage(screenplay.CastWhereEveryoneCan(performTesting))
-			adam := stage.TheActorCalled("Adam")
-			stage.TheActorCalled("Bob")
+			adam := stage.ActorNamed("Adam")
+			stage.ActorNamed("Bob")
 
 			require.NoError(t, stage.DrawTheCurtain())
 
@@ -128,7 +128,7 @@ func TestStage(t *testing.T) {
 			t.Parallel()
 
 			stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
-			stage.TheActorCalled("Adam")
+			stage.ActorNamed("Adam")
 
 			require.NoError(t, stage.DrawTheCurtain())
 
@@ -140,10 +140,10 @@ func TestStage(t *testing.T) {
 			t.Parallel()
 
 			stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
-			stage.TheActorCalled("Adam")
+			stage.ActorNamed("Adam")
 			require.NoError(t, stage.DrawTheCurtain())
 
-			bob := stage.TheActorCalled("Bob")
+			bob := stage.ActorNamed("Bob")
 			spotlight, err := stage.TheActorInTheSpotlight()
 			require.NoError(t, err)
 			assert.Same(t, bob, spotlight)

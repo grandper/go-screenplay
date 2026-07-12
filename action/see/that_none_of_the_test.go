@@ -8,7 +8,7 @@ import (
 
 	"github.com/grandper/go-screenplay/action/see"
 	"github.com/grandper/go-screenplay/fixture"
-	"github.com/grandper/go-screenplay/resolution/contains"
+	"github.com/grandper/go-screenplay/resolution/contain"
 	"github.com/grandper/go-screenplay/screenplay"
 )
 
@@ -22,12 +22,12 @@ func TestSeeThatNoneOfThe(t *testing.T) {
 		assert.NoError(t, adam.AttemptsTo(see.ThatNoneOfThe(
 			fixture.NewFakeQuestion("widget", "goodbye Adam"),
 			fixture.NewFakeQuestion("widget", "farewell Eve"),
-		)(contains.TheText("hello"))))
+		)(contain.TheText("hello"))))
 	})
 
 	t.Run("succeeds when there is no question to see", func(t *testing.T) {
 		t.Parallel()
-		assert.NoError(t, adam.AttemptsTo(see.ThatNoneOfThe()(contains.TheText("hello"))))
+		assert.NoError(t, adam.AttemptsTo(see.ThatNoneOfThe()(contain.TheText("hello"))))
 	})
 
 	t.Run("fails when one of the questions matches the resolution", func(t *testing.T) {
@@ -35,7 +35,7 @@ func TestSeeThatNoneOfThe(t *testing.T) {
 		require.Error(t, adam.AttemptsTo(see.ThatNoneOfThe(
 			fixture.NewFakeQuestion("widget", "hello Adam"),
 			fixture.NewFakeQuestion("widget", "farewell Eve"),
-		)(contains.TheText("hello"))))
+		)(contain.TheText("hello"))))
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
@@ -44,7 +44,7 @@ func TestSeeThatNoneOfThe(t *testing.T) {
 		action := see.ThatNoneOfThe(
 			fixture.NewFakeQuestion("widget", "goodbye Adam"),
 			fixture.NewFakeQuestion("widget", "farewell Eve"),
-		)(contains.TheText("hello"))
+		)(contain.TheText("hello"))
 
 		assert.Equal(
 			t,

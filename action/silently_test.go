@@ -72,7 +72,7 @@ func TestSilentlyAction(t *testing.T) {
 			screenplay.WithNarrator(screenplay.NewNarrator(recorder)),
 			screenplay.WithForceAllNarration(),
 		)
-		adam := production.SetTheStage(screenplay.CastOfStandardActors()).TheActorCalled("Adam")
+		adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
 
 		task := screenplay.TaskWhere("log in",
 			fixture.NewFakePerformable("enters the password", nil),
@@ -121,5 +121,5 @@ func narratedActor(recorder *fixture.Recorder) *screenplay.Actor {
 	production := screenplay.NewProduction(
 		screenplay.WithNarrator(screenplay.NewNarrator(recorder)))
 
-	return production.SetTheStage(screenplay.CastOfStandardActors()).TheActorCalled("Adam")
+	return production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
 }
