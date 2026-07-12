@@ -37,5 +37,5 @@ func (q *FileNamedQuestion) String() string {
 	return fmt.Sprintf("file named '%s'", q.filename)
 }
 
-// Ensure FileNamedQuestion implements the screenplay.Question interface.
+// FileNamedQuestion implements the screenplay.Question interface.
 var _ screenplay.Question = (*FileNamedQuestion)(nil)

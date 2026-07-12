@@ -22,6 +22,7 @@ var (
 // Forget or use abilities without racing.
 type Actor struct {
 	*actorCore
+
 	muted bool // a view's own flag; the actor itself is never muted
 }
 
@@ -100,7 +101,7 @@ func (a *Actor) Polling() time.Duration {
 // active narrator and is either not muted or forced to narrate anyway by a
 // production configured with WithForceAllNarration.
 func (a *Actor) narrates() bool {
-	if a.muted && !(a.production != nil && a.production.forceAllNarration) {
+	if a.muted && (a.production == nil || !a.production.forceAllNarration) {
 		return false
 	}
 

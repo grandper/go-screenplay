@@ -6,26 +6,26 @@ import (
 	"time"
 
 	"github.com/grandper/go-screenplay/screenplay"
-	"github.com/grandper/go-screenplay/utils"
+	"github.com/grandper/go-screenplay/timing"
 )
 
 // PauseFor creates an action that pauses for a given time. The returned
-// TimeFrameBuilder lets the caller pick a unit, for example
+// DurationBuilder lets the caller pick a unit, for example
 // PauseFor(20).Milliseconds().
 // Hard wait should be avoided when possible.
-func PauseFor(number int) *utils.TimeFrameBuilder[PauseAction] {
+func PauseFor(number int) *timing.DurationBuilder[PauseAction] {
 	action := &PauseAction{}
-	action.timeFrame = utils.NewTimeFrameBuilder(action, &action.duration)
+	action.durationBuilder = timing.NewDurationBuilder(action, &action.duration)
 
-	return action.timeFrame.For(number)
+	return action.durationBuilder.For(number)
 }
 
 // PauseAction is an action that pauses for a given duration.
 // Hard wait should be avoided when possible.
 type PauseAction struct {
-	timeFrame *utils.TimeFrameBuilder[PauseAction]
-	duration  time.Duration
-	reason    string
+	durationBuilder *timing.DurationBuilder[PauseAction]
+	duration        time.Duration
+	reason          string
 }
 
 // Because specifies the reason for pausing.
@@ -37,14 +37,14 @@ func (a *PauseAction) Because(reason string) *PauseAction {
 
 // String describes the action.
 func (a *PauseAction) String() string {
-	return fmt.Sprintf("PauseActionBuilder for %s because %s", a.timeFrame, a.reason)
+	return fmt.Sprintf("pause for %s because %s", a.durationBuilder, a.reason)
 }
 
 // PerformAs performs the task or the action as the provided actor.
 func (a *PauseAction) PerformAs(_ *screenplay.Actor) error {
 	if a.reason == "" {
 		return errors.New(
-			"failed to PauseActionBuilder: cannot PauseActionBuilder without a reason: you must call the .Because() method",
+			"failed to pause: cannot pause without a reason: you must call the .Because() method",
 		)
 	}
 

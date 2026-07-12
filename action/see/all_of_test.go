@@ -30,7 +30,7 @@ func TestSeeAllOfAction(t *testing.T) {
 		errors.New("failed to match the content of the profil widget"),
 	)
 
-	t.Run("should see any of the list items", func(t *testing.T) {
+	t.Run("should see all of the list items", func(t *testing.T) {
 		t.Parallel()
 		assert.NoError(t, adam.AttemptsTo(see.AllOf(
 			profilWidget, contain.TheText("Adam"),

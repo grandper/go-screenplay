@@ -21,12 +21,12 @@ func TestCodeOfQuestion(t *testing.T) {
 
 	adam := screenplay.ActorNamed("Adam")
 
-	httpResponse, err := ability.NewHTTPResponseFrom(&http.Response{
+	httpResponse, setupErr := ability.NewHTTPResponseFrom(&http.Response{
 		StatusCode: http.StatusOK,
 		Header:     http.Header{},
 		Body:       io.NopCloser(strings.NewReader("Hello World")),
 	})
-	require.NoError(t, err)
+	require.NoError(t, setupErr)
 
 	response := fixture.NewFakeQuestion("response", httpResponse)
 	notAResponse := fixture.NewFakeQuestion("not a response", "hello")

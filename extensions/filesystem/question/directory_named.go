@@ -37,5 +37,5 @@ func (q *DirectoryNamedQuestion) String() string {
 	return fmt.Sprintf("directory named '%s'", q.directoryPath)
 }
 
-// Ensure DirectoryNamedQuestion implements the screenplay.Question interface.
+// DirectoryNamedQuestion implements the screenplay.Question interface.
 var _ screenplay.Question = (*DirectoryNamedQuestion)(nil)

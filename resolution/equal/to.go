@@ -30,7 +30,7 @@ func (r *ToResolution[T]) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *ToResolution[T]) String() string {
 	return fmt.Sprintf("equal to %v", r.value)
 }

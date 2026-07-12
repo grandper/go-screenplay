@@ -36,7 +36,7 @@ func (r *WithResolution) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *WithResolution) String() string {
 	return fmt.Sprintf("starting with %s", r.prefix)
 }

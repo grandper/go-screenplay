@@ -214,11 +214,11 @@ func (a *ChoiceOnAction) PerformAs(theActor *screenplay.Actor) error {
 	}
 
 	for _, b := range a.branches {
-		matched, err := b.resolution.Resolve()(value)
-		if err != nil {
+		matched, matchErr := b.resolution.Resolve()(value)
+		if matchErr != nil {
 			return fmt.Errorf(
 				"an error occurred when %s evaluated a branch on %s: %w",
-				theActor.Name(), a.question, err)
+				theActor.Name(), a.question, matchErr)
 		}
 
 		if matched {

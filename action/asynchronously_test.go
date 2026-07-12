@@ -204,7 +204,7 @@ func TestAsynchronouslyAction(t *testing.T) {
 		)
 		assert.Equal(
 			t,
-			"asynchronously (cancelling on error) do task 1, do task 2",
+			"asynchronously (canceling on error) do task 1, do task 2",
 			action.Asynchronously(doTask1, doTask2).CancelOnError().String(),
 		)
 		assert.Equal(

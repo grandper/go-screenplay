@@ -28,4 +28,4 @@ func (q *ResponsesQuestion) AnsweredBy(theActor *screenplay.Actor) (any, error) 
 }
 
 // ResponsesQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = &ResponsesQuestion{}
+var _ screenplay.Question = (*ResponsesQuestion)(nil)

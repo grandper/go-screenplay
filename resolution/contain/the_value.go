@@ -79,7 +79,7 @@ func hasValue(obj any, value any) (bool, error) {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *TheValueResolution[T]) String() string {
 	return fmt.Sprintf("containing the value %v", r.value)
 }

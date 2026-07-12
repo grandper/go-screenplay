@@ -6,6 +6,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+
+	"github.com/grandper/go-screenplay/screenplay"
 )
 
 // MakeHTTPRequests enables the actor to make HTTP requests.
@@ -83,6 +85,7 @@ func methodIsValid(method string) bool {
 	return false
 }
 
+// Credential holds the username and password of a basic authentication credential.
 type Credential struct {
 	Username string
 	Password string
@@ -119,7 +122,7 @@ func (mhr *MakeHTTPRequestsAbility) Send(method, url string, body io.Reader, cre
 	return mhr.ToSend(method, url, body, credential)
 }
 
-// Forget clean up the ability.
+// Forget cleans up the ability.
 // The ability cannot be used after Forget() has been called.
 // This method is used, e.g., to close connections to databases,
 // deleting data, closing client cleanly.
@@ -129,7 +132,10 @@ func (mhr *MakeHTTPRequestsAbility) Forget() error {
 	return nil
 }
 
+// MakeHTTPRequestsAbility implements the screenplay.Ability interface.
+var _ screenplay.Ability = (*MakeHTTPRequestsAbility)(nil)
+
 // String describes the ability.
 func (mhr *MakeHTTPRequestsAbility) String() string {
-	return "make Http requests"
+	return "make HTTP requests"
 }

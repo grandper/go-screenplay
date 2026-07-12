@@ -12,7 +12,7 @@ import (
 // sets an authorization header can be silenced so its value never reaches an
 // adapter — and to trim the noise of a verbose task down to a single line.
 //
-// A production configured with screenplay.WithForceAllNarration neutralises
+// A production configured with screenplay.WithForceAllNarration neutralizes
 // this decorator, so a scenario can be debugged with every step narrated again.
 func Silently(performable screenplay.Performable) screenplay.Performable {
 	return &SilentlyAction{

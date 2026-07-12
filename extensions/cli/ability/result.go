@@ -3,7 +3,7 @@ package ability
 // SuccessStatusCode is the status code when the command returned successfully.
 const SuccessStatusCode = 0
 
-// Result is returned contains the execution result.
+// Result contains the execution result.
 type Result struct {
 	exitCode int
 	stdOut   []byte

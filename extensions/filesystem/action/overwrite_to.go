@@ -67,5 +67,5 @@ func (a *OverwriteToAction) PerformAs(actor *screenplay.Actor) error {
 	return useTheFileSystem.OverwriteFileWithContent(a.filename, a.content)
 }
 
-// Ensure OverwriteToAction implements the screenplay.Action interface.
+// OverwriteToAction implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*OverwriteToAction)(nil)

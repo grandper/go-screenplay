@@ -9,7 +9,7 @@ import (
 	"github.com/grandper/go-screenplay/screenplay"
 )
 
-// AddHeader adds n header to the actor's HTTP session.
+// AddHeader adds a header to the actor's HTTP session.
 func AddHeader(key, value string) *AddHeadersAction {
 	if key == "" {
 		panic("a key cannot be empty")
@@ -44,7 +44,7 @@ func AddHeaders(args ...string) *AddHeadersAction {
 	}
 }
 
-// AddHeadersAction adds n header to the actor's HTTP session.
+// AddHeadersAction adds a header to the actor's HTTP session.
 type AddHeadersAction struct {
 	headers map[string]string
 	secret  bool
@@ -99,5 +99,5 @@ func (a *AddHeadersAction) PerformAs(theActor *screenplay.Actor) error {
 	return nil
 }
 
-// AddHeadersAction implements the screenplay.Action interface.
+// AddHeadersAction implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*AddHeadersAction)(nil)

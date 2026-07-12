@@ -12,7 +12,7 @@ import (
 // a password can be answered without its intermediate steps reaching an adapter
 // — and to trim the noise of a chatty question down to nothing.
 //
-// A production configured with screenplay.WithForceAllNarration neutralises
+// A production configured with screenplay.WithForceAllNarration neutralizes
 // this decorator, so a scenario can be debugged with every step narrated again.
 func Silently(q screenplay.Question) screenplay.Question {
 	return &SilentlyQuestion{

@@ -36,7 +36,7 @@ func (r *ThanResolution[T]) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *ThanResolution[T]) String() string {
 	return fmt.Sprintf("less than %v", r.number)
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/grandper/go-screenplay/screenplay"
-	"github.com/grandper/go-screenplay/utils"
+	"github.com/grandper/go-screenplay/timing"
 )
 
 var (
@@ -22,14 +22,14 @@ var (
 func Eventually(performable screenplay.Performable) *EventuallyAction {
 	// The window starts unset (zero durations): each side is filled from the
 	// actor's production at PerformAs unless the caller overrides it through the
-	// RetryWindowBuilder (For, Polling, ...).
+	// WindowBuilder (For, Polling, ...).
 	action := &EventuallyAction{
 		performable: performable,
-		window:      utils.NewRetryWindow(0, 0),
+		window:      timing.NewWindow(0, 0),
 		caughtErr:   nil,
 		uniqueErrs:  []error{},
 	}
-	action.RetryWindowBuilder = utils.NewRetryWindowBuilder(action, &action.window)
+	action.WindowBuilder = timing.NewWindowBuilder(action, &action.window)
 
 	return action
 }
@@ -39,9 +39,10 @@ func Eventually(performable screenplay.Performable) *EventuallyAction {
 // If the action cannot be achieved until the timeout is reached, an error containing all
 // unique failure errors encountered during retries is raised.
 type EventuallyAction struct {
-	*utils.RetryWindowBuilder[EventuallyAction]
+	*timing.WindowBuilder[EventuallyAction]
+
 	performable screenplay.Performable
-	window      utils.RetryWindow
+	window      timing.Window
 	caughtErr   error
 	uniqueErrs  []error
 }
@@ -116,8 +117,8 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 // of the configured window with any side left unset (zero) filled from the
 // actor's production timeout and polling interval, so the action reads timeout
 // and polling from the production while still honoring explicit overrides made
-// through the RetryWindowBuilder.
-func (a *EventuallyAction) windowFor(theActor *screenplay.Actor) utils.RetryWindow {
+// through the WindowBuilder.
+func (a *EventuallyAction) windowFor(theActor *screenplay.Actor) timing.Window {
 	window := a.window
 
 	if window.Total == 0 {

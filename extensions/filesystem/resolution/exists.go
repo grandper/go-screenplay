@@ -36,7 +36,7 @@ func (r *ExistsResolution) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *ExistsResolution) String() string {
 	return "exists"
 }

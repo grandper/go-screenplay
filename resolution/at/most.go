@@ -52,7 +52,7 @@ func (r *MostResolution[T]) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *MostResolution[T]) String() string {
 	return fmt.Sprintf("at most %v away from %v", r.delta, r.number)
 }

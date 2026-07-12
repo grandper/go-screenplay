@@ -109,7 +109,7 @@ func (a *RunCLICommandsAbility) Responses() []*Result {
 	return a.responses
 }
 
-// Forget clean up the ability.
+// Forget cleans up the ability.
 // The ability cannot be used after Forget() has been called.
 // This method is used, e.g., to close connections to databases,
 // deleting data, closing client cleanly.
@@ -117,5 +117,5 @@ func (a *RunCLICommandsAbility) Forget() error {
 	return nil
 }
 
-// Ensure RunCLICommandsAbility implements the Ability interface.
+// RunCLICommandsAbility implements the screenplay.Ability interface.
 var _ screenplay.Ability = (*RunCLICommandsAbility)(nil)

@@ -100,6 +100,36 @@ func TestSendHTTPRequestAction(t *testing.T) {
 		)
 	})
 
+	t.Run("sends request with basic authentication credential", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+			username, password, ok := r.BasicAuth()
+			assert.True(t, ok)
+			assert.Equal(t, "wanda", username)
+			assert.Equal(t, "s3cret", password)
+		}))
+		defer server.Close()
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+		assert.NoError(
+			t,
+			adam.AttemptsTo(action.SendGetRequest().To(server.URL).WithCredential("wanda", "s3cret")),
+		)
+	})
+
+	t.Run("sends request with basic authentication using the WithAuth alias", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+			username, password, ok := r.BasicAuth()
+			assert.True(t, ok)
+			assert.Equal(t, "wanda", username)
+			assert.Equal(t, "s3cret", password)
+		}))
+		defer server.Close()
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+		assert.NoError(
+			t,
+			adam.AttemptsTo(action.SendGetRequest().To(server.URL).WithAuth("wanda", "s3cret")),
+		)
+	})
+
 	t.Run("fails to send request if the actor does not have the ability MakeHttpRequest", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		assert.Error(t, adam.AttemptsTo(action.SendGetRequest().To("https://www.google.com")))

@@ -91,6 +91,38 @@ func TestNarrator(t *testing.T) {
 		assert.ErrorIs(t, events[1].Err, boom)
 	})
 
+	t.Run("announces an act as a one-shot begin event", func(t *testing.T) {
+		t.Parallel()
+
+		recorder := fixture.NewRecorder()
+		narrator := screenplay.NewNarrator(recorder)
+
+		narrator.AnnouncesTheAct("checkout")
+
+		events := recorder.Events()
+		require.Len(t, events, 1)
+		assert.Equal(t, screenplay.KindAct, events[0].Kind)
+		assert.Equal(t, screenplay.PhaseBegin, events[0].Phase)
+		assert.Equal(t, screenplay.LevelInfo, events[0].Level)
+		assert.Equal(t, "checkout", events[0].Message)
+	})
+
+	t.Run("sets the scene as a one-shot begin event", func(t *testing.T) {
+		t.Parallel()
+
+		recorder := fixture.NewRecorder()
+		narrator := screenplay.NewNarrator(recorder)
+
+		narrator.SetsTheScene("the cart page")
+
+		events := recorder.Events()
+		require.Len(t, events, 1)
+		assert.Equal(t, screenplay.KindScene, events[0].Kind)
+		assert.Equal(t, screenplay.PhaseBegin, events[0].Phase)
+		assert.Equal(t, screenplay.LevelInfo, events[0].Level)
+		assert.Equal(t, "the cart page", events[0].Message)
+	})
+
 	t.Run("nested beats increase the depth", func(t *testing.T) {
 		t.Parallel()
 

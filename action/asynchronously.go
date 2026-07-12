@@ -45,8 +45,9 @@ func (a *AsynchronouslyAction) String() string {
 	builder.WriteString("asynchronously")
 
 	switch a.mode {
+	case waitingForAll:
 	case stoppingOnError:
-		builder.WriteString(" (cancelling on error)")
+		builder.WriteString(" (canceling on error)")
 	case ignoringErrors:
 		builder.WriteString(" (ignoring errors)")
 	}
@@ -62,7 +63,7 @@ func (a *AsynchronouslyAction) String() string {
 }
 
 // WaitingForAll waits for every action to complete before collecting the errors
-// that occurred. This is the default behaviour.
+// that occurred. This is the default behavior.
 func (a *AsynchronouslyAction) WaitingForAll() *AsynchronouslyAction {
 	a.mode = waitingForAll
 
@@ -120,9 +121,11 @@ func (a *AsynchronouslyAction) concurrently() *ConcurrentlyAction {
 		return concurrent.StoppingOnError()
 	case ignoringErrors:
 		return concurrent.IgnoringErrors()
-	default:
+	case waitingForAll:
 		return concurrent.WaitingForAll()
 	}
+
+	return concurrent.WaitingForAll()
 }
 
 // AsynchronouslyAction implements the screenplay.Performable interface.

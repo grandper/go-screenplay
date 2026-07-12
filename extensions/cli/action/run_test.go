@@ -4,14 +4,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/grandper/go-screenplay/extensions/cli/ability"
 	"github.com/grandper/go-screenplay/extensions/cli/action"
 	"github.com/grandper/go-screenplay/extensions/cli/question"
 	"github.com/grandper/go-screenplay/extensions/cli/question/standard"
 	"github.com/grandper/go-screenplay/question/last"
 	"github.com/grandper/go-screenplay/screenplay"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRunTheCommand(t *testing.T) {

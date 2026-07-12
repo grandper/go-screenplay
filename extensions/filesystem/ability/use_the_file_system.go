@@ -193,7 +193,7 @@ func (a *UseTheFileSystemAbility) RemoveDirectory(name string) error {
 	return os.RemoveAll(name)
 }
 
-// Forget clean up the ability.
+// Forget cleans up the ability.
 // The ability cannot be used after Forget() has been called.
 // This method is used, e.g., to close connections to databases,
 // deleting data, closing client cleanly.
@@ -201,5 +201,5 @@ func (a *UseTheFileSystemAbility) Forget() error {
 	return nil
 }
 
-// Ensure UseTheFileSystemAbility implements the Ability interface.
+// UseTheFileSystemAbility implements the screenplay.Ability interface.
 var _ screenplay.Ability = (*UseTheFileSystemAbility)(nil)

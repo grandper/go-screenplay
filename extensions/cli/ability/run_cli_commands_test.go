@@ -153,7 +153,7 @@ func TestRunCLICommands(t *testing.T) {
 
 			responses := runCLICommands.Responses()
 			require.Len(t, responses, 1)
-			assert.Error(t, responses[0].Err())
+			require.Error(t, responses[0].Err())
 			assert.Equal(t, 42, responses[0].ExitCode())
 		})
 	})

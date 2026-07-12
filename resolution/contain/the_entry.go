@@ -63,7 +63,7 @@ func hasEntry(obj any, key any, value any) (bool, error) {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *TheEntryResolution[T, V]) String() string {
 	return fmt.Sprintf("containing the entry [%v: %v]", r.key, r.value)
 }

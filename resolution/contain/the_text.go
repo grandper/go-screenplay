@@ -36,7 +36,7 @@ func (r *TheTextResolution) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *TheTextResolution) String() string {
 	return fmt.Sprintf("containing the text %s", r.text)
 }

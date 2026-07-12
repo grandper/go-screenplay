@@ -16,7 +16,8 @@ func Either(performables ...screenplay.Performable) *EitherAction {
 	}
 }
 
-// EitherAction is an action that makes a note about the answer of a question.
+// EitherAction is an action that performs its performables, or an alternate set
+// of performables when the first ones fail.
 type EitherAction struct {
 	performables          []screenplay.Performable
 	alternatePerformables []screenplay.Performable

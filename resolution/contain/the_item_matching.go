@@ -114,7 +114,7 @@ func valueMatchesRegex(regex *regexp.Regexp, value reflect.Value) (bool, error) 
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *TheItemMatchingResolution) String() string {
 	return fmt.Sprintf("containing an item which matches pattern %s", r.regex)
 }

@@ -54,7 +54,7 @@ func (a *RemoveTheFileAction) PerformAs(actor *screenplay.Actor) error {
 	return useTheFileSystem.RemoveTheFile(a.filename)
 }
 
-// Ensure RemoveTheFileAction implements the screenplay.Action interface.
+// RemoveTheFileAction implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*RemoveTheFileAction)(nil)
 
 // RemoveTheDirectoryAction is an action that removes a directory.
@@ -86,5 +86,5 @@ func (a *RemoveTheDirectoryAction) PerformAs(actor *screenplay.Actor) error {
 	return useTheFileSystem.RemoveDirectory(a.directoryName)
 }
 
-// Ensure RemoveTheDirectoryAction implements the screenplay.Action interface.
+// RemoveTheDirectoryAction implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*RemoveTheDirectoryAction)(nil)

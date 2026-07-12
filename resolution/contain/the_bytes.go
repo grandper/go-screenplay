@@ -36,7 +36,7 @@ func (r *TheBytesResolution) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *TheBytesResolution) String() string {
 	return fmt.Sprintf("containing the bytes %s", r.bytes)
 }

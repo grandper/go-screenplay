@@ -54,7 +54,7 @@ func lengthOf(obj any) int {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *OfResolution) String() string {
 	return fmt.Sprintf("%s long", r.numItemsString())
 }

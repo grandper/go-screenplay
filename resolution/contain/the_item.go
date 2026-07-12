@@ -69,7 +69,7 @@ func hasItem(obj any, value any) (bool, error) {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *TheItemResolution[T]) String() string {
 	return fmt.Sprintf("containing the item %v", r.item)
 }

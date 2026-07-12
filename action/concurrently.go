@@ -25,7 +25,7 @@ const (
 
 // Concurrently performs the provided tasks or actions in parallel.
 // By default it waits for every action to complete and joins their errors,
-// which is equivalent to calling WaitingForAll. This behaviour can be changed
+// which is equivalent to calling WaitingForAll. This behavior can be changed
 // with StoppingOnError or IgnoringErrors, and the number of actions running at
 // the same time can be capped with WithLimit.
 func Concurrently(performables ...screenplay.Performable) *ConcurrentlyAction {
@@ -56,6 +56,7 @@ func (a *ConcurrentlyAction) String() string {
 	builder.WriteString("concurrently")
 
 	switch a.mode {
+	case waitingForAll:
 	case stoppingOnError:
 		builder.WriteString(" (stopping on error)")
 	case ignoringErrors:
@@ -73,7 +74,7 @@ func (a *ConcurrentlyAction) String() string {
 }
 
 // WaitingForAll waits for every action to complete and joins the errors that
-// occurred using errors.Join. This is the default behaviour.
+// occurred using errors.Join. This is the default behavior.
 func (a *ConcurrentlyAction) WaitingForAll() *ConcurrentlyAction {
 	a.mode = waitingForAll
 
@@ -116,9 +117,11 @@ func (a *ConcurrentlyAction) PerformAs(theActor *screenplay.Actor) error {
 		return a.performStoppingOnError(theActor)
 	case ignoringErrors:
 		return a.performIgnoringErrors(theActor)
-	default:
+	case waitingForAll:
 		return a.performWaitingForAll(theActor)
 	}
+
+	return a.performWaitingForAll(theActor)
 }
 
 // performWaitingForAll performs every action, waits for all of them and joins
@@ -155,11 +158,11 @@ func (a *ConcurrentlyAction) performStoppingOnError(theActor *screenplay.Actor) 
 	}
 
 	for _, performable := range a.performables {
-		performable := performable
-
 		group.Go(func() error {
-			if err := ctx.Err(); err != nil {
+			select {
+			case <-ctx.Done():
 				return nil
+			default:
 			}
 
 			if err := performable.PerformAs(theActor); err != nil {

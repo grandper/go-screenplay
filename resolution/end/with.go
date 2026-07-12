@@ -38,7 +38,7 @@ func (r *WithResolution) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *WithResolution) String() string {
 	return "ending with " + r.suffix
 }

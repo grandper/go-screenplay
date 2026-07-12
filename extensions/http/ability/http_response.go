@@ -8,14 +8,14 @@ import (
 	"strings"
 )
 
-// HTTPResponse represents a HTTP response.
+// HTTPResponse represents an HTTP response.
 type HTTPResponse struct {
 	body       string
 	headers    map[string]string
 	statusCode int
 }
 
-// NewHTTPResponseFrom creates a new HTTPResponse from a http.Response.
+// NewHTTPResponseFrom creates a new HTTPResponse from an http.Response.
 func NewHTTPResponseFrom(response *http.Response) (*HTTPResponse, error) {
 	if response == nil {
 		return nil, errors.New("failed to create a new HTTPResponse: the http.Response is nil")

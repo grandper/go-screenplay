@@ -109,6 +109,6 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 
 	t.Run("should be described as a string", func(t *testing.T) {
 		makeHTTPRequests := ability.MakeHTTPRequests()
-		assert.Equal(t, "make Http requests", makeHTTPRequests.String())
+		assert.Equal(t, "make HTTP requests", makeHTTPRequests.String())
 	})
 }

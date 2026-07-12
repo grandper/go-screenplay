@@ -44,7 +44,7 @@ func WithPolling(polling time.Duration) ProductionOption {
 }
 
 // WithForceAllNarration forces every action and question of the production to
-// narrate, neutralising the action.Silently and question.Silently decorators.
+// narrate, neutralizing the action.Silently and question.Silently decorators.
 // It is handy when debugging a scenario whose interesting step happens to be
 // silenced.
 func WithForceAllNarration() ProductionOption {

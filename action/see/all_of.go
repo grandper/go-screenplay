@@ -9,7 +9,9 @@ import (
 )
 
 // ErrInvalidAllOfArguments is returned when the arguments passed to AllOf are not valid question-resolution pairs.
-var ErrInvalidAllOfArguments = errors.New("invalid arguments: you should provide question-resolution pairs to the see.AllOf function")
+var ErrInvalidAllOfArguments = errors.New(
+	"invalid arguments: you should provide question-resolution pairs to the see.AllOf function",
+)
 
 // AllOf creates an action to see if all the answers of different questions match their expectation.
 func AllOf(tuples ...any) *AllOfAction {
@@ -24,13 +26,17 @@ func AllOf(tuples ...any) *AllOfAction {
 	for i := 0; i < len(tuples); i++ {
 		question, isAQuestion := tuples[i].(screenplay.Question)
 		if !isAQuestion {
-			return &AllOfAction{err: errors.New("invalid arguments: expected a Question at position " + strconv.Itoa(i))}
+			return &AllOfAction{
+				err: errors.New("invalid arguments: expected a Question at position " + strconv.Itoa(i)),
+			}
 		}
 
 		i++
 		resolution, isAResolution := tuples[i].(screenplay.Resolution)
 		if !isAResolution {
-			return &AllOfAction{err: errors.New("invalid arguments: expected a Resolution at position " + strconv.Itoa(i))}
+			return &AllOfAction{
+				err: errors.New("invalid arguments: expected a Resolution at position " + strconv.Itoa(i)),
+			}
 		}
 
 		action.tests = append(action.tests, The(question).Is(resolution))

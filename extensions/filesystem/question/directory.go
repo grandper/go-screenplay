@@ -22,12 +22,12 @@ func (d *Directory) Dir() string {
 	return d.dir
 }
 
-// Name returns the name of the file.
+// Name returns the name of the directory.
 func (d *Directory) Name() string {
 	return d.name
 }
 
-// Exists returns true if the file exists.
+// Exists returns true if the directory exists.
 func (d *Directory) Exists() bool {
 	return d.exists
 }

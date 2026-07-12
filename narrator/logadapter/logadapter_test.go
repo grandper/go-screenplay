@@ -88,7 +88,7 @@ func TestLogAdapter(t *testing.T) {
 		assert.Equal(t, "✗ Wanda sends a GET request: connection refused\n", buffer.String())
 	})
 
-	t.Run("honours a custom indentation", func(t *testing.T) {
+	t.Run("honors a custom indentation", func(t *testing.T) {
 		t.Parallel()
 
 		var buffer bytes.Buffer

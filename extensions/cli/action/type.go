@@ -47,5 +47,5 @@ func (a *TypeAction) PerformAs(theActor *screenplay.Actor) error {
 	return runCLICommands.Type(a.content)
 }
 
-// TypeAction implements the screenplay.Action interface.
+// TypeAction implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*TypeAction)(nil)

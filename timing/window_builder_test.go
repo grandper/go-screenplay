@@ -1,4 +1,4 @@
-package utils_test
+package timing_test
 
 import (
 	"testing"
@@ -6,24 +6,25 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/utils"
+	"github.com/grandper/go-screenplay/timing"
 )
 
-// retryParent is a minimal parent builder that embeds a RetryWindowBuilder, the
+// retryParent is a minimal parent builder that embeds a WindowBuilder, the
 // way EventuallyAction does, so we can exercise the fluent API end to end.
 type retryParent struct {
-	*utils.RetryWindowBuilder[retryParent]
-	window utils.RetryWindow
+	*timing.WindowBuilder[retryParent]
+
+	window timing.Window
 }
 
 func newRetryParent() *retryParent {
 	parent := &retryParent{}
-	parent.RetryWindowBuilder = utils.NewRetryWindowBuilder(parent, &parent.window)
+	parent.WindowBuilder = timing.NewWindowBuilder(parent, &parent.window)
 
 	return parent
 }
 
-func TestRetryWindowBuilder(t *testing.T) {
+func TestWindowBuilder(t *testing.T) {
 	t.Run("writes the total time and the polling interval", func(t *testing.T) {
 		parent := newRetryParent()
 
@@ -40,11 +41,11 @@ func TestRetryWindowBuilder(t *testing.T) {
 	})
 
 	t.Run("timeout wordings are all aliases", func(t *testing.T) {
-		wordings := map[string]func(*retryParent) *utils.TimeFrameBuilder[retryParent]{
-			"For":                   func(p *retryParent) *utils.TimeFrameBuilder[retryParent] { return p.For(5) },
-			"TryingFor":             func(p *retryParent) *utils.TimeFrameBuilder[retryParent] { return p.TryingFor(5) },
-			"TryingForNoLongerThan": func(p *retryParent) *utils.TimeFrameBuilder[retryParent] { return p.TryingForNoLongerThan(5) },
-			"WaitingFor":            func(p *retryParent) *utils.TimeFrameBuilder[retryParent] { return p.WaitingFor(5) },
+		wordings := map[string]func(*retryParent) *timing.DurationBuilder[retryParent]{
+			"For":                   func(p *retryParent) *timing.DurationBuilder[retryParent] { return p.For(5) },
+			"TryingFor":             func(p *retryParent) *timing.DurationBuilder[retryParent] { return p.TryingFor(5) },
+			"TryingForNoLongerThan": func(p *retryParent) *timing.DurationBuilder[retryParent] { return p.TryingForNoLongerThan(5) },
+			"WaitingFor":            func(p *retryParent) *timing.DurationBuilder[retryParent] { return p.WaitingFor(5) },
 		}
 
 		for name, configure := range wordings {
@@ -60,10 +61,10 @@ func TestRetryWindowBuilder(t *testing.T) {
 	})
 
 	t.Run("polling wordings are all aliases", func(t *testing.T) {
-		wordings := map[string]func(*retryParent) *utils.TimeFrameBuilder[retryParent]{
-			"Polling":      func(p *retryParent) *utils.TimeFrameBuilder[retryParent] { return p.Polling(5) },
-			"PollingEvery": func(p *retryParent) *utils.TimeFrameBuilder[retryParent] { return p.PollingEvery(5) },
-			"TryingEvery":  func(p *retryParent) *utils.TimeFrameBuilder[retryParent] { return p.TryingEvery(5) },
+		wordings := map[string]func(*retryParent) *timing.DurationBuilder[retryParent]{
+			"Polling":      func(p *retryParent) *timing.DurationBuilder[retryParent] { return p.Polling(5) },
+			"PollingEvery": func(p *retryParent) *timing.DurationBuilder[retryParent] { return p.PollingEvery(5) },
+			"TryingEvery":  func(p *retryParent) *timing.DurationBuilder[retryParent] { return p.TryingEvery(5) },
 		}
 
 		for name, configure := range wordings {

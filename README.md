@@ -92,6 +92,24 @@ an ability that contains database sessions, then you can create an
 action `QueryDatabase` that will be able to access the session of an
 actor. You can also use ability in Questions.
 
+Inside an action or a question, retrieve the actor's ability with
+`screenplay.UseAbilityTo[A]().Of(actor)`. It returns the ability (so you can call
+its methods) and an error when the actor never learned it, so an action can fail
+gracefully with a clear message:
+```go
+func (a *QueryDatabaseAction) PerformAs(actor *screenplay.Actor) error {
+	db, err := screenplay.UseAbilityTo[*UseADatabase]().Of(actor)
+	if err != nil {
+		return err // the actor cannot query a database
+	}
+
+	return db.Session().Exec(a.query)
+}
+```
+You can also check whether an actor has an ability without extracting it, with
+`actor.HasAbilityTo(UseADatabase{})`, and add abilities after creation with
+`actor.Can(...)` (an alias of `WhoCan`).
+
 Finally, abilities all implement a `Forget() error` interface that is
 used to clean up the of what is inside the ability (e.g., closing
 sessions). This method is automatically called when you use
@@ -100,7 +118,7 @@ err := neo.Exit()
 ```
 
 ### Actor specific session data
-Sometimes we need to store information in a step or rask and reuse it in a subsequent one.
+Sometimes we need to store information in a step or task and reuse it in a subsequent one.
 To do so, each actor can call the `remember` and `recall` methods to store and retrieve
 data in a key-value store.
 ```go
@@ -298,7 +316,7 @@ you probably realize that we need a collection of `abilities`, `actions`, `quest
 In this section we will review what the library as already implemented for you.
 
 #### Pausing, Stopping, and Waiting for Answers to Questions
-You may want the test execution to top until the user hit the `Enter` key (mainly for debugging reasons).
+You may want the test execution to stop until the user hit the `Enter` key (mainly for debugging reasons).
 In that case you can use the `Stop` action.
 ```go
 err := theActor.Will(Stop())
@@ -309,10 +327,10 @@ err := theActor.Will(Stop().UntilThe(HomePage, contain.TheText("Hello World!")))
 err := theActor.Will(Stop().UntilThe(CashAccount.Balance(), equal.To(2000)))
 ```
 
-You may also want to ask the execution for a given number of milliseconds, or seconds:
+You may also want to pause the execution for a given number of milliseconds or seconds:
 ```go
 err := theActor.AttemptsTo(PauseFor(10).Seconds().Because("the connection needs time to be setup"))
-err := theActor.AttemptsTo(PauseFor(500).Milliseconds().Because("of some obscur reason"))
+err := theActor.AttemptsTo(PauseFor(500).Milliseconds().Because("of some obscure reason"))
 ```
 However, if you need to wait until something happens, you may want to use `Stop` instead to save time.
 
@@ -322,15 +340,33 @@ err := adam.Should(Eventually(see.The(Text.OfThe(PageTitle)).Does(ContainsTheTex
 err := adam.AttemptsTo(Eventually(Click.OnThe(SaveButton)).TryingEvery(100).Milliseconds())
 err := adam.WasAbleTo(Eventually(CancelTheOrder).TryingFor(5).Seconds().PollingEvery(500).Milliseconds())
 ```
-`Eventually` bounds its retry loop with a `RetryWindow`: the total time it keeps
+`Eventually` bounds its retry loop with a `timing.Window`: the total time it keeps
 trying and the interval it waits between two tries. Both are configured with a
 fluent, natural-language vocabulary. To set how long the actor keeps trying use
 `For`, `TryingFor`, `TryingForNoLongerThan`, or `WaitingFor`; to set how often it
 tries use `Polling`, `PollingEvery`, or `TryingEvery`. Each of them returns a
-`utils.TimeFrameBuilder` so you then pick a unit (`Milliseconds`, `Seconds`, ...):
+`timing.DurationBuilder` so you then pick a unit (`Milliseconds`, `Seconds`, ...):
 ```go
 err := adam.WasAbleTo(Eventually(CancelTheOrder).WaitingFor(5).Seconds().Polling(500).Milliseconds())
 ```
+
+When you do not set the window explicitly, `Eventually` falls back to the actor's
+default timeout and polling interval, and `Stop().UntilThe(...)` uses the default
+timeout as well. An actor created on its own uses the package defaults
+(`screenplay.DefaultTimeout`, 2s, and `screenplay.DefaultPolling`, 500ms). To
+change them for a whole scenario, configure the `Production` the actor's stage is
+built from with `WithTimeout` and `WithPolling`:
+```go
+production := screenplay.NewProduction(
+    screenplay.WithNarrator(narrator),
+    screenplay.WithTimeout(10*time.Second),
+    screenplay.WithPolling(250*time.Millisecond),
+)
+stage := production.SetTheStage(screenplay.CastOfStandardActors())
+```
+Every actor the production's stage creates then reports those values through
+`actor.Timeout()` and `actor.Polling()`, and every `Eventually`/`Stop` they run
+inherits them unless the action overrides the window itself.
 
 #### Logging and narration
 As actors perform actions and ask questions, the library can emit a readable,
@@ -419,7 +455,7 @@ The `fixture` package ships a ready-made `fixture.Recorder` that records every
 ##### The `Log` action
 The `Log` action answers a question and whispers its value as an aside — like
 ScreenPy's `Log`, it answers directly (no "asks for" line) and dumps the value
-underneath. It honours whatever adapters you configured (with none attached it
+underneath. It honors whatever adapters you configured (with none attached it
 stays silent):
 ```go
 err := theActor.AttemptsTo(Log(HowManyBirdsAreInTheSky()))
@@ -579,7 +615,7 @@ go test -race ./...
 Sometimes you want the actor to try to do an action, and in case of failure do another one.
 You can achieve this using `Either`:
 ```go
-theActor.Will(Either(DoAction()).Or(DoDifferentAction())
+theActor.Will(Either(DoAction()).Or(DoDifferentAction()))
 theActor.Will(Either(DoAction()).Otherwise(DoDifferentAction()))
 ```
 
@@ -615,7 +651,7 @@ eagerly (where it is written); use the question/resolution form when the conditi
 be evaluated at the moment the action is performed.
 
 #### Choosing one action out of many
-`Choose` is the multi-way generalisation of `Conditionally`: it performs the first branch
+`Choose` is the multi-way generalization of `Conditionally`: it performs the first branch
 whose condition holds. Each branch is a `To(action)` closed by its condition — `When` for
 a boolean, `WhenThe` for a question and a resolution (the multi-way `If`/`IfThe`) — and
 the fallback is a `To(action)` closed by `Otherwise()`:
@@ -648,9 +684,9 @@ branch is evaluated when it is reached, so an earlier matching branch means a la
 branch's question is never asked.
 
 #### Observing things
-The simplest way to ask a question is tu use the action `see`.
+The simplest way to ask a question is to use the action `see`.
 ```go
-err := theActor.Should(see.The(Text.OfThe(PageTile)).Does(start.With("Hello")))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(start.With("Hello")))
 ```
 
 It is possible to check if the actor sees any or all of a list of question-resolution pair.
@@ -673,9 +709,9 @@ err := theActor.Should(see.ThatNoneOfThe(profilWidget, loginForm)(contain.TheTex
 #### Checking texts
 You can check if a text starts with, ends with, or contains a string:
 ```go
-err := theActor.Should(see.The(Text.OfThe(PageTile)).Does(start.With("Hello")))
-err := theActor.Should(see.The(Text.OfThe(PageTile)).Does(end.With("World!")))
-err := theActor.should(see.The(Text.OfThe(PageTitle)).Does(contain.TheText("lo Wor")))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(start.With("Hello")))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(end.With("World!")))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(contain.TheText("lo Wor")))
 ```
 
 You can check if a slice of bytes contains another slice of bytes:
@@ -685,7 +721,7 @@ err := theActor.Should(see.The(BytesOfThe(LastResponse)).Does(contain.TheBytes([
 
 You can match a text exactly:
 ```go
-err := theActor.Should(see.The(Text.OfThe(PageTile)).Does(read.Exactly("Hello World!")))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(read.Exactly("Hello World!")))
 ```
 
 You can use regex to match a text:
@@ -709,14 +745,14 @@ err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(in.Range(1, 
 ```
 
 #### Checking collections
-There are a couple of collection types in Golan such as slices and maps.
+There are a couple of collection types in Golang such as slices and maps.
 
 There exists a couple of resolutions to check slices:
 ```go
 err := theActor.Should(see.The(List.OfAll(items.InThe(TodoList))).Is(empty.Collection()))
 err := theActor.Should(see.The(items.InThe(TodoList)).Does(contain.TheItem("Add tests for the Go package")))
 err := theActor.Should(see.The(items.InThe(TodoList)).Has(length.Of(5)))
-err := theActor.should(see.The(Text.OfAll(items.InThe(TodoList))).Does(contain.TheItem("by the end of the year")))
+err := theActor.Should(see.The(Text.OfAll(items.InThe(TodoList))).Does(contain.TheItem("by the end of the year")))
 ```
 Use `empty.Collection()` to check that a channel, map, slice, array or string holds no element, and
 `empty.Value()` to check that a value equals its zero value (a `false` boolean, the number zero, a
@@ -929,18 +965,18 @@ answer, err := theAnswer.AnsweredBy(adam)
 As with actions, you can wrap the call behind builder methods to make the code
 more fluent when the answer depends on parameters.
 
-### Reusable builders (the `utils` package)
-The `utils` package holds small, dependency-free building blocks you can reuse
+### Reusable builders (the `timing` package)
+The `timing` package holds small, dependency-free building blocks you can reuse
 when writing your own actions, questions, and resolutions.
 
-`TimeFrameBuilder[T]` gives any builder a fluent time API (for example
+`DurationBuilder[T]` gives any builder a fluent time API (for example
 `.For(100).Milliseconds()` or `.During(5).Seconds()`) without re-implementing the
 amount-to-`time.Duration` conversion. It follows a simple pattern — an `amount`,
 a `unit`, and a `duration` — and is generic over the parent builder type `T`. You
 hand it a pointer to the `time.Duration` field it should fill in; the unit methods
 write `amount * unit` into that field and return the parent so the fluent chain
 keeps flowing. Pointing several builders at different fields is how a parent can
-describe more than one time frame (for example how long to keep trying and how
+describe more than one duration (for example how long to keep trying and how
 long to wait between tries).
 
 You supply the amount fluently with the ready-made wording vocabulary — `For`,
@@ -948,61 +984,61 @@ You supply the amount fluently with the ready-made wording vocabulary — `For`,
 `PollingEvery`, `TryingEvery` — so your API reads naturally without you
 re-declaring those aliases:
 ```go
-func (a *MyAction) For(amount int) *utils.TimeFrameBuilder[MyAction] {
-    return utils.NewTimeFrameBuilder(a, &a.timeout).For(amount)
+func (a *MyAction) For(amount int) *timing.DurationBuilder[MyAction] {
+    return timing.NewDurationBuilder(a, &a.timeout).For(amount)
 }
 
 // enables: MyAction{}.For(30).Seconds()
 ```
 ```go
-func (a *MyAction) Polling() *utils.TimeFrameBuilder[MyAction] {
-    return utils.NewTimeFrameBuilder(a, &a.polling)
+func (a *MyAction) Polling() *timing.DurationBuilder[MyAction] {
+    return timing.NewDurationBuilder(a, &a.polling)
 }
 
 // enables: MyAction{}.Polling().Every(5).Seconds()
 ```
 
-Its `String` method describes the time frame and matches the unit to the amount,
+Its `String` method describes the duration and matches the unit to the amount,
 so it reads `1 second` but `20 seconds`. This lets an action delegate its own
 description to the builder — for example `PauseFor(1).Second().Because("...")`
 prints `... for 1 second because ...` while `PauseFor(20).Milliseconds()` prints
 `... for 20 milliseconds ...`.
 
-`RetryWindow` bundles the two durations that bound a retry loop: the `Total` time
+`Window` bundles the two durations that bound a retry loop: the `Total` time
 during which the actor keeps trying (for how long we repeat) and the `Interval`
 it waits between two tries (how much time between every trial). It exposes a
 `Valid` method that reports whether the interval is not larger than the total:
 ```go
-window := utils.NewRetryWindow(2*time.Second, 500*time.Millisecond)
+window := timing.NewWindow(2*time.Second, 500*time.Millisecond)
 if !window.Valid() {
     // the interval between tries is larger than the total time
 }
 ```
 
-`RetryWindowBuilder[T]` layers a fluent, natural-language vocabulary on top of a
-`RetryWindow`. It is generic over the parent builder type `T` and wires a
-`TimeFrameBuilder` to each field of the window: the timeout methods (`For`,
+`WindowBuilder[T]` layers a fluent, natural-language vocabulary on top of a
+`Window`. It is generic over the parent builder type `T` and wires a
+`DurationBuilder` to each field of the window: the timeout methods (`For`,
 `TryingFor`, `TryingForNoLongerThan`, `WaitingFor`) fill in `Total`, while the
 polling methods (`Polling`, `PollingEvery`, `TryingEvery`) fill in `Interval`.
-Embed a `*RetryWindowBuilder[T]` into your builder to expose the whole vocabulary
+Embed a `*WindowBuilder[T]` into your builder to expose the whole vocabulary
 without re-declaring every alias:
 ```go
 type MyAction struct {
-    *utils.RetryWindowBuilder[MyAction]
-    window utils.RetryWindow
+    *timing.WindowBuilder[MyAction]
+    window timing.Window
 }
 
 func NewMyAction() *MyAction {
-    a := &MyAction{window: utils.NewRetryWindow(2*time.Second, 500*time.Millisecond)}
-    a.RetryWindowBuilder = utils.NewRetryWindowBuilder(a, &a.window)
+    a := &MyAction{window: timing.NewWindow(2*time.Second, 500*time.Millisecond)}
+    a.WindowBuilder = timing.NewWindowBuilder(a, &a.window)
     return a
 }
 
 // enables: NewMyAction().TryingFor(5).Seconds().PollingEvery(500).Milliseconds()
 ```
 This is exactly how `Eventually` configures its timeout and polling period: it
-stores them in a `RetryWindow` and embeds a `RetryWindowBuilder`, which is how the
-same wording drives two different time frames.
+stores them in a `Window` and embeds a `WindowBuilder`, which is how the
+same wording drives two different durations.
 
 ### Organizing Your Files
 The organization of your test code is important. An easy way to organize the code is to group the different concept together.
@@ -1028,10 +1064,54 @@ The tasks are different groups of actions. This way you have a collection of tas
 Then ability, actions, questions, and resolutions can also have their own folders.
 
 ## Extensions
-You can find several extensions in the folder `extensions`. Each of them is used to extend the capability of the library to a specific use case.
-- `http`: support API testing using REST requests.
-- `cli`: support testing CLI applications.
-- `filesystem`: support testing file system interactions.
+You can find several extensions in the folder `extensions`. Each one bundles a new
+ability together with the actions, questions, and resolutions that go with it, so
+you can drive a specific kind of system-under-test with the same screenplay
+vocabulary. Every extension has its own README with the full list of what it ships.
+
+### HTTP — [`extensions/http`](extensions/http/README.md)
+Drives REST APIs. Give an actor the `MakeHTTPRequests()` ability, then send
+requests and ask about the responses:
+```go
+anActor := screenplay.ActorNamed("Wanda").WhoCan(ability.MakeHTTPRequests())
+
+err := anActor.AttemptsTo(
+	action.AddHeader("Accept", "application/json"),
+	action.SendGetRequest().To("https://api.example.com/birds"),
+)
+err = anActor.Should(see.The(status.CodeOf(last.Of(question.Responses()))).Is(equal.To(200)))
+```
+Highlights: `SendHTTPRequest`/`SendGetRequest`/`SendPostRequest`/… with `.To`,
+`.WithBody`, `.WithAuth`/`.WithCredential` and `.Secretly`; the `AddHeader`,
+`AddHeaders`, `SetHeader`, `SetHeaders` actions; and the `Responses` and
+`status.CodeOf` questions.
+
+### CLI — [`extensions/cli`](extensions/cli/README.md)
+Drives command-line programs. Give an actor the `RunCLICommands()` ability, then
+run commands, type input, and assert on the result:
+```go
+anActor := screenplay.ActorNamed("Boby").WhoCan(ability.RunCLICommands())
+
+err := anActor.AttemptsTo(action.RunTheCommand("echo", "Hello World"))
+err = anActor.Should(see.The(standard.OutputOf(last.Of(question.Responses()))).Does(contain.TheText("Hello World")))
+```
+Highlights: the `RunTheCommand` action (with `.InTheWorkingDirectory` and
+`.Interactively`), the `Type` action, and the `EnvironmentVariableNamed`,
+`errorcode.Of`, `standard.OutputOf`, and `standard.ErrorOf` questions.
+
+### Filesystem — [`extensions/filesystem`](extensions/filesystem/README.md)
+Drives the file system. Give an actor the `UseTheFileSystem()` ability, then
+create, append to, overwrite, and remove files and directories, and assert on
+their existence and content:
+```go
+anActor := screenplay.ActorNamed("Boby").WhoCan(ability.UseTheFileSystem())
+
+err := anActor.AttemptsTo(action.Create().TheFile("notes.txt").ContainingTheText("Hello World"))
+err = anActor.Should(see.The(question.ContentOfTheFileNamed("notes.txt")).Is(equal.To("Hello World")))
+```
+Highlights: the `Create`, `Remove`, `AppendTheText`/`AppendTheBytes`/`AppendTheContent`,
+`OverwriteTo`, and `ChangeDirectoryTo` actions; the `FileNamed`, `DirectoryNamed`,
+and `ContentOfTheFileNamed` questions; and the `Exists` resolution.
 
 ## License
 Licensed under MIT License.

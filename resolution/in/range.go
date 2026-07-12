@@ -38,7 +38,7 @@ func (r *RangeResolution[T]) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *RangeResolution[T]) String() string {
 	return fmt.Sprintf("in the range [%v, %v]", r.lowerBound, r.upperBound)
 }

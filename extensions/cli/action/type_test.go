@@ -3,14 +3,15 @@ package action_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	action2 "github.com/grandper/go-screenplay/action"
 	"github.com/grandper/go-screenplay/action/see"
 	"github.com/grandper/go-screenplay/extensions/cli/question"
 	"github.com/grandper/go-screenplay/extensions/cli/question/standard"
 	"github.com/grandper/go-screenplay/question/last"
 	"github.com/grandper/go-screenplay/resolution/equal"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/extensions/cli/ability"
 

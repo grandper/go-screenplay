@@ -118,7 +118,9 @@ func TestConditionalAction(t *testing.T) {
 		})
 		require.ErrorIs(
 			t,
-			adam.AttemptsTo(action.Conditionally(doTask).IfThe(question, failingResolution).Otherwise(doTheAlternative)),
+			adam.AttemptsTo(
+				action.Conditionally(doTask).IfThe(question, failingResolution).Otherwise(doTheAlternative),
+			),
 			assert.AnError,
 		)
 		assert.Equal(t, []string{}, record)
@@ -134,7 +136,9 @@ func TestConditionalAction(t *testing.T) {
 		matching := fixture.NewFakeQuestion("the status code", 200)
 		require.NoError(
 			t,
-			adam.AttemptsTo(action.Conditionally(doTask).UnlessThe(matching, isEqualTo(200)).Otherwise(doTheAlternative)),
+			adam.AttemptsTo(
+				action.Conditionally(doTask).UnlessThe(matching, isEqualTo(200)).Otherwise(doTheAlternative),
+			),
 		)
 		assert.Equal(t, []string{"do the alternative"}, record)
 	})

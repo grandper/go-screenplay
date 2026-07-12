@@ -10,6 +10,8 @@ import (
 )
 
 func TestStage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("can be set with a cast", func(t *testing.T) {
 		t.Parallel()
 

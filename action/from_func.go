@@ -33,7 +33,7 @@ func (p *funcPerformable) PerformAs(actor *screenplay.Actor) error {
 	return p.performAS(actor)
 }
 
-// PauseAction implements the screenplay.Performable interface.
+// funcPerformable implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*funcPerformable)(nil)
 
 // Sentinel errors returned by FromFuncAndQuestions.

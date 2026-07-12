@@ -34,7 +34,7 @@ func SendHeadRequest() *SendHTTPRequestAction {
 	return SendHTTPRequest(http.MethodHead)
 }
 
-// SendOptionsRequest sends a OPTIONS request.
+// SendOptionsRequest sends an OPTIONS request.
 func SendOptionsRequest() *SendHTTPRequestAction {
 	return SendHTTPRequest(http.MethodOptions)
 }
@@ -146,5 +146,5 @@ func (a *SendHTTPRequestAction) PerformAs(theActor *screenplay.Actor) error {
 	return makeHTTPRequests.ToSend(a.method, a.url, body, a.credential)
 }
 
-// SendHTTPRequest implements the screenplay.Action interface.
+// SendHTTPRequestAction implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*SendHTTPRequestAction)(nil)

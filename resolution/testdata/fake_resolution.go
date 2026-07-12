@@ -40,7 +40,7 @@ func (fr *FakeResolution) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (fr *FakeResolution) String() string {
 	return fr.description
 }

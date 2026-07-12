@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	// ErrDirectoryNotProvided is returned when no directory is provided.
 	ErrDirectoryNotProvided = errors.New("directory must be provided")
 )
 
@@ -41,5 +42,5 @@ func (a *ChangeDirectoryAction) PerformAs(actor *screenplay.Actor) error {
 	return useTheFileSystem.ChangeDirectory(a.directory)
 }
 
-// Ensure ChangeDirectoryAction implements the screenplay.Action interface.
+// ChangeDirectoryAction implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*ChangeDirectoryAction)(nil)

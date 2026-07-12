@@ -186,7 +186,11 @@ func TestChooseAction(t *testing.T) {
 		)
 
 		questionChoice := action.Choose().To(doTask).WhenThe(question, isEqualTo(200))
-		assert.Equal(t, "choose to do the task when the status code is equal to the expected value", questionChoice.String())
+		assert.Equal(
+			t,
+			"choose to do the task when the status code is equal to the expected value",
+			questionChoice.String(),
+		)
 	})
 
 	t.Run("supports the Default wording for the fallback", func(t *testing.T) {
@@ -302,5 +306,20 @@ func TestChooseBasedOnTheAction(t *testing.T) {
 				"or to do the alternative otherwise",
 			choice.String(),
 		)
+	})
+
+	t.Run("supports the Default wording for the fallback", func(t *testing.T) {
+		question := fixture.NewFakeQuestion("the status code", 500)
+		withOtherwise := action.ChooseBasedOnThe(question).
+			To(doTask).
+			When(isEqualTo(200)).
+			To(doTheAlternative).
+			Otherwise()
+		withDefault := action.ChooseBasedOnThe(question).To(doTask).When(isEqualTo(200)).To(doTheAlternative).Default()
+		assert.Equal(t, withOtherwise.String(), withDefault.String())
+
+		reset()
+		require.NoError(t, adam.AttemptsTo(withDefault))
+		assert.Equal(t, []string{"do the alternative"}, record)
 	})
 }

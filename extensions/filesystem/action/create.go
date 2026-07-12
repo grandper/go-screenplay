@@ -125,7 +125,7 @@ func (a *CreateTheFileAction) PerformAs(actor *screenplay.Actor) error {
 	return nil
 }
 
-// Ensure CreateTheFileAction implements the screenplay.Action interface.
+// CreateTheFileAction implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*CreateTheFileAction)(nil)
 
 // CreateTheDirectoryAction is an action to create a directory.
@@ -173,5 +173,5 @@ func (a *CreateTheDirectoryAction) PerformAs(actor *screenplay.Actor) error {
 	return nil
 }
 
-// Ensure CreateTheDirectoryAction implements the screenplay.Action interface.
+// CreateTheDirectoryAction implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*CreateTheDirectoryAction)(nil)

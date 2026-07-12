@@ -108,6 +108,93 @@ func TestUseTheFileSystem(t *testing.T) {
 		})
 	})
 
+	t.Run("creates a temporary file with content", func(t *testing.T) {
+		t.Run("successfully", func(t *testing.T) {
+			filename, err := useTheFileSystem.CreateTemporaryFileWithContent(
+				"foo*.txt",
+				strings.NewReader("hello world"),
+			)
+			require.NoError(t, err)
+
+			defer func() {
+				assert.NoError(t, os.Remove(filename))
+			}()
+
+			content, err := useTheFileSystem.Read(filename)
+			require.NoError(t, err)
+			assert.Equal(t, "hello world", string(content))
+		})
+
+		t.Run("fails if the file already exists", func(t *testing.T) {
+			filename := getFilename()
+			err := useTheFileSystem.CreateFile(filename)
+			require.NoError(t, err)
+
+			defer func() {
+				assert.NoError(t, os.Remove(filename))
+			}()
+
+			_, err = useTheFileSystem.CreateTemporaryFileWithContent(filename, strings.NewReader("hello world"))
+			require.ErrorIs(t, err, ability.ErrFileAlreadyExists)
+		})
+
+		t.Run("fails if the content cannot be copied", func(t *testing.T) {
+			filename, err := useTheFileSystem.CreateTemporaryFileWithContent("foo*.txt", &failingReader{})
+			require.Error(t, err)
+			assert.Empty(t, filename)
+		})
+	})
+
+	t.Run("overwrites a file with content", func(t *testing.T) {
+		t.Run("successfully", func(t *testing.T) {
+			filename := getFilename()
+			err := useTheFileSystem.CreateFileWithContent(filename, strings.NewReader("hello world"))
+			require.NoError(t, err)
+
+			defer func() {
+				assert.NoError(t, os.Remove(filename))
+			}()
+
+			err = useTheFileSystem.OverwriteFileWithContent(filename, strings.NewReader("bye"))
+			require.NoError(t, err)
+
+			content, err := useTheFileSystem.Read(filename)
+			require.NoError(t, err)
+			assert.Equal(t, "bye", string(content))
+		})
+
+		t.Run("fails if the file does not exist", func(t *testing.T) {
+			err := useTheFileSystem.OverwriteFileWithContent(getFilename(), strings.NewReader("hello world"))
+			require.Error(t, err)
+		})
+
+		t.Run("fails if the content cannot be copied", func(t *testing.T) {
+			filename := getFilename()
+			err := useTheFileSystem.CreateFileWithContent(filename, strings.NewReader("hello world"))
+			require.NoError(t, err)
+
+			defer func() {
+				assert.NoError(t, os.Remove(filename))
+			}()
+
+			err = useTheFileSystem.OverwriteFileWithContent(filename, &failingReader{})
+			require.Error(t, err)
+		})
+	})
+
+	t.Run("creates a temporary directory", func(t *testing.T) {
+		dir, err := useTheFileSystem.CreateTemporaryDirectory("foobar")
+		require.NoError(t, err)
+
+		defer func() {
+			assert.NoError(t, useTheFileSystem.RemoveDirectory(dir))
+		}()
+
+		exists, err := useTheFileSystem.DirectoryExists(dir)
+		require.NoError(t, err)
+		assert.True(t, exists)
+	})
+
 	t.Run("creates a file", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
 			filename := getFilename()

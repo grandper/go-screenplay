@@ -58,7 +58,7 @@ func hasKey(obj any, key any) (bool, error) {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *TheKeyResolution[T]) String() string {
 	return fmt.Sprintf("containing the key %v", r.key)
 }

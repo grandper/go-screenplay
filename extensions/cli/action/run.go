@@ -93,4 +93,4 @@ func (a *RunTheCommandAction) PerformAs(actor *screenplay.Actor) error {
 }
 
 // RunTheCommandAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = &RunTheCommandAction{}
+var _ screenplay.Performable = (*RunTheCommandAction)(nil)

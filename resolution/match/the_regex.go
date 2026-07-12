@@ -43,7 +43,7 @@ func (r *TheRegexResolution) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *TheRegexResolution) String() string {
 	return fmt.Sprintf("text matching the pattern %s", r.regex)
 }

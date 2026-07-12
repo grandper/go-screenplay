@@ -67,7 +67,7 @@ func TestSilentlyQuestion(t *testing.T) {
 		assert.Contains(t, recorder.Messages(), "Adam asks for the greeting")
 	})
 
-	t.Run("is neutralised by a production forcing all narration", func(t *testing.T) {
+	t.Run("is neutralized by a production forcing all narration", func(t *testing.T) {
 		recorder := fixture.NewRecorder()
 		production := screenplay.NewProduction(
 			screenplay.WithNarrator(screenplay.NewNarrator(recorder)),
@@ -89,7 +89,11 @@ func TestSilentlyQuestion(t *testing.T) {
 	})
 
 	t.Run("implements the question interface", func(t *testing.T) {
-		assert.Implements(t, (*screenplay.Question)(nil), question.Silently(fixture.NewFakeQuestion("the token", "secret")))
+		assert.Implements(
+			t,
+			(*screenplay.Question)(nil),
+			question.Silently(fixture.NewFakeQuestion("the token", "secret")),
+		)
 	})
 }
 

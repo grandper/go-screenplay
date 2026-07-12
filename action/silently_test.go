@@ -66,7 +66,7 @@ func TestSilentlyAction(t *testing.T) {
 		assert.Contains(t, recorder.Messages(), "Adam waves")
 	})
 
-	t.Run("is neutralised by a production forcing all narration", func(t *testing.T) {
+	t.Run("is neutralized by a production forcing all narration", func(t *testing.T) {
 		recorder := fixture.NewRecorder()
 		production := screenplay.NewProduction(
 			screenplay.WithNarrator(screenplay.NewNarrator(recorder)),

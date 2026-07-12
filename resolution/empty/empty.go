@@ -44,7 +44,7 @@ func isEmptyCollection(obj any) (bool, error) {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *CollectionResolution) String() string {
 	return "an empty collection"
 }
@@ -83,7 +83,7 @@ func isEmptyValue(obj any) (bool, error) {
 	return objValue.IsZero(), nil
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *ValueResolution) String() string {
 	return "an empty value"
 }

@@ -3,9 +3,10 @@ package question_test
 import (
 	"testing"
 
-	"github.com/grandper/go-screenplay/extensions/cli/ability"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/grandper/go-screenplay/extensions/cli/ability"
 
 	"github.com/grandper/go-screenplay/extensions/cli/question"
 	"github.com/grandper/go-screenplay/screenplay"

@@ -13,7 +13,7 @@ type headerPair struct {
 }
 
 // SetHeader sets a header to the actor's HTTP session.
-// This actions will remove any headers previously set in the session.
+// This action will remove any headers previously set in the session.
 func SetHeader(key, value string) *SetHeadersAction {
 	if key == "" {
 		panic("a key cannot be empty")
@@ -25,7 +25,7 @@ func SetHeader(key, value string) *SetHeadersAction {
 }
 
 // SetHeaders sets several headers to the actor's HTTP session.
-// This actions will remove any headers previously set in the session.
+// This action will remove any headers previously set in the session.
 func SetHeaders(args ...string) *SetHeadersAction {
 	numArgs := len(args)
 	if numArgs == 0 {
@@ -101,5 +101,5 @@ func (a *SetHeadersAction) PerformAs(theActor *screenplay.Actor) error {
 	return nil
 }
 
-// SetHeadersAction implements the screenplay.Action interface.
+// SetHeadersAction implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*SetHeadersAction)(nil)

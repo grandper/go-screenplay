@@ -35,7 +35,7 @@ func (r *ExactlyResolution) Resolve() screenplay.Matcher {
 	}
 }
 
-// String describe the resolution's expectation.
+// String describes the resolution's expectation.
 func (r *ExactlyResolution) String() string {
 	return fmt.Sprintf("reading exactly '%s'", r.text)
 }

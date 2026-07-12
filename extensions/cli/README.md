@@ -1,77 +1,117 @@
-# go-screenplay-cli
+# go-screenplay CLI extension
 
-The cli extension provides new abilities, actions, questions, and resolutions to deal with the command line.
+This extension lets an actor drive command-line programs. It bundles the ability to
+run CLI commands together with the actions and questions that go with it, so you test
+a command-line tool with the same screenplay vocabulary you use everywhere else.
 
-## New Abilities
-This extension introduces a unique capability to interact with the command line.
-To use the new capability use
+## Packages
+The symbols shown below live in the extension's sub-packages:
+
+| Package | Import path | Provides |
+|---------|-------------|----------|
+| `ability` | `github.com/grandper/go-screenplay/extensions/cli/ability` | `RunCLICommands`, `Command`, `Result` |
+| `action` | `github.com/grandper/go-screenplay/extensions/cli/action` | `RunTheCommand`, `Type` |
+| `question` | `github.com/grandper/go-screenplay/extensions/cli/question` | `EnvironmentVariableNamed`, `Responses` |
+| `errorcode` | `github.com/grandper/go-screenplay/extensions/cli/question/errorcode` | `Of` |
+| `standard` | `github.com/grandper/go-screenplay/extensions/cli/question/standard` | `OutputOf`, `ErrorOf` |
+
+Assertions are written with the core screenplay packages (`action/see`,
+`resolution/equal`, `resolution/contain`, `resolution/length`, `question/last`, ...).
+For readability the examples below drop the package qualifiers on the extension
+constructors; import the packages above and qualify them as `action.RunTheCommand(...)`,
+`ability.RunCLICommands()`, and so on (note that the extension's `action`/`question`
+packages share their name with the core ones, so you may need an import alias when you
+use both in the same file).
+
+## The ability
+This extension introduces a single ability: running CLI commands. Give it to an actor
+with `WhoCan`:
 ```go
 anActor := screenplay.ActorNamed("Boby").WhoCan(RunCLICommands())
 ```
+The ability records the `Result` of every command it runs, so later questions can ask
+about them.
 
-## New Actions
+## Actions
 
-### Run a command
-You can run a command using the following action:
+### Running a command
+Run a command with `RunTheCommand`, passing the program name and its arguments:
 ```go
-err := anActor.AttemptsTo(RunTheCommand("echo", "'Hello World'"))
+err := anActor.AttemptsTo(RunTheCommand("echo", "Hello World"))
 ```
-
-Commands can be run in a specific working directory:
+Run it in a specific working directory:
 ```go
 err := anActor.AttemptsTo(RunTheCommand("ls").InTheWorkingDirectory("/home/boby"))
 ```
-
-It is also possible to run a command interactively, which means that you can provide input to the command line:
+Pass environment variables, one at a time or as a map:
 ```go
-err := anActor.AttemptsTo(RunTheCommand("isprime").Interactively()
+err := anActor.AttemptsTo(RunTheCommand("printenv", "TOKEN").WithEnvVar("TOKEN", "s3cret"))
+err := anActor.AttemptsTo(RunTheCommand("printenv").WithEnv(map[string]string{
+    "TOKEN": "s3cret",
+    "DEBUG": "1",
+}))
+```
+Run a command interactively so you can feed it input with the `Type` action:
+```go
+err := anActor.AttemptsTo(RunTheCommand("isprime").Interactively())
 ```
 
-### Type input to the command line
-You can type input to the command line using the following action:
+### Typing input to a command
+Type input to a command started with `Interactively`. `Type` formats its argument
+with `fmt.Sprintf`-style formatting:
 ```go
 err := anActor.AttemptsTo(Type("42"))
+err := anActor.AttemptsTo(Type("%s %s", "Hello", "World"))
 ```
-You can also simulate pressing the Enter key:
+Simulate pressing the Enter key after the input with `AndPressEnter`:
 ```go
 err := anActor.AttemptsTo(Type("42").AndPressEnter())
 ```
-You can format the input using fmt.Sprintf style formatting:
+
+## Questions
+
+### Environment variables
+Ask for the value of an environment variable:
 ```go
-err := anActor.AttemptsTo(Type("%s %s", "Hello", "World"))
+err := anActor.Should(see.The(EnvironmentVariableNamed("PATH")).Is(equal.To("/usr/local/bin:/usr/bin:/bin")))
 ```
 
-## New Questions
-
-### Environment Variables
-You can ask for the value of an environment variable using the following question:
+### The responses
+`Responses()` answers with every `*ability.Result` recorded so far, in the order the
+commands were run. Because it answers with a slice, it composes with the core
+`first`/`last`/`number` questions, and with the `errorcode` and `standard` questions
+below to extract a specific field from a single response:
 ```go
-err := anActor.Should(see.The(EnvironmentVariableNamed("PATH"), equal.To("/usr/local/bin:/usr/bin:/bin")))
+err := anActor.Should(see.The(Responses()).Has(length.Of(2)))
 ```
 
-### The Responses
-You can ask for all the responses recorded so far using the following question:
+### The exit code
+`errorcode.Of` wraps a question that answers with a `*Result` and answers with its
+exit code (`0` means success):
 ```go
-err := anActor.Should(see.The(Responses(), resolution.HasLength(2)))
-```
-The responses are returned in the order the commands were run.
-Combine it with the `first` or `last` questions to focus on a single response,
-and with the `errorcode` and `standard` questions to extract a specific field from a response.
-
-### The Error Code
-You can request information about the error code of a response.
-```go
-err := anActor.Should(see.The(errorcode.Of(last.Of(Responses())), equal.To(0)))
+err := anActor.Should(see.The(errorcode.Of(last.Of(Responses()))).Is(equal.To(0)))
 ```
 
-### The stdout
-You can request information about the standard output of a response.
+### The standard output
+`standard.OutputOf` answers with the standard output of a `*Result`:
 ```go
-err := anActor.Should(see.The(standard.OutputOf(last.Of(Responses())), contain.TheText("Hello World")))
+err := anActor.Should(see.The(standard.OutputOf(last.Of(Responses()))).Does(contain.TheText("Hello World")))
 ```
 
-### The stderr
-You can request information about the standard error of a response.
+### The standard error
+`standard.ErrorOf` answers with the standard error of a `*Result`:
 ```go
-err := anActor.Should(see.The(standard.ErrorOf(last.Of(Responses())), contain.TheText("unknown parameter '-x'")))
+err := anActor.Should(see.The(standard.ErrorOf(last.Of(Responses()))).Does(contain.TheText("unknown parameter '-x'")))
+```
+
+## Reading a result directly
+A `*ability.Result` exposes its parts through getters — `ExitCode()` (an `int`),
+`StdOut()` and `StdErr()` (each a `[]byte`), and `Err()` (the error returned while
+waiting for the command, if any):
+```go
+answer, _ := last.Of(Responses()).AnsweredBy(anActor)
+result := answer.(*ability.Result)
+
+exitCode := result.ExitCode()
+output := string(result.StdOut())
 ```

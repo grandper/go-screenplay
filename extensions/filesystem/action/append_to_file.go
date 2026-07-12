@@ -75,5 +75,5 @@ func (a *AppendToAction) PerformAs(actor *screenplay.Actor) error {
 	return useTheFileSystem.AppendTo(a.filename, a.reader)
 }
 
-// Ensure AppendToAction implements the screenplay.Action interface.
+// AppendToAction implements the screenplay.Performable interface.
 var _ screenplay.Performable = (*AppendToAction)(nil)

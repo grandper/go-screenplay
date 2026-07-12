@@ -43,3 +43,6 @@ func (evq *EnvironmentVariableQuestion) AnsweredBy(theActor *screenplay.Actor) (
 func (evq *EnvironmentVariableQuestion) String() string {
 	return fmt.Sprintf("environment variable named '%s'", evq.environmentVariableName)
 }
+
+// EnvironmentVariableQuestion implements the screenplay.Question interface.
+var _ screenplay.Question = (*EnvironmentVariableQuestion)(nil)

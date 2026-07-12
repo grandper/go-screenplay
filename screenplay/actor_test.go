@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,6 +14,10 @@ import (
 	"github.com/grandper/go-screenplay/fixture"
 	"github.com/grandper/go-screenplay/screenplay"
 )
+
+// contextKey is a dedicated type for context keys, avoiding collisions with keys
+// defined in other packages.
+type contextKey string
 
 // countingPerformable is a performable that counts how many times it is performed.
 type countingPerformable struct {
@@ -50,7 +55,7 @@ func TestActor(t *testing.T) {
 	})
 
 	t.Run("can set a custom context", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), "key", "value")
+		ctx := context.WithValue(context.Background(), contextKey("key"), "value")
 		adam := screenplay.ActorNamed("Adam").WithContext(ctx)
 		assert.Equal(t, ctx, adam.Context())
 		assert.NotEqual(t, context.Background(), adam.Context())
@@ -287,22 +292,25 @@ func TestActor(t *testing.T) {
 		assert.Equal(t, []int{2}, record, "ordered task must run even though independent task failed")
 	})
 
-	t.Run("should not re-run independent cleanup tasks on a second Exit call after partial failure", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam")
-		var record []int
-		task1 := testOrderedTask{id: 1, record: &record, err: nil}
-		task2 := testOrderedTask{id: 2, record: &record, err: errors.New("task 2 failed")}
-		task3 := testOrderedTask{id: 3, record: &record, err: nil}
+	t.Run(
+		"should not re-run independent cleanup tasks on a second Exit call after partial failure",
+		func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam")
+			var record []int
+			task1 := testOrderedTask{id: 1, record: &record, err: nil}
+			task2 := testOrderedTask{id: 2, record: &record, err: errors.New("task 2 failed")}
+			task3 := testOrderedTask{id: 3, record: &record, err: nil}
 
-		adam.HasIndependentCleanupTasks(task1, task2, task3)
+			adam.HasIndependentCleanupTasks(task1, task2, task3)
 
-		require.Error(t, adam.Exit())
-		assert.Equal(t, []int{1, 3}, record)
+			require.Error(t, adam.Exit())
+			assert.Equal(t, []int{1, 3}, record)
 
-		// Second Exit must not replay any task — the list was cleared despite the error.
-		require.NoError(t, adam.Exit())
-		assert.Equal(t, []int{1, 3}, record)
-	})
+			// Second Exit must not replay any task — the list was cleared despite the error.
+			require.NoError(t, adam.Exit())
+			assert.Equal(t, []int{1, 3}, record)
+		},
+	)
 
 	openTheHomePage := fixture.NewFakePerformable("open the home page", nil)
 	openTheHomePageButFailed := fixture.NewFakePerformable(
@@ -375,10 +383,91 @@ func TestActor(t *testing.T) {
 	})
 }
 
+func TestActorAttemptsToAliases(t *testing.T) {
+	openTheHomePage := fixture.NewFakePerformable("open the home page", nil)
+	openTheHomePageButFailed := fixture.NewFakePerformable(
+		"open the home page",
+		errors.New("the actor failed to perform the task"),
+	)
+
+	aliases := map[string]func(*screenplay.Actor, ...screenplay.Performable) error{
+		"WasAbleTo": (*screenplay.Actor).WasAbleTo,
+		"Does":      (*screenplay.Actor).Does,
+		"Did":       (*screenplay.Actor).Did,
+		"Will":      (*screenplay.Actor).Will,
+		"TriesTo":   (*screenplay.Actor).TriesTo,
+		"TriedTo":   (*screenplay.Actor).TriedTo,
+		"Tries":     (*screenplay.Actor).Tries,
+		"Tried":     (*screenplay.Actor).Tried,
+		"Shall":     (*screenplay.Actor).Shall,
+		"Should":    (*screenplay.Actor).Should,
+	}
+
+	for name, perform := range aliases {
+		t.Run(name+" performs the actions like AttemptsTo", func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam")
+			action := &countingPerformable{}
+
+			require.NoError(t, perform(adam, action))
+			assert.Equal(t, 1, action.count)
+		})
+
+		t.Run(name+" returns the error when an action fails", func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam")
+			require.NoError(t, perform(adam, openTheHomePage))
+			require.Error(t, perform(adam, openTheHomePageButFailed))
+		})
+	}
+}
+
+func TestActorTimeoutAndPolling(t *testing.T) {
+	t.Run("falls back to the default timeout and polling without a production", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		assert.Equal(t, screenplay.DefaultTimeout, adam.Timeout())
+		assert.Equal(t, screenplay.DefaultPolling, adam.Polling())
+	})
+
+	t.Run("reads the timeout and polling from the production", func(t *testing.T) {
+		production := screenplay.NewProduction(
+			screenplay.WithTimeout(10*time.Second),
+			screenplay.WithPolling(250*time.Millisecond),
+		)
+		adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
+
+		assert.Equal(t, 10*time.Second, adam.Timeout())
+		assert.Equal(t, 250*time.Millisecond, adam.Polling())
+	})
+}
+
+func TestActorMuted(t *testing.T) {
+	t.Run("shares the memory of the actor it is derived from", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		adam.Remember("greeting", "hello world")
+
+		assert.Equal(t, "hello world", adam.Muted().Recall("greeting"))
+	})
+
+	t.Run("still performs the actions it is asked to", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		action := &countingPerformable{}
+
+		require.NoError(t, adam.Muted().AttemptsTo(action))
+		assert.Equal(t, 1, action.count)
+	})
+
+	t.Run("suppresses narration", func(t *testing.T) {
+		recorder := fixture.NewRecorder()
+		adam := narratedActor(recorder)
+
+		require.NoError(t, adam.Muted().AttemptsTo(fixture.NewFakePerformable("waves", nil)))
+		assert.Empty(t, recorder.Events())
+	})
+}
+
 // TestActorIsThreadSafe exercises the actor from many goroutines at once. It is
 // meant to be run with the race detector (go test -race) to make sure the
 // concurrent access to the actor's memory and abilities is properly guarded.
-func TestActorIsThreadSafe(t *testing.T) {
+func TestActorIsThreadSafe(_ *testing.T) {
 	adam := screenplay.ActorNamed("Adam")
 
 	const goroutines = 50
@@ -386,7 +475,7 @@ func TestActorIsThreadSafe(t *testing.T) {
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(goroutines)
 
-	for i := 0; i < goroutines; i++ {
+	for i := range goroutines {
 		go func(i int) {
 			defer waitGroup.Done()
 
