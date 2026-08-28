@@ -510,6 +510,14 @@ is available:
 err := theActor.AttemptsTo(Eventually(Remember(UserProfile()).As("profile")).TryingFor(10).Seconds())
 ```
 
+The counterpart of `Remember` is the `question.Recalled` question: it answers with the
+value stored under a key, exactly as `actor.Recall` would (`nil` when nothing is
+stored). Because it is a question, the remembered value can be checked with
+`see.The`, waited for with `Eventually`, or passed anywhere a question is expected:
+```go
+err := theActor.Should(see.The(question.Recalled("statusCode")).Is(equal.To(200)))
+```
+
 #### Working with multiple actions
 Sometimes your actor needs to do a list of actions. In that case you can simply
 provide a list of actions to your actor:
