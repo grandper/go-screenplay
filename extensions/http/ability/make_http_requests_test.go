@@ -10,7 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/grandper/go-screenplay/v2/action"
 	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
+	httpaction "github.com/grandper/go-screenplay/v2/extensions/http/action"
+	"github.com/grandper/go-screenplay/v2/extensions/http/question"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestMakeHTTPRequestsAbility(t *testing.T) {
@@ -110,5 +114,34 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 	t.Run("should be described as a string", func(t *testing.T) {
 		makeHTTPRequests := ability.MakeHTTPRequests()
 		assert.Equal(t, "make HTTP requests", makeHTTPRequests.String())
+	})
+
+	t.Run("is safe for concurrent use", func(t *testing.T) {
+		// Run with -race: headers are added while requests are sent and
+		// responses are read, all at the same time.
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+
+		err := adam.AttemptsTo(action.Concurrently(
+			httpaction.SendGetRequest().To(server.URL+"/orders"),
+			httpaction.AddHeader("Authorization", "Bearer tok-123"),
+			httpaction.SendGetRequest().To(server.URL+"/invoices"),
+			httpaction.AddHeader("Accept", "application/json"),
+			httpaction.SendGetRequest().To(server.URL+"/customers"),
+			action.FromFunc("read the responses", func(theActor *screenplay.Actor) error {
+				_, err := theActor.AsksFor(question.Responses())
+				return err
+			}),
+		))
+		require.NoError(t, err)
+
+		makeHTTPRequests, err := screenplay.UseAbilityTo[*ability.MakeHTTPRequestsAbility]().Of(adam)
+		require.NoError(t, err)
+		assert.Len(t, makeHTTPRequests.ToRetrieveResponses(), 3)
+		assert.Len(t, makeHTTPRequests.ToRetrieveHeaders(), 2)
 	})
 }

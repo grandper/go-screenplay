@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
+	"slices"
+	"sync"
 
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -19,24 +22,37 @@ func MakeHTTPRequests() *MakeHTTPRequestsAbility {
 }
 
 // MakeHTTPRequestsAbility is the ability to make HTTP requests.
+// It is safe for concurrent use: actions running in parallel (see
+// action.Concurrently) can add headers and send requests without racing.
 type MakeHTTPRequestsAbility struct {
+	mutex     sync.RWMutex
 	headers   map[string]string
 	responses []*HTTPResponse
 }
 
 // ToAddTheHeader adds a header to the HTTP activity.
 func (mhr *MakeHTTPRequestsAbility) ToAddTheHeader(key, value string) {
+	mhr.mutex.Lock()
+	defer mhr.mutex.Unlock()
+
 	mhr.headers[key] = value
 }
 
 // ResetHeaders removes any headers previously set in the session.
 func (mhr *MakeHTTPRequestsAbility) ResetHeaders() {
+	mhr.mutex.Lock()
+	defer mhr.mutex.Unlock()
+
 	mhr.headers = map[string]string{}
 }
 
-// ToRetrieveHeaders returns the headers to be applied to the next HTTP request.
+// ToRetrieveHeaders returns a copy of the headers to be applied to the next
+// HTTP request.
 func (mhr *MakeHTTPRequestsAbility) ToRetrieveHeaders() map[string]string {
-	return mhr.headers
+	mhr.mutex.RLock()
+	defer mhr.mutex.RUnlock()
+
+	return maps.Clone(mhr.headers)
 }
 
 // ToSend sends a request. The response is stored in the ability struct.
@@ -58,13 +74,20 @@ func (mhr *MakeHTTPRequestsAbility) ToSend(method, url string, body io.Reader, c
 	if err != nil {
 		return err
 	}
+
+	mhr.mutex.Lock()
+	defer mhr.mutex.Unlock()
+
 	mhr.responses = append(mhr.responses, httpResponse)
 	return nil
 }
 
-// ToRetrieveResponses returns the responses of previous HTTP requests.
+// ToRetrieveResponses returns a copy of the responses of previous HTTP requests.
 func (mhr *MakeHTTPRequestsAbility) ToRetrieveResponses() []*HTTPResponse {
-	return mhr.responses
+	mhr.mutex.RLock()
+	defer mhr.mutex.RUnlock()
+
+	return slices.Clone(mhr.responses)
 }
 
 func methodIsValid(method string) bool {
@@ -105,7 +128,10 @@ func (mhr *MakeHTTPRequestsAbility) sendRequest(
 		request.SetBasicAuth(credential.Username, credential.Password)
 	}
 
-	for key, value := range mhr.headers {
+	// The headers are snapshotted under the read lock, so the network call runs
+	// without holding the lock and a concurrent header change never races the
+	// iteration.
+	for key, value := range mhr.ToRetrieveHeaders() {
 		request.Header.Add(key, value)
 	}
 
@@ -127,6 +153,9 @@ func (mhr *MakeHTTPRequestsAbility) Send(method, url string, body io.Reader, cre
 // This method is used, e.g., to close connections to databases,
 // deleting data, closing client cleanly.
 func (mhr *MakeHTTPRequestsAbility) Forget() error {
+	mhr.mutex.Lock()
+	defer mhr.mutex.Unlock()
+
 	mhr.headers = nil
 	mhr.responses = nil
 	return nil
