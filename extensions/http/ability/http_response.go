@@ -46,7 +46,10 @@ func readTheBody(body io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	if len(content) > screenplay.DefaultMaxBufferedSize {
-		return nil, fmt.Errorf("the response body exceeds %d MiB", screenplay.DefaultMaxBufferedSize>>20)
+		return nil, fmt.Errorf(
+			"the response body exceeds %d MiB",
+			screenplay.DefaultMaxBufferedSize>>20, //nolint:mnd // shifting by 20 converts bytes to MiB
+		)
 	}
 	return content, nil
 }

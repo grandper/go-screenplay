@@ -94,22 +94,39 @@ an ability that contains database sessions, then you can create an
 action `QueryDatabase` that will be able to access the session of an
 actor. You can also use ability in Questions.
 
-Inside an action or a question, retrieve the actor's ability with
-`screenplay.UseAbilityTo[A]().Of(actor)`. It returns the ability (so you can call
-its methods) and an error when the actor never learned it, so an action can fail
-gracefully with a clear message:
+Inside an action or a question, use the actor's ability in one chained
+statement that names the ability, then calls the operation:
 ```go
 func (a *QueryDatabaseAction) PerformAs(actor *screenplay.Actor) error {
-	db, err := screenplay.UseAbilityTo[*UseADatabase]().Of(actor)
-	if err != nil {
-		return err // the actor cannot query a database
-	}
-
-	return db.Session().Exec(a.query)
+	return screenplay.UseAnAbilityOf(actor).That(UseADatabase()).Execute(a.query)
 }
 ```
-You can also check whether an actor has an ability without extracting it, with
-`actor.HasAbilityTo(UseADatabase{})`, and add abilities after creation with
+The argument of `That` is a pointer to an initialized ability, used for its type.
+`That` returns the actor's own instance of that type, or a nil pointer when the
+actor never learned it. Every method of an ability guards a nil receiver and
+returns `screenplay.ErrActorMissingAbility`, so the operation reports the error
+and the chain never breaks:
+```go
+func (db *UseADatabaseAbility) Execute(query string) error {
+	if db == nil {
+		return screenplay.ErrActorMissingAbility
+	}
+	_, err := db.session.Exec(query)
+	return err
+}
+```
+An actor who never learned the ability fails the action with that error:
+```go
+eve := screenplay.ActorNamed("Eve")
+err := eve.AttemptsTo(QueryDatabase("SELECT 1"))
+// actor does not have the required ability
+```
+`UseAnAbilityOf` is written in `PerformAs` or `AnsweredBy`, never in a test: a
+test gives abilities to actors and performs actions; it does not use abilities
+itself.
+
+You can also check whether an actor has an ability without using it, with
+`actor.HasAbilityTo(UseADatabase())`, and add abilities after creation with
 `actor.Can(...)` (an alias of `WhoCan`).
 
 Finally, abilities all implement a `Forget() error` interface that is
@@ -675,8 +692,9 @@ err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat(), DoSomethingElse())
 When you use `Concurrently` or `Asynchronously`, several actions run in parallel
 while sharing the **same** actor. The actor is safe for concurrent use: its
 memory (`Remember`, `Recall`, `Forget`) and its abilities (`Can`/`WhoCan`,
-`HasAbilityTo`, `UseAbilityTo`) are guarded by an internal mutex, so those calls
-will not race even when made from different goroutines at the same time.
+`HasAbilityTo`, `UseAnAbilityOf(...).That(...)`) are guarded by an internal
+mutex, so those calls will not race even when made from different goroutines at
+the same time.
 
 This protects the actor's own state, but it does not automatically make **your**
 actions and abilities thread-safe. Keep the following in mind when actions can run
@@ -1183,6 +1201,9 @@ greet := action.FromFunc("greet the world", func(actor *screenplay.Actor) error 
 })
 err := adam.AttemptsTo(greet)
 ```
+An action that needs an ability uses it with
+`screenplay.UseAnAbilityOf(actor).That(...)` (see [Abilities](#abilities)).
+
 To make the code more fluent, one can wrap `action.FromFunc` (or the task tool)
 behind builder methods:
 ```go

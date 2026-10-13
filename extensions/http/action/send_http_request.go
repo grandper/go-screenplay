@@ -85,7 +85,10 @@ func (a *SendHTTPRequestAction) WithBody(body io.Reader) *SendHTTPRequestAction 
 	a.body, a.bodyErr = io.ReadAll(io.LimitReader(body, screenplay.DefaultMaxBufferedSize+1))
 	if a.bodyErr == nil && len(a.body) > screenplay.DefaultMaxBufferedSize {
 		a.body = nil
-		a.bodyErr = fmt.Errorf("the request body exceeds %d MiB", screenplay.DefaultMaxBufferedSize>>20)
+		a.bodyErr = fmt.Errorf(
+			"the request body exceeds %d MiB",
+			screenplay.DefaultMaxBufferedSize>>20, //nolint:mnd // shifting by 20 converts bytes to MiB
+		)
 	}
 
 	return a
@@ -139,17 +142,13 @@ func (a *SendHTTPRequestAction) PerformAs(theActor *screenplay.Actor) error {
 		return fmt.Errorf("failed to read the request body: %w", a.bodyErr)
 	}
 
-	makeHTTPRequests, err := screenplay.UseAbilityTo[*ability.MakeHTTPRequestsAbility]().Of(theActor)
-	if err != nil {
-		return err
-	}
-
 	var body io.Reader
 	if a.hasBody {
 		body = bytes.NewReader(a.body)
 	}
 
-	err = makeHTTPRequests.ToSend(theActor.Context(), a.method, a.url, body, a.credential)
+	err := screenplay.UseAnAbilityOf(theActor).That(ability.MakeHTTPRequests()).
+		ToSend(theActor.Context(), a.method, a.url, body, a.credential)
 	if err != nil && a.secret {
 		// A transport error embeds the full URL, query string included. A secret
 		// request reports only the cause, so the URL never reaches the narration.

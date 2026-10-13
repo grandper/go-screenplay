@@ -29,8 +29,6 @@ func TestFromFunc(t *testing.T) {
 	require.Error(t, adam.AttemptsTo(failToDoSomething))
 
 	t.Run("and questions", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam")
-
 		t.Run("performs the task with the answers from the questions", func(t *testing.T) {
 			urlQuestion := fixture.NewFakeQuestion("the URL", "https://example.com")
 			portQuestion := fixture.NewFakeQuestion("the port", 8080)
@@ -176,16 +174,19 @@ func TestFromFunc(t *testing.T) {
 			require.ErrorIs(t, adam.AttemptsTo(performable), assert.AnError)
 		})
 
-		t.Run("returns ErrAnswerNotAssignable when the answer cannot be assigned to the expected type", func(t *testing.T) {
-			performable := action.FromFuncAndQuestions(
-				"connect to %v",
-				func(_ *screenplay.Actor, url string) screenplay.Performable {
-					return action.FromFunc("connect", func(_ *screenplay.Actor) error { _ = url; return nil })
-				},
-				fixture.NewFakeQuestion("the URL", struct{}{}),
-			)
-			require.ErrorIs(t, adam.AttemptsTo(performable), action.ErrAnswerNotAssignable)
-		})
+		t.Run(
+			"returns ErrAnswerNotAssignable when the answer cannot be assigned to the expected type",
+			func(t *testing.T) {
+				performable := action.FromFuncAndQuestions(
+					"connect to %v",
+					func(_ *screenplay.Actor, url string) screenplay.Performable {
+						return action.FromFunc("connect", func(_ *screenplay.Actor) error { _ = url; return nil })
+					},
+					fixture.NewFakeQuestion("the URL", struct{}{}),
+				)
+				require.ErrorIs(t, adam.AttemptsTo(performable), action.ErrAnswerNotAssignable)
+			},
+		)
 
 		t.Run("returns ErrNotAQuestion when an argument is not a question", func(t *testing.T) {
 			performable := action.FromFuncAndQuestions(
@@ -225,7 +226,6 @@ func TestFromFunc(t *testing.T) {
 	})
 
 	t.Run("fails instead of panicking when the function is nil", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam")
 		err := adam.AttemptsTo(action.FromFunc("open the home page", nil))
 		require.EqualError(t, err, "the function given to FromFunc is nil")
 	})

@@ -52,6 +52,15 @@ err := anActor.AttemptsTo(SendGetRequest().To("https://www.example.com/loop"))
 // Get "https://www.example.com/loop": stopped after 3 redirects
 ```
 
+An action or a question uses the ability in one chained statement, written in
+`PerformAs` or `AnsweredBy`, never in a test:
+```go
+err := screenplay.UseAnAbilityOf(theActor).That(MakeHTTPRequests()).ToAddTheHeader("Accept", "application/json")
+```
+The argument of `That` carries the type; `That` returns the actor's own instance,
+or a nil pointer when the actor cannot make HTTP requests, and the operation
+then reports `screenplay.ErrActorMissingAbility`.
+
 ## Actions
 
 ### Headers

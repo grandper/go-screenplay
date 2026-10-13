@@ -14,7 +14,6 @@ import (
 )
 
 func TestSwitch(t *testing.T) {
-
 	t.Run("choose action", func(t *testing.T) {
 		record := []string{}
 		createRecordingPerformable := func(description string, err error) screenplay.Performable {

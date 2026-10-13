@@ -107,10 +107,7 @@ func (a *CreateTheFileAction) PerformAs(actor *screenplay.Actor) error {
 	if a.contentErr != nil {
 		return fmt.Errorf("failed to read the content: %w", a.contentErr)
 	}
-	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(actor)
-	if err != nil {
-		return err
-	}
+	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(ability.UseTheFileSystem())
 	if !a.temporary {
 		if a.hasContent {
 			return useTheFileSystem.CreateFileWithContent(a.filename, bytes.NewReader(a.content))
@@ -168,10 +165,7 @@ func (a *CreateTheDirectoryAction) PerformAs(actor *screenplay.Actor) error {
 	if a.directoryName == "" {
 		return ErrDirectoryNameNotProvided
 	}
-	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(actor)
-	if err != nil {
-		return err
-	}
+	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(ability.UseTheFileSystem())
 	if !a.temporary {
 		return useTheFileSystem.CreateDirectory(a.directoryName, fileMode)
 	}

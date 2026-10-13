@@ -58,7 +58,10 @@ func TestSilentlyAction(t *testing.T) {
 		recorder := fixture.NewRecorder()
 		adam := narratedActor(recorder)
 
-		require.NoError(t, adam.AttemptsTo(action.Silently(fixture.NewFakePerformable("type the password 'hunter2'", nil))))
+		require.NoError(
+			t,
+			adam.AttemptsTo(action.Silently(fixture.NewFakePerformable("type the password 'hunter2'", nil))),
+		)
 
 		for _, message := range recorder.Messages() {
 			assert.NotContains(t, message, "hunter2")

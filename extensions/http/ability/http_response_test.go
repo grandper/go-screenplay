@@ -83,7 +83,6 @@ type fakeReader struct{}
 // of bytes read (0 <= n <= len(p)) and any error encountered.
 func (fr *fakeReader) Read(_ []byte) (int, error) {
 	return 0, errors.New("failed to read the body")
-
 }
 
 // zeroReader is an endless source of zero bytes.

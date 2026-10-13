@@ -9,16 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/fixture"
-
+	coreaction "github.com/grandper/go-screenplay/v2/action"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/fixture"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestChangeDirectory(t *testing.T) {
-	adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
-
 	t.Run("can change directory", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
 			processDir, err := os.Getwd()
@@ -28,7 +26,12 @@ func TestChangeDirectory(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
 			require.NoError(t, adam.AttemptsTo(action.ChangeDirectoryTo(dir)))
 
-			useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(adam)
+			var useTheFileSystem *ability.UseTheFileSystemAbility
+			err = adam.AttemptsTo(coreaction.FromFunc("use the ability", func(theActor *screenplay.Actor) error {
+				useTheFileSystem = screenplay.UseAnAbilityOf(theActor).That(ability.UseTheFileSystem())
+
+				return nil
+			}))
 			require.NoError(t, err)
 			currentDir, err := useTheFileSystem.CurrentPath()
 			require.NoError(t, err)
@@ -80,6 +83,7 @@ func TestChangeDirectory(t *testing.T) {
 		})
 
 		t.Run("fail if the directory does not exist", func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
 			require.ErrorIs(t, adam.AttemptsTo(action.ChangeDirectoryTo("")), action.ErrDirectoryNotProvided)
 		})
 
@@ -89,6 +93,7 @@ func TestChangeDirectory(t *testing.T) {
 		})
 
 		t.Run("fails when the directory does not exist", func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
 			require.Error(t, adam.AttemptsTo(action.ChangeDirectoryTo(fixture.CreateDirectoryName(t))))
 		})
 	})

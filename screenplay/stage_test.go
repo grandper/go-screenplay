@@ -156,7 +156,7 @@ func TestStage(t *testing.T) {
 		stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
 
 		var group sync.WaitGroup
-		for i := 0; i < 8; i++ {
+		for range 8 {
 			group.Add(1)
 			go func() {
 				defer group.Done()

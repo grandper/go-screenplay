@@ -41,8 +41,13 @@ type RunCLICommandsAbility struct {
 	done chan struct{}
 }
 
-// Type types the content in the input of an interactive command.
+// Type types the content in the input of an interactive command. On a nil
+// receiver, the actor does not have the ability, it fails with
+// screenplay.ErrActorMissingAbility.
 func (a *RunCLICommandsAbility) Type(input string) error {
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	// The pipe is taken under the lock and written to after releasing it: a
 	// write may block, and the goroutine recording the program's result needs
 	// the lock to finish.
@@ -57,8 +62,12 @@ func (a *RunCLICommandsAbility) Type(input string) error {
 	return err
 }
 
-// Run runs a CLI command.
-func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error {
+// Run runs a CLI command. On a nil receiver, the actor does not have the
+// ability, it fails with screenplay.ErrActorMissingAbility.
+func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error { //nolint:funlen
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	c := exec.CommandContext(ctx, cmd.Program, cmd.Args...) // #nosec G204 -- cmd is controlled by the test framework
 	c.WaitDelay = waitDelay
 	if cmd.Dir != "" {
@@ -143,11 +152,15 @@ func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error {
 	return nil
 }
 
-// Responses returns the previous responses.
-func (a *RunCLICommandsAbility) Responses() []*Result {
+// Responses returns the previous responses. On a nil receiver, the actor does
+// not have the ability, it fails with screenplay.ErrActorMissingAbility.
+func (a *RunCLICommandsAbility) Responses() ([]*Result, error) {
+	if a == nil {
+		return nil, screenplay.ErrActorMissingAbility
+	}
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
-	return a.responses
+	return a.responses, nil
 }
 
 // Forget cleans up the ability: it ends the interactive command still running,
@@ -155,8 +168,13 @@ func (a *RunCLICommandsAbility) Responses() []*Result {
 // program reading its input waits for; a program still alive after that is
 // killed. Forget returns once the command's result has been recorded, so the
 // responses are complete when the actor exits.
-// The ability cannot be used after Forget() has been called.
+// The ability cannot be used after Forget() has been called. On a nil receiver,
+// the actor does not have the ability, it fails with
+// screenplay.ErrActorMissingAbility.
 func (a *RunCLICommandsAbility) Forget() error {
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	a.mutex.RLock()
 	stdin, currentCmd, done := a.stdin, a.currentCmd, a.done
 	a.mutex.RUnlock()
@@ -220,7 +238,10 @@ func (b *boundedBuffer) Bytes() []byte {
 // exceeded screenplay.DefaultMaxBufferedSize.
 func outputWithinBounds(stdout, stderr *boundedBuffer) error {
 	if stdout.overflowed || stderr.overflowed {
-		return fmt.Errorf("the output of the command exceeds %d MiB", screenplay.DefaultMaxBufferedSize>>20)
+		return fmt.Errorf(
+			"the output of the command exceeds %d MiB",
+			screenplay.DefaultMaxBufferedSize>>20, //nolint:mnd // shifting by 20 converts bytes to MiB
+		)
 	}
 	return nil
 }

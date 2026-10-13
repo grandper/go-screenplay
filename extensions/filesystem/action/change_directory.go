@@ -35,11 +35,7 @@ func (a *ChangeDirectoryAction) PerformAs(actor *screenplay.Actor) error {
 	if a.directory == "" {
 		return ErrDirectoryNotProvided
 	}
-	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(actor)
-	if err != nil {
-		return err
-	}
-	return useTheFileSystem.ChangeDirectory(a.directory)
+	return screenplay.UseAnAbilityOf(actor).That(ability.UseTheFileSystem()).ChangeDirectory(a.directory)
 }
 
 // ChangeDirectoryAction implements the screenplay.Performable interface.

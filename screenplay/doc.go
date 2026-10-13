@@ -9,9 +9,15 @@
 //
 //	neo := screenplay.ActorNamed("Neo").WhoCan(UseTerminalCommands())
 //
-// An ability is retrieved inside an action or a question with UseAbilityTo:
+// Inside an action or a question, the actor's ability is used with
+// UseAnAbilityOf, chaining the operation:
 //
-//	terminal, err := screenplay.UseAbilityTo[*UseTerminal]().Of(actor)
+//	err := screenplay.UseAnAbilityOf(actor).That(UseTerminalCommands()).Run("ls")
+//
+// The argument of That carries the type; That returns the actor's own instance
+// of it, or a nil pointer when the actor has none, and the operation then
+// reports ErrActorMissingAbility. UseAnAbilityOf is written in PerformAs or
+// AnsweredBy, never in a test.
 //
 // # Actions and tasks
 //

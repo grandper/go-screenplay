@@ -120,26 +120,33 @@ func TestEventuallyAction(t *testing.T) {
 			})
 			waitForTheHomePage := action.Eventually(flaky).For(2).Seconds().PollingEvery(10).Milliseconds()
 
-			adam := screenplay.ActorNamed("Adam")
-			require.NoError(t, adam.AttemptsTo(action.Concurrently(waitForTheHomePage, waitForTheHomePage, waitForTheHomePage)))
+			require.NoError(
+				t,
+				adam.AttemptsTo(action.Concurrently(waitForTheHomePage, waitForTheHomePage, waitForTheHomePage)),
+			)
 		})
 
 		t.Run("stops when the actor's context ends", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			defer cancel()
-			adam := screenplay.ActorNamed("Adam").WithContext(ctx)
+			adamWithADeadline := screenplay.ActorNamed("Adam").WithContext(ctx)
 			failing := fixture.NewFakePerformable("open the home page", errors.New("not yet"))
 
 			start := time.Now()
-			err := adam.AttemptsTo(action.Eventually(failing).For(5).Minutes().PollingEvery(10).Milliseconds())
+			err := adamWithADeadline.AttemptsTo(
+				action.Eventually(failing).For(5).Minutes().PollingEvery(10).Milliseconds(),
+			)
 			require.ErrorIs(t, err, context.DeadlineExceeded)
 			assert.Less(t, time.Since(start), 5*time.Second)
-			assert.EqualError(t, err, "an error occurred when Adam tried to eventually open the home page: context deadline exceeded")
+			assert.EqualError(
+				t,
+				err,
+				"an error occurred when Adam tried to eventually open the home page: context deadline exceeded",
+			)
 		})
 	})
 
 	t.Run("returns within its window when the first attempt is slow", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam")
 		slow := action.FromFunc("open the home page", func(_ *screenplay.Actor) error {
 			time.Sleep(300 * time.Millisecond)
 			return errors.New("still failing")
@@ -149,16 +156,23 @@ func TestEventuallyAction(t *testing.T) {
 		err := adam.AttemptsTo(action.Eventually(slow).For(50).Milliseconds().PollingEvery(10).Milliseconds())
 		require.ErrorIs(t, err, action.ErrNoAttemptCompleted)
 		assert.Less(t, time.Since(start), 250*time.Millisecond)
-		assert.EqualError(t, err, "an error occurred when Adam tried to eventually open the home page 1 times over 50ms: no attempt completed within the timeout")
+		assert.EqualError(
+			t,
+			err,
+			"an error occurred when Adam tried to eventually open the home page 1 times over 50ms: no attempt completed within the timeout",
+		)
 	})
 
 	t.Run("reports the collected failures over the window", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam")
 		failing := fixture.NewFakePerformable("open the home page", errors.New("not yet"))
 
 		err := adam.AttemptsTo(action.Eventually(failing).For(50).Milliseconds().PollingEvery(10).Milliseconds())
 		require.Error(t, err)
-		assert.Regexp(t, `^an error occurred when Adam tried to eventually open the home page \d+ times over 50ms: not yet$`, err.Error())
+		assert.Regexp(
+			t,
+			`^an error occurred when Adam tried to eventually open the home page \d+ times over 50ms: not yet$`,
+			err.Error(),
+		)
 	})
 
 	t.Run("waits a full polling interval after a failed attempt longer than the interval", func(t *testing.T) {
@@ -168,11 +182,9 @@ func TestEventuallyAction(t *testing.T) {
 			time.Sleep(30 * time.Millisecond)
 			return errors.New("not yet")
 		})
-		adam := screenplay.ActorNamed("Adam")
 
 		// 30 ms attempts followed by 20 ms pauses: at most 4 attempts fit in 200 ms.
 		_ = adam.AttemptsTo(action.Eventually(slow).For(200).Milliseconds().PollingEvery(20).Milliseconds())
 		assert.LessOrEqual(t, attempts.Load(), int32(5))
 	})
-
 }

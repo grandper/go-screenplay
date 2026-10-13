@@ -18,6 +18,7 @@ import (
 )
 
 func TestTerm(t *testing.T) {
+	t.Parallel()
 
 	t.Run("that", func(t *testing.T) {
 		t.Parallel()

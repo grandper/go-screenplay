@@ -105,10 +105,10 @@ func TestStopAction(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
-		adam := screenplay.ActorNamed("Adam").WithContext(ctx)
+		adamWithADeadline := screenplay.ActorNamed("Adam").WithContext(ctx)
 
 		start := time.Now()
-		err := adam.AttemptsTo(action.Stop().UntilAnInputIsProvidedBy(never))
+		err := adamWithADeadline.AttemptsTo(action.Stop().UntilAnInputIsProvidedBy(never))
 		require.ErrorIs(t, err, context.DeadlineExceeded)
 		assert.Less(t, time.Since(start), 5*time.Second)
 		assert.EqualError(t, err, "Adam stopped waiting for an input: context deadline exceeded")
@@ -130,6 +130,10 @@ func TestStopAction(t *testing.T) {
 
 		err := bob.AttemptsTo(action.Stop().UntilThe(lateCondition).HappensTo(be.True()))
 		require.Error(t, err)
-		assert.EqualError(t, err, "Bob stopped for 30ms without seeing that the late condition happens to be true in time")
+		assert.EqualError(
+			t,
+			err,
+			"Bob stopped for 30ms without seeing that the late condition happens to be true in time",
+		)
 	})
 }

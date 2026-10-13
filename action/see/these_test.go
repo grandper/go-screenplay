@@ -16,6 +16,7 @@ import (
 )
 
 func TestThese(t *testing.T) {
+	t.Parallel()
 
 	t.Run("see all of these met", func(t *testing.T) {
 		t.Parallel()

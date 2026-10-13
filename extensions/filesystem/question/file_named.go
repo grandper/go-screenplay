@@ -21,10 +21,7 @@ type FileNamedQuestion struct {
 
 // AnsweredBy returns the answer that an actor provided to the question.
 func (q *FileNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (*File, error) {
-	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(theActor)
-	if err != nil {
-		return nil, err
-	}
+	useTheFileSystem := screenplay.UseAnAbilityOf(theActor).That(ability.UseTheFileSystem())
 	exists, err := useTheFileSystem.FileExists(q.filename)
 	if err != nil {
 		return nil, err

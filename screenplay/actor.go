@@ -13,10 +13,7 @@ import (
 	"github.com/grandper/go-screenplay/v2/internal/reflected"
 )
 
-var (
-	ErrActorMissingAbility = errors.New("actor does not have the required ability")
-	ErrWrongAbilityType    = errors.New("ability has the wrong type")
-)
+var ErrActorMissingAbility = errors.New("actor does not have the required ability")
 
 // Actor represents the end user.
 //
@@ -274,49 +271,14 @@ func (a *Actor) ability(name string) (Ability, bool) {
 	return ability, ok
 }
 
-// UseAbilityTo is used to access the ability of an actor.
-// It is typically used as follows:
-// ability, err := UseAbilityTo[BrowseTheWeb]().Of(Adam) .
-func UseAbilityTo[A Ability]() UseAbility[A] {
-	return UseAbility[A]{}
-}
-
-// UseAbility is a way to extract an ability of an actor.
-type UseAbility[A Ability] struct{}
-
-// Of specifies which actor the ability is extracted from.
-func (ae UseAbility[A]) Of(actor *Actor) (A, error) {
-	var ability A
-
-	// The name comes from the type parameter itself, never from a value of it:
-	// the zero value of an interface type is nil and has no type.
-	str := abilityName(reflect.TypeFor[A]())
-	if v, found := actor.ability(str); found {
-		var ok bool
-		if ability, ok = v.(A); ok {
-			return ability, nil
-		}
-
-		return ability, fmt.Errorf("%w: the ability '%s' learned by '%s' has the wrong type",
-			ErrWrongAbilityType, str, actor.Name())
-	}
-
-	return ability, fmt.Errorf(
-		"%w: actor '%s' does not have the ability '%s'",
-		ErrActorMissingAbility,
-		actor.Name(),
-		str,
-	)
-}
-
-// abilityName is the key an ability is stored under: the name of its type,
-// pointer or not.
+// abilityName is the key an ability is stored under: the package path and the
+// name of its type, pointer or not.
 func abilityName(t reflect.Type) string {
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
-	return t.Name()
+	return t.PkgPath() + "." + t.Name()
 }
 
 // NumAbilities returns the number of abilities of the actor.

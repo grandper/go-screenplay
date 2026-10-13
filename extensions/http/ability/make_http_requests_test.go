@@ -22,17 +22,23 @@ import (
 func TestMakeHTTPRequestsAbility(t *testing.T) {
 	t.Run("should add headers", func(t *testing.T) {
 		makeHTTPRequests := ability.MakeHTTPRequests()
-		headers := makeHTTPRequests.ToRetrieveHeaders()
+		headers, err := makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(t, err)
 		assert.Empty(t, headers)
 
-		makeHTTPRequests.ToAddTheHeader("Content-Type", "application/json")
-		headers = makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(t, makeHTTPRequests.ToAddTheHeader("Content-Type", "application/json"))
+		headers, err = makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(t, err)
 		assert.Equal(t, map[string]string{
 			"Content-Type": "application/json",
 		}, headers)
 
-		makeHTTPRequests.ToAddTheHeader("Authorization", "bearer 75b0c854-b34a-41de-92ef-2dd0e1baccd2")
-		headers = makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(
+			t,
+			makeHTTPRequests.ToAddTheHeader("Authorization", "bearer 75b0c854-b34a-41de-92ef-2dd0e1baccd2"),
+		)
+		headers, err = makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(t, err)
 		assert.Equal(t, map[string]string{
 			"Content-Type":  "application/json",
 			"Authorization": "bearer 75b0c854-b34a-41de-92ef-2dd0e1baccd2",
@@ -41,16 +47,21 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 
 	t.Run("should reset the headers", func(t *testing.T) {
 		makeHTTPRequests := ability.MakeHTTPRequests()
-		makeHTTPRequests.ToAddTheHeader("Content-Type", "application/json")
-		makeHTTPRequests.ToAddTheHeader("Authorization", "bearer 75b0c854-b34a-41de-92ef-2dd0e1baccd2")
-		headers := makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(t, makeHTTPRequests.ToAddTheHeader("Content-Type", "application/json"))
+		require.NoError(
+			t,
+			makeHTTPRequests.ToAddTheHeader("Authorization", "bearer 75b0c854-b34a-41de-92ef-2dd0e1baccd2"),
+		)
+		headers, err := makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(t, err)
 		assert.Equal(t, map[string]string{
 			"Content-Type":  "application/json",
 			"Authorization": "bearer 75b0c854-b34a-41de-92ef-2dd0e1baccd2",
 		}, headers)
 
-		makeHTTPRequests.ResetHeaders()
-		headers = makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(t, makeHTTPRequests.ResetHeaders())
+		headers, err = makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(t, err)
 		assert.Empty(t, headers)
 	})
 
@@ -68,15 +79,24 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		defer server.Close()
 
 		makeHTTPRequests := ability.MakeHTTPRequests()
-		makeHTTPRequests.ToAddTheHeader("Content-Type", "application/json")
+		require.NoError(t, makeHTTPRequests.ToAddTheHeader("Content-Type", "application/json"))
 
-		assert.Empty(t, makeHTTPRequests.ToRetrieveResponses())
+		responses, err := makeHTTPRequests.ToRetrieveResponses()
+		require.NoError(t, err)
+		assert.Empty(t, responses)
 		require.NoError(
 			t,
-			makeHTTPRequests.ToSend(context.Background(), http.MethodPost, server.URL, strings.NewReader(`{"foo":"bar"}`), nil),
+			makeHTTPRequests.ToSend(
+				context.Background(),
+				http.MethodPost,
+				server.URL,
+				strings.NewReader(`{"foo":"bar"}`),
+				nil,
+			),
 		)
 
-		responses := makeHTTPRequests.ToRetrieveResponses()
+		responses, err = makeHTTPRequests.ToRetrieveResponses()
+		require.NoError(t, err)
 		assert.Len(t, responses, 1)
 	})
 
@@ -91,7 +111,9 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 			Password: "pass",
 		}
 		makeHTTPRequests := ability.MakeHTTPRequests()
-		assert.Empty(t, makeHTTPRequests.ToRetrieveResponses())
+		responses, err := makeHTTPRequests.ToRetrieveResponses()
+		require.NoError(t, err)
+		assert.Empty(t, responses)
 		require.NoError(t, makeHTTPRequests.ToSend(context.Background(), http.MethodGet, server.URL, nil, credential))
 	})
 
@@ -109,8 +131,12 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		makeHTTPRequests := ability.MakeHTTPRequests()
 		require.NoError(t, makeHTTPRequests.Forget())
 
-		assert.Nil(t, makeHTTPRequests.ToRetrieveHeaders())
-		assert.Nil(t, makeHTTPRequests.ToRetrieveResponses())
+		headers, err := makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(t, err)
+		assert.Nil(t, headers)
+		responses, err := makeHTTPRequests.ToRetrieveResponses()
+		require.NoError(t, err)
+		assert.Nil(t, responses)
 	})
 
 	t.Run("should be described as a string", func(t *testing.T) {
@@ -141,10 +167,19 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		))
 		require.NoError(t, err)
 
-		makeHTTPRequests, err := screenplay.UseAbilityTo[*ability.MakeHTTPRequestsAbility]().Of(adam)
+		var makeHTTPRequests *ability.MakeHTTPRequestsAbility
+		err = adam.AttemptsTo(action.FromFunc("use the ability", func(theActor *screenplay.Actor) error {
+			makeHTTPRequests = screenplay.UseAnAbilityOf(theActor).That(ability.MakeHTTPRequests())
+
+			return nil
+		}))
 		require.NoError(t, err)
-		assert.Len(t, makeHTTPRequests.ToRetrieveResponses(), 3)
-		assert.Len(t, makeHTTPRequests.ToRetrieveHeaders(), 2)
+		responses, err := makeHTTPRequests.ToRetrieveResponses()
+		require.NoError(t, err)
+		assert.Len(t, responses, 3)
+		headers, err := makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(t, err)
+		assert.Len(t, headers, 2)
 	})
 
 	t.Run("stops a request when the actor's context expires", func(t *testing.T) {
@@ -281,7 +316,29 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		makeHTTPRequests := ability.MakeHTTPRequests()
 		require.NoError(t, makeHTTPRequests.Forget())
 
-		makeHTTPRequests.ToAddTheHeader("X-Api-Key", "secret-key")
-		assert.Equal(t, map[string]string{"X-Api-Key": "secret-key"}, makeHTTPRequests.ToRetrieveHeaders())
+		require.NoError(t, makeHTTPRequests.ToAddTheHeader("X-Api-Key", "secret-key"))
+		headers, err := makeHTTPRequests.ToRetrieveHeaders()
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"X-Api-Key": "secret-key"}, headers)
+	})
+
+	t.Run("fails every operation on a nil receiver", func(t *testing.T) {
+		var makeHTTPRequests *ability.MakeHTTPRequestsAbility
+		require.ErrorIs(
+			t,
+			makeHTTPRequests.ToAddTheHeader("Accept", "application/json"),
+			screenplay.ErrActorMissingAbility,
+		)
+		require.ErrorIs(t, makeHTTPRequests.ResetHeaders(), screenplay.ErrActorMissingAbility)
+		_, err := makeHTTPRequests.ToRetrieveHeaders()
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
+		require.ErrorIs(
+			t,
+			makeHTTPRequests.ToSend(context.Background(), http.MethodGet, "http://127.0.0.1", nil, nil),
+			screenplay.ErrActorMissingAbility,
+		)
+		_, err = makeHTTPRequests.ToRetrieveResponses()
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
+		assert.ErrorIs(t, makeHTTPRequests.Forget(), screenplay.ErrActorMissingAbility)
 	})
 }

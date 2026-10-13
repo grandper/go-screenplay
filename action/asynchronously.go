@@ -183,7 +183,7 @@ func newAsynchronousErrors() *asynchronousErrors {
 
 // asynchronousErrorsMutex makes the creation of an actor's collector atomic: two
 // Asynchronously launched at the same time on one actor share one collector.
-var asynchronousErrorsMutex sync.Mutex
+var asynchronousErrorsMutex sync.Mutex //nolint:gochecknoglobals // shared by every actor so that the creation stays atomic
 
 // asynchronousErrorsOf returns the errors collector stored in the actor's
 // memory, creating and storing a new one when there is none yet.

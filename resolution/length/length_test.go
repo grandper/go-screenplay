@@ -11,6 +11,7 @@ import (
 )
 
 func TestLength(t *testing.T) {
+	t.Parallel()
 
 	t.Run("exactly", func(t *testing.T) {
 		t.Parallel()

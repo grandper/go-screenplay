@@ -28,7 +28,8 @@ func TestRunCLICommands(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			responses := runCLICommands.Responses()
+			responses, err := runCLICommands.Responses()
+			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			require.Equal(t, []byte("Hello, World!\n"), responses[0].StdOut())
 			require.Empty(t, responses[0].StdErr())
@@ -56,7 +57,8 @@ func TestRunCLICommands(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			responses := runCLICommands.Responses()
+			responses, err := runCLICommands.Responses()
+			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			assert.Equal(t, []byte("bar\n"), responses[0].StdOut())
 			assert.Empty(t, responses[0].StdErr())
@@ -70,7 +72,8 @@ func TestRunCLICommands(t *testing.T) {
 			})
 			require.Error(t, err)
 
-			responses := runCLICommands.Responses()
+			responses, err := runCLICommands.Responses()
+			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			require.Empty(t, responses[0].StdOut())
 			require.Empty(t, responses[0].StdErr())
@@ -90,7 +93,8 @@ func TestRunCLICommands(t *testing.T) {
 
 			time.Sleep(time.Second)
 
-			responses := runCLICommands.Responses()
+			responses, err := runCLICommands.Responses()
+			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			require.Equal(t, []byte("Hello, World!\n"), responses[0].StdOut())
 			require.Empty(t, responses[0].StdErr())
@@ -110,7 +114,8 @@ func TestRunCLICommands(t *testing.T) {
 
 			time.Sleep(time.Second)
 
-			responses := runCLICommands.Responses()
+			responses, err := runCLICommands.Responses()
+			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			require.Equal(t, []byte("Hello, Alice\n"), responses[0].StdOut())
 			require.Empty(t, responses[0].StdErr())
@@ -139,7 +144,8 @@ func TestRunCLICommands(t *testing.T) {
 
 			time.Sleep(200 * time.Millisecond)
 
-			responses := runCLICommands.Responses()
+			responses, err := runCLICommands.Responses()
+			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			assert.NoError(t, responses[0].Err())
 		})
@@ -154,7 +160,8 @@ func TestRunCLICommands(t *testing.T) {
 
 			time.Sleep(200 * time.Millisecond)
 
-			responses := runCLICommands.Responses()
+			responses, err := runCLICommands.Responses()
+			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			require.Error(t, responses[0].Err())
 			assert.Equal(t, 42, responses[0].ExitCode())
@@ -201,11 +208,12 @@ func TestRunCLICommands(t *testing.T) {
 			require.NoError(t, runCLICommands.Forget())
 			assert.Less(t, time.Since(start), 4*time.Second, "cat exits on end of file, before the kill")
 
-			responses := runCLICommands.Responses()
+			responses, err := runCLICommands.Responses()
+			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			assert.Equal(t, []byte("hello"), responses[0].StdOut())
 			assert.Equal(t, 0, responses[0].ExitCode())
-			assert.NoError(t, responses[0].Err())
+			require.NoError(t, responses[0].Err())
 
 			require.ErrorIs(t, runCLICommands.Type("again"), ability.ErrNoCommandCurrentlyRunning)
 		})
@@ -220,7 +228,8 @@ func TestRunCLICommands(t *testing.T) {
 
 			require.NoError(t, runCLICommands.Forget())
 
-			responses := runCLICommands.Responses()
+			responses, err := runCLICommands.Responses()
+			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			assert.Error(t, responses[0].Err(), "the result records the kill")
 		})
@@ -240,7 +249,8 @@ func TestRunCLICommands(t *testing.T) {
 		})
 		require.EqualError(t, err, "the output of the command exceeds 64 MiB")
 
-		responses := runCLICommands.Responses()
+		responses, err := runCLICommands.Responses()
+		require.NoError(t, err)
 		require.Len(t, responses, 1)
 		assert.Len(t, responses[0].StdOut(), screenplay.DefaultMaxBufferedSize, "the output is kept up to the bound")
 		assert.Equal(t, 0, responses[0].ExitCode(), "the command itself ran to completion")
@@ -251,7 +261,8 @@ func TestRunCLICommands(t *testing.T) {
 		err := runCLICommands.Run(ctx, &ability.Command{Program: "sh", Args: []string{"-c", "exit 3"}})
 		require.Error(t, err)
 
-		responses := runCLICommands.Responses()
+		responses, err := runCLICommands.Responses()
+		require.NoError(t, err)
 		require.Len(t, responses, 1)
 		assert.Equal(t, 3, responses[0].ExitCode())
 		var exitErr *exec.ExitError
@@ -263,8 +274,23 @@ func TestRunCLICommands(t *testing.T) {
 		err := runCLICommands.Run(ctx, &ability.Command{Program: "/nonexistent/program", Interactive: true})
 		require.Error(t, err)
 
-		assert.Empty(t, runCLICommands.Responses())
+		responses, err := runCLICommands.Responses()
+		require.NoError(t, err)
+		assert.Empty(t, responses)
 		require.ErrorIs(t, runCLICommands.Type("hello"), ability.ErrNoCommandCurrentlyRunning)
 		require.NoError(t, runCLICommands.Forget())
+	})
+
+	t.Run("fails every operation on a nil receiver", func(t *testing.T) {
+		var runCLICommands *ability.RunCLICommandsAbility
+		require.ErrorIs(
+			t,
+			runCLICommands.Run(ctx, &ability.Command{Program: "echo"}),
+			screenplay.ErrActorMissingAbility,
+		)
+		require.ErrorIs(t, runCLICommands.Type("hello"), screenplay.ErrActorMissingAbility)
+		_, err := runCLICommands.Responses()
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
+		assert.ErrorIs(t, runCLICommands.Forget(), screenplay.ErrActorMissingAbility)
 	})
 }

@@ -48,6 +48,9 @@ type UseTheFileSystemAbility struct {
 
 // CurrentPath returns the ability's current directory.
 func (a *UseTheFileSystemAbility) CurrentPath() (string, error) {
+	if a == nil {
+		return "", screenplay.ErrActorMissingAbility
+	}
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
 
@@ -60,6 +63,9 @@ func (a *UseTheFileSystemAbility) CurrentPath() (string, error) {
 // ChangeDirectory changes the ability's current directory. The working directory
 // of the process is left untouched.
 func (a *UseTheFileSystemAbility) ChangeDirectory(dir string) error {
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	path, err := a.resolve(dir)
 	if err != nil {
 		return err
@@ -94,6 +100,9 @@ func (a *UseTheFileSystemAbility) resolve(name string) (string, error) {
 
 // FileExists returns true if the file exists.
 func (a *UseTheFileSystemAbility) FileExists(filename string) (bool, error) {
+	if a == nil {
+		return false, screenplay.ErrActorMissingAbility
+	}
 	path, err := a.resolve(filename)
 	if err != nil {
 		return false, err
@@ -110,6 +119,9 @@ func (a *UseTheFileSystemAbility) FileExists(filename string) (bool, error) {
 
 // DirectoryExists returns true if the directory exists.
 func (a *UseTheFileSystemAbility) DirectoryExists(director string) (bool, error) {
+	if a == nil {
+		return false, screenplay.ErrActorMissingAbility
+	}
 	path, err := a.resolve(director)
 	if err != nil {
 		return false, err
@@ -135,6 +147,9 @@ func (a *UseTheFileSystemAbility) DirectoryExists(director string) (bool, error)
 // the file. It is the caller's responsibility to remove the file when it
 // is no longer needed.
 func (a *UseTheFileSystemAbility) CreateTemporaryFile(pattern string) (string, error) {
+	if a == nil {
+		return "", screenplay.ErrActorMissingAbility
+	}
 	file, err := a.createTemporaryFile(pattern)
 	if err != nil {
 		return "", err
@@ -144,6 +159,9 @@ func (a *UseTheFileSystemAbility) CreateTemporaryFile(pattern string) (string, e
 
 // CreateTemporaryFileWithContent creates a new file with the specified name and copies the content from the provided reader.
 func (a *UseTheFileSystemAbility) CreateTemporaryFileWithContent(pattern string, reader io.Reader) (string, error) {
+	if a == nil {
+		return "", screenplay.ErrActorMissingAbility
+	}
 	file, err := a.createTemporaryFile(pattern)
 	if err != nil {
 		return "", err
@@ -165,6 +183,9 @@ func (a *UseTheFileSystemAbility) createTemporaryFile(pattern string) (*os.File,
 
 // CreateFile creates a new file with the specified name.
 func (a *UseTheFileSystemAbility) CreateFile(filename string) error {
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	file, err := a.createFile(filename)
 	if err != nil {
 		return err
@@ -174,6 +195,9 @@ func (a *UseTheFileSystemAbility) CreateFile(filename string) error {
 
 // CreateFileWithContent creates a new file with the specified name and copies the content from the provided reader.
 func (a *UseTheFileSystemAbility) CreateFileWithContent(filename string, reader io.Reader) error {
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	file, err := a.createFile(filename)
 	if err != nil {
 		return err
@@ -217,11 +241,14 @@ func refuseSymbolicLink(path string) error {
 
 // OverwriteFileWithContent overwrites the content of the specified file with the content from the provided reader.
 func (a *UseTheFileSystemAbility) OverwriteFileWithContent(filename string, reader io.Reader) error {
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	path, err := a.resolve(filename)
 	if err != nil {
 		return err
 	}
-	if err := refuseSymbolicLink(path); err != nil {
+	if err = refuseSymbolicLink(path); err != nil {
 		return err
 	}
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, createdFileMode)
@@ -238,11 +265,14 @@ func (a *UseTheFileSystemAbility) OverwriteFileWithContent(filename string, read
 
 // AppendTo appends content from the provided reader to the specified file.
 func (a *UseTheFileSystemAbility) AppendTo(filename string, reader io.Reader) error {
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	path, err := a.resolve(filename)
 	if err != nil {
 		return err
 	}
-	if err := refuseSymbolicLink(path); err != nil {
+	if err = refuseSymbolicLink(path); err != nil {
 		return err
 	}
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, createdFileMode)
@@ -261,6 +291,9 @@ func (a *UseTheFileSystemAbility) AppendTo(filename string, reader io.Reader) er
 // A file larger than screenplay.DefaultMaxBufferedSize is refused, so a big
 // fixture never exhausts the memory of the test process.
 func (a *UseTheFileSystemAbility) Read(filename string) ([]byte, error) {
+	if a == nil {
+		return nil, screenplay.ErrActorMissingAbility
+	}
 	path, err := a.resolve(filename)
 	if err != nil {
 		return nil, err
@@ -276,13 +309,19 @@ func (a *UseTheFileSystemAbility) Read(filename string) ([]byte, error) {
 		return nil, err
 	}
 	if len(content) > screenplay.DefaultMaxBufferedSize {
-		return nil, fmt.Errorf("the content of the file exceeds %d MiB", screenplay.DefaultMaxBufferedSize>>20)
+		return nil, fmt.Errorf(
+			"the content of the file exceeds %d MiB",
+			screenplay.DefaultMaxBufferedSize>>20, //nolint:mnd // shifting by 20 converts bytes to MiB
+		)
 	}
 	return content, nil
 }
 
 // CreateDirectory creates a new directory with the specified name and permission bits.
 func (a *UseTheFileSystemAbility) CreateDirectory(name string, perm os.FileMode) error {
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	path, err := a.resolve(name)
 	if err != nil {
 		return err
@@ -292,11 +331,17 @@ func (a *UseTheFileSystemAbility) CreateDirectory(name string, perm os.FileMode)
 
 // CreateTemporaryDirectory creates a new temporary directory with the specified name and permission bits.
 func (a *UseTheFileSystemAbility) CreateTemporaryDirectory(pattern string) (string, error) {
+	if a == nil {
+		return "", screenplay.ErrActorMissingAbility
+	}
 	return os.MkdirTemp("", pattern)
 }
 
 // RemoveTheFile removes the named file or (empty) directory.
 func (a *UseTheFileSystemAbility) RemoveTheFile(filename string) error {
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	path, err := a.resolve(filename)
 	if err != nil {
 		return err
@@ -308,11 +353,14 @@ func (a *UseTheFileSystemAbility) RemoveTheFile(filename string) error {
 // ErrProtectedDirectory, to remove the root of the file system, the home
 // directory, the current working directory or a directory that contains it.
 func (a *UseTheFileSystemAbility) RemoveDirectory(name string) error {
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	path, err := a.resolve(name)
 	if err != nil {
 		return err
 	}
-	if err := a.refuseProtectedDirectory(name, path); err != nil {
+	if err = a.refuseProtectedDirectory(name, path); err != nil {
 		return err
 	}
 	return os.RemoveAll(path)
@@ -361,6 +409,9 @@ func (a *UseTheFileSystemAbility) refuseProtectedDirectory(name, dir string) err
 // This method is used, e.g., to close connections to databases,
 // deleting data, closing client cleanly.
 func (a *UseTheFileSystemAbility) Forget() error {
+	if a == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	return nil
 }
 

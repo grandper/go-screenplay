@@ -9,7 +9,6 @@ import (
 )
 
 func TestUtils(t *testing.T) {
-
 	t.Run("create fake existing file", func(t *testing.T) {
 		t.Run("should create a fake existing file", func(t *testing.T) {
 			filePath := "test.txt"

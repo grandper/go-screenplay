@@ -12,6 +12,7 @@ import (
 )
 
 func TestContain(t *testing.T) {
+	t.Parallel()
 
 	t.Run("substring", func(t *testing.T) {
 		t.Parallel()
@@ -149,6 +150,10 @@ func TestContain(t *testing.T) {
 		testdata.AssertInvalid(t, contain.Value[string, any]([]int{1}), map[string]any{"a": []int{1}})
 
 		testdata.AssertMatch(t, contain.Entries[string, any](map[string]any{"a": 3}), map[string]any{"a": 3, "b": 4})
-		testdata.AssertInvalid(t, contain.Entries[string, any](map[string]any{"a": []int{1}}), map[string]any{"a": []int{1}})
+		testdata.AssertInvalid(
+			t,
+			contain.Entries[string, any](map[string]any{"a": []int{1}}),
+			map[string]any{"a": []int{1}},
+		)
 	})
 }

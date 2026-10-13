@@ -20,11 +20,7 @@ func (q *ResponsesQuestion) String() string {
 
 // AnsweredBy returns the answer that an actor provided to the question.
 func (q *ResponsesQuestion) AnsweredBy(theActor *screenplay.Actor) ([]*ability.Result, error) {
-	theActorRunsCLICommands, err := screenplay.UseAbilityTo[*ability.RunCLICommandsAbility]().Of(theActor)
-	if err != nil {
-		return nil, err
-	}
-	return theActorRunsCLICommands.Responses(), nil
+	return screenplay.UseAnAbilityOf(theActor).That(ability.RunCLICommands()).Responses()
 }
 
 // ResponsesQuestion implements the screenplay.Question interface.

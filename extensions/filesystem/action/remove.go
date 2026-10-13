@@ -37,10 +37,7 @@ func (a *RemoveTheFileAction) String() string {
 
 // PerformAs removes the file or directory.
 func (a *RemoveTheFileAction) PerformAs(actor *screenplay.Actor) error {
-	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(actor)
-	if err != nil {
-		return err
-	}
+	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(ability.UseTheFileSystem())
 	if a.filename == "" {
 		return ErrFilenameNotProvided
 	}
@@ -69,10 +66,7 @@ func (a *RemoveTheDirectoryAction) String() string {
 
 // PerformAs removes the file or directory.
 func (a *RemoveTheDirectoryAction) PerformAs(actor *screenplay.Actor) error {
-	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(actor)
-	if err != nil {
-		return err
-	}
+	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(ability.UseTheFileSystem())
 	if a.directoryName == "" {
 		return ErrDirectoryNameNotProvided
 	}

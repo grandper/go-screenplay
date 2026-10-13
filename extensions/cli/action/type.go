@@ -37,10 +37,7 @@ func (a *TypeAction) String() string {
 
 // PerformAs performs the task or the action as the provided actor.
 func (a *TypeAction) PerformAs(theActor *screenplay.Actor) error {
-	runCLICommands, err := screenplay.UseAbilityTo[*ability.RunCLICommandsAbility]().Of(theActor)
-	if err != nil {
-		return err
-	}
+	runCLICommands := screenplay.UseAnAbilityOf(theActor).That(ability.RunCLICommands())
 	if a.pressEnter {
 		return runCLICommands.Type(a.content + "\n")
 	}

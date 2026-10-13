@@ -75,7 +75,11 @@ func TestRemove(t *testing.T) {
 		t.Run("refuses to remove the parent of the current directory", func(t *testing.T) {
 			err := adam.AttemptsTo(action.Remove().TheDirectory(".."))
 			require.ErrorIs(t, err, ability.ErrProtectedDirectory)
-			assert.EqualError(t, err, "refused to remove a protected directory: '..' contains the current working directory")
+			require.EqualError(
+				t,
+				err,
+				"refused to remove a protected directory: '..' contains the current working directory",
+			)
 
 			_, err = os.Stat("..")
 			require.NoError(t, err)

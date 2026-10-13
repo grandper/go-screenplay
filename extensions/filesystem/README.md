@@ -30,6 +30,15 @@ with `WhoCan`:
 anActor := screenplay.ActorNamed("Boby").WhoCan(UseTheFileSystem())
 ```
 
+An action or a question uses the ability in one chained statement, written in
+`PerformAs` or `AnsweredBy`, never in a test:
+```go
+err := screenplay.UseAnAbilityOf(theActor).That(UseTheFileSystem()).CreateFile("notes.txt")
+```
+The argument of `That` carries the type; `That` returns the actor's own instance,
+or a nil pointer when the actor cannot use the file system, and the operation
+then reports `screenplay.ErrActorMissingAbility`.
+
 ## Actions
 
 ### Create files and directories

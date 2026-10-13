@@ -105,12 +105,11 @@ func (a *AddHeadersAction) PerformAs(theActor *screenplay.Actor) error {
 		return a.err
 	}
 
-	makeHTTPRequests, err := screenplay.UseAbilityTo[*ability.MakeHTTPRequestsAbility]().Of(theActor)
-	if err != nil {
-		return err
-	}
+	makeHTTPRequests := screenplay.UseAnAbilityOf(theActor).That(ability.MakeHTTPRequests())
 	for key, value := range a.headers {
-		makeHTTPRequests.ToAddTheHeader(key, value)
+		if err := makeHTTPRequests.ToAddTheHeader(key, value); err != nil {
+			return err
+		}
 	}
 	return nil
 }

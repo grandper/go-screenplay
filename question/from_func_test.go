@@ -31,8 +31,7 @@ func TestFromFunc(t *testing.T) {
 	require.ErrorIs(t, err, assert.AnError)
 
 	t.Run("fails instead of panicking when the function is nil", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam")
-		_, err := adam.AsksFor(question.FromFunc[int]("the number of orders", nil))
+		_, err = adam.AsksFor(question.FromFunc[int]("the number of orders", nil))
 		require.EqualError(t, err, "the function given to FromFunc is nil")
 	})
 }

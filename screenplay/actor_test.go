@@ -186,16 +186,25 @@ func TestActor(t *testing.T) {
 
 	t.Run("can use an ability", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
-		adam.WhoCan(performTesting)
-		ability, err := screenplay.UseAbilityTo[performTestingAbility]().Of(adam)
-		require.NoError(t, err)
-		assert.Equal(t, performTesting, ability)
+		landing := &landingAbility{}
+		adam.WhoCan(landing)
+		var got *landingAbility
+		require.NoError(
+			t,
+			adam.AttemptsTo(usingAnAbility[landingAbility, *landingAbility]{ability: &landingAbility{}, got: &got}),
+		)
+		assert.Same(t, landing, got)
 	})
 
 	t.Run("cannot use a missing ability", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
-		_, err := screenplay.UseAbilityTo[performTestingAbility]().Of(adam)
-		assert.Error(t, err)
+		var got *landingAbility
+		require.NoError(
+			t,
+			adam.AttemptsTo(usingAnAbility[landingAbility, *landingAbility]{ability: &landingAbility{}, got: &got}),
+		)
+		assert.Nil(t, got)
+		assert.ErrorIs(t, got.Land(), screenplay.ErrActorMissingAbility)
 	})
 
 	t.Run("forget an ability on exit", func(t *testing.T) {
@@ -408,12 +417,6 @@ func TestActor(t *testing.T) {
 	})
 
 	t.Run("attempts to aliases", func(t *testing.T) {
-		openTheHomePage := fixture.NewFakePerformable("open the home page", nil)
-		openTheHomePageButFailed := fixture.NewFakePerformable(
-			"open the home page",
-			errors.New("the actor failed to perform the task"),
-		)
-
 		aliases := map[string]func(*screenplay.Actor, ...screenplay.Performable) error{
 			"WasAbleTo": (*screenplay.Actor).WasAbleTo,
 			"Does":      (*screenplay.Actor).Does,
@@ -538,7 +541,7 @@ func TestActor(t *testing.T) {
 
 		// Run with -race: views are made while others read the actor's context.
 		var group sync.WaitGroup
-		for i := 0; i < 8; i++ {
+		for i := range 8 {
 			group.Add(2)
 			go func() {
 				defer group.Done()
@@ -552,16 +555,12 @@ func TestActor(t *testing.T) {
 		group.Wait()
 	})
 
-	t.Run("ignores a nil ability and looks an interface type up without panicking", func(t *testing.T) {
+	t.Run("ignores a nil ability", func(t *testing.T) {
 		var forgotten screenplay.Ability
 		adam := screenplay.ActorNamed("Adam").WhoCan(forgotten)
 
 		assert.Equal(t, 0, adam.NumAbilities())
 		assert.False(t, adam.HasAbilityTo(nil))
-
-		_, err := screenplay.UseAbilityTo[screenplay.Ability]().Of(adam)
-		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
-		assert.Contains(t, err.Error(), "does not have the ability 'Ability'")
 	})
 
 	t.Run("narrates the cleanup tasks performed at exit", func(t *testing.T) {

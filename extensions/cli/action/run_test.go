@@ -72,7 +72,10 @@ func TestRunTheCommand(t *testing.T) {
 		t.Run("inheriting the environment of the test process", func(t *testing.T) {
 			t.Setenv("INHERITED_GREETING", "Hello from the parent!")
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
-			require.NoError(t, adam.AttemptsTo(action.RunTheCommand("sh", "-c", "echo $INHERITED_GREETING; echo $PATH")))
+			require.NoError(
+				t,
+				adam.AttemptsTo(action.RunTheCommand("sh", "-c", "echo $INHERITED_GREETING; echo $PATH")),
+			)
 
 			value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
 			require.NoError(t, err)
@@ -82,8 +85,11 @@ func TestRunTheCommand(t *testing.T) {
 		t.Run("inheriting the environment when variables are added", func(t *testing.T) {
 			t.Setenv("INHERITED_GREETING", "Hello from the parent!")
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
-			require.NoError(t, adam.AttemptsTo(action.RunTheCommand("sh", "-c", "echo $INHERITED_GREETING; echo $GREETING").
-				WithEnvVar("GREETING", "Hello, World!")))
+			require.NoError(
+				t,
+				adam.AttemptsTo(action.RunTheCommand("sh", "-c", "echo $INHERITED_GREETING; echo $GREETING").
+					WithEnvVar("GREETING", "Hello, World!")),
+			)
 
 			value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
 			require.NoError(t, err)

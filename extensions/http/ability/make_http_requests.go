@@ -73,7 +73,10 @@ func (mhr *MakeHTTPRequestsAbility) checkRedirect(request *http.Request, via []*
 		return fmt.Errorf("stopped after %d redirects", mhr.maxRedirects)
 	}
 	if request.URL.Host != via[0].URL.Host {
-		for key := range mhr.ToRetrieveHeaders() {
+		mhr.mutex.RLock()
+		defer mhr.mutex.RUnlock()
+
+		for key := range mhr.headers {
 			request.Header.Del(key)
 		}
 	}
@@ -94,8 +97,13 @@ type MakeHTTPRequestsAbility struct {
 	responses    []*HTTPResponse
 }
 
-// ToAddTheHeader adds a header to the HTTP activity.
-func (mhr *MakeHTTPRequestsAbility) ToAddTheHeader(key, value string) {
+// ToAddTheHeader adds a header to the HTTP activity. On a nil receiver, the
+// actor does not have the ability, it fails with screenplay.ErrActorMissingAbility.
+func (mhr *MakeHTTPRequestsAbility) ToAddTheHeader(key, value string) error {
+	if mhr == nil {
+		return screenplay.ErrActorMissingAbility
+	}
+
 	mhr.mutex.Lock()
 	defer mhr.mutex.Unlock()
 
@@ -104,33 +112,53 @@ func (mhr *MakeHTTPRequestsAbility) ToAddTheHeader(key, value string) {
 		mhr.headers = map[string]string{}
 	}
 	mhr.headers[key] = value
+
+	return nil
 }
 
-// ResetHeaders removes any headers previously set in the session.
-func (mhr *MakeHTTPRequestsAbility) ResetHeaders() {
+// ResetHeaders removes any headers previously set in the session. On a nil
+// receiver, the actor does not have the ability, it fails with
+// screenplay.ErrActorMissingAbility.
+func (mhr *MakeHTTPRequestsAbility) ResetHeaders() error {
+	if mhr == nil {
+		return screenplay.ErrActorMissingAbility
+	}
+
 	mhr.mutex.Lock()
 	defer mhr.mutex.Unlock()
 
 	mhr.headers = map[string]string{}
+
+	return nil
 }
 
 // ToRetrieveHeaders returns a copy of the headers to be applied to the next
-// HTTP request.
-func (mhr *MakeHTTPRequestsAbility) ToRetrieveHeaders() map[string]string {
+// HTTP request. On a nil receiver, the actor does not have the ability, it
+// fails with screenplay.ErrActorMissingAbility.
+func (mhr *MakeHTTPRequestsAbility) ToRetrieveHeaders() (map[string]string, error) {
+	if mhr == nil {
+		return nil, screenplay.ErrActorMissingAbility
+	}
+
 	mhr.mutex.RLock()
 	defer mhr.mutex.RUnlock()
 
-	return maps.Clone(mhr.headers)
+	return maps.Clone(mhr.headers), nil
 }
 
 // ToSend sends a request with the given context, which is the actor's context
-// when called from an action. The response is stored in the ability struct.
+// when called from an action. The response is stored in the ability struct. On
+// a nil receiver, the actor does not have the ability, it fails with
+// screenplay.ErrActorMissingAbility.
 func (mhr *MakeHTTPRequestsAbility) ToSend(
 	ctx context.Context,
 	method, url string,
 	body io.Reader,
 	credential *Credential,
 ) error {
+	if mhr == nil {
+		return screenplay.ErrActorMissingAbility
+	}
 	if !methodIsValid(method) {
 		return fmt.Errorf("%s is not a valid HTTP method", method)
 	}
@@ -153,12 +181,18 @@ func (mhr *MakeHTTPRequestsAbility) ToSend(
 	return nil
 }
 
-// ToRetrieveResponses returns a copy of the responses of previous HTTP requests.
-func (mhr *MakeHTTPRequestsAbility) ToRetrieveResponses() []*HTTPResponse {
+// ToRetrieveResponses returns a copy of the responses of previous HTTP
+// requests. On a nil receiver, the actor does not have the ability, it fails
+// with screenplay.ErrActorMissingAbility.
+func (mhr *MakeHTTPRequestsAbility) ToRetrieveResponses() ([]*HTTPResponse, error) {
+	if mhr == nil {
+		return nil, screenplay.ErrActorMissingAbility
+	}
+
 	mhr.mutex.RLock()
 	defer mhr.mutex.RUnlock()
 
-	return slices.Clone(mhr.responses)
+	return slices.Clone(mhr.responses), nil
 }
 
 func methodIsValid(method string) bool {
@@ -203,7 +237,11 @@ func (mhr *MakeHTTPRequestsAbility) sendRequest(
 	// The headers are snapshotted under the read lock, so the network call runs
 	// without holding the lock and a concurrent header change never races the
 	// iteration.
-	for key, value := range mhr.ToRetrieveHeaders() {
+	headers, err := mhr.ToRetrieveHeaders()
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range headers {
 		request.Header.Add(key, value)
 	}
 
@@ -228,8 +266,13 @@ func (mhr *MakeHTTPRequestsAbility) Send(
 // Forget cleans up the ability.
 // The ability cannot be used after Forget() has been called.
 // This method is used, e.g., to close connections to databases,
-// deleting data, closing client cleanly.
+// deleting data, closing client cleanly. On a nil receiver, the actor does not
+// have the ability, it fails with screenplay.ErrActorMissingAbility.
 func (mhr *MakeHTTPRequestsAbility) Forget() error {
+	if mhr == nil {
+		return screenplay.ErrActorMissingAbility
+	}
+
 	mhr.mutex.Lock()
 	defer mhr.mutex.Unlock()
 

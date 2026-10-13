@@ -28,7 +28,7 @@ func TestEnvironmentVariable(t *testing.T) {
 		assert.Equal(t, "world", value)
 	})
 
-	t.Run("fails when fails to get the error code when the actor does not have the ability MakeHttpRequest",
+	t.Run("fails when fails to get the error code when the actor does not have the ability RunCLICommands",
 		func(t *testing.T) {
 			theActor := screenplay.ActorNamed("Adam")
 			value, err := question.EnvironmentVariableNamed("HELLO").AnsweredBy(theActor)

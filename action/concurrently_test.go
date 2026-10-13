@@ -190,16 +190,28 @@ func TestConcurrentlyAction(t *testing.T) {
 
 	t.Run("ignores nil performables instead of panicking", func(t *testing.T) {
 		recorder := fixture.NewRecorder()
-		adam := narratedActor(recorder)
+		narratedAdam := narratedActor(recorder)
 
-		require.NoError(t, adam.AttemptsTo(action.Concurrently(fixture.NewFakePerformable("retry", nil), nil)))
+		require.NoError(t, narratedAdam.AttemptsTo(action.Concurrently(fixture.NewFakePerformable("retry", nil), nil)))
 		assert.Contains(t, recorder.Messages(), "Adam attempts to concurrently retry")
 
-		require.NoError(t, adam.AttemptsTo(action.Asynchronously(nil, fixture.NewFakePerformable("retry", nil))))
-		require.NoError(t, adam.AttemptsTo(action.Either(nil, fixture.NewFakePerformable("retry", nil)).Or(nil, fixture.NewFakePerformable("wait", nil))))
+		require.NoError(
+			t,
+			narratedAdam.AttemptsTo(action.Asynchronously(nil, fixture.NewFakePerformable("retry", nil))),
+		)
+		require.NoError(
+			t,
+			narratedAdam.AttemptsTo(
+				action.Either(nil, fixture.NewFakePerformable("retry", nil)).
+					Or(nil, fixture.NewFakePerformable("wait", nil)),
+			),
+		)
 		// A list made only of nil is empty: the mistake fails when performed, without a panic.
-		require.Error(t, adam.AttemptsTo(action.Either(fixture.NewFakePerformable("retry", nil)).Or(nil)))
-		require.NoError(t, adam.AttemptsTo(action.Conditionally(nil, fixture.NewFakePerformable("retry", nil)).Otherwise(nil)))
+		require.Error(t, narratedAdam.AttemptsTo(action.Either(fixture.NewFakePerformable("retry", nil)).Or(nil)))
+		require.NoError(
+			t,
+			narratedAdam.AttemptsTo(action.Conditionally(nil, fixture.NewFakePerformable("retry", nil)).Otherwise(nil)),
+		)
 	})
 
 	t.Run("narrates each of its performables", func(t *testing.T) {
@@ -210,13 +222,13 @@ func TestConcurrentlyAction(t *testing.T) {
 		} {
 			t.Run(name, func(t *testing.T) {
 				recorder := fixture.NewRecorder()
-				adam := narratedActor(recorder)
+				narratedAdam := narratedActor(recorder)
 
 				concurrently := action.Concurrently(
 					fixture.NewFakePerformable("open the door", nil),
 					fixture.NewFakePerformable("close the window", nil),
 				)
-				require.NoError(t, adam.AttemptsTo(mode(concurrently)))
+				require.NoError(t, narratedAdam.AttemptsTo(mode(concurrently)))
 
 				messages := recorder.Messages()
 				assert.Contains(t, messages, "Adam attempts to open the door")
@@ -226,7 +238,6 @@ func TestConcurrentlyAction(t *testing.T) {
 	})
 
 	t.Run("stopping on error cancels the actions still running through the actor's context", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam")
 		boom := errors.New("boom")
 		failImmediately := action.FromFunc("fail immediately", func(_ *screenplay.Actor) error { return boom })
 		waitUnlessCanceled := func(name string) screenplay.Performable {
@@ -252,5 +263,4 @@ func TestConcurrentlyAction(t *testing.T) {
 		// The actor itself, and whoever else holds it, never saw the run's context.
 		assert.NoError(t, adam.Context().Err())
 	})
-
 }

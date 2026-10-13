@@ -12,6 +12,7 @@ import (
 )
 
 func TestBe(t *testing.T) {
+	t.Parallel()
 
 	t.Run("equal to", func(t *testing.T) {
 		t.Parallel()

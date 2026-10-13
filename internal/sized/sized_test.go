@@ -10,6 +10,7 @@ import (
 )
 
 func TestSized(t *testing.T) {
+	t.Parallel()
 
 	t.Run("len", func(t *testing.T) {
 		t.Parallel()

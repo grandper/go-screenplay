@@ -81,11 +81,9 @@ func (a *AppendToAction) PerformAs(actor *screenplay.Actor) error {
 	if a.contentErr != nil {
 		return fmt.Errorf("failed to read the content: %w", a.contentErr)
 	}
-	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(actor)
-	if err != nil {
-		return err
-	}
-	return useTheFileSystem.AppendTo(a.filename, bytes.NewReader(a.content))
+	return screenplay.UseAnAbilityOf(actor).
+		That(ability.UseTheFileSystem()).
+		AppendTo(a.filename, bytes.NewReader(a.content))
 }
 
 // readTheContent buffers the content of a reader once, up to
@@ -97,7 +95,10 @@ func readTheContent(reader io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	if len(content) > screenplay.DefaultMaxBufferedSize {
-		return nil, fmt.Errorf("the content exceeds %d MiB", screenplay.DefaultMaxBufferedSize>>20)
+		return nil, fmt.Errorf(
+			"the content exceeds %d MiB",
+			screenplay.DefaultMaxBufferedSize>>20, //nolint:mnd // shifting by 20 converts bytes to MiB
+		)
 	}
 	return content, nil
 }

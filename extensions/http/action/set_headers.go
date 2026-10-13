@@ -99,13 +99,14 @@ func (a *SetHeadersAction) PerformAs(theActor *screenplay.Actor) error {
 		return a.err
 	}
 
-	makeHTTPRequests, err := screenplay.UseAbilityTo[*ability.MakeHTTPRequestsAbility]().Of(theActor)
-	if err != nil {
+	makeHTTPRequests := screenplay.UseAnAbilityOf(theActor).That(ability.MakeHTTPRequests())
+	if err := makeHTTPRequests.ResetHeaders(); err != nil {
 		return err
 	}
-	makeHTTPRequests.ResetHeaders()
 	for _, h := range a.headers {
-		makeHTTPRequests.ToAddTheHeader(h.key, h.value)
+		if err := makeHTTPRequests.ToAddTheHeader(h.key, h.value); err != nil {
+			return err
+		}
 	}
 	return nil
 }

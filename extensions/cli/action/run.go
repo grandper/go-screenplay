@@ -79,11 +79,6 @@ func (a *RunTheCommandAction) PerformAs(actor *screenplay.Actor) error {
 		return ErrEmptyCommandName
 	}
 
-	runCLICommands, err := screenplay.UseAbilityTo[*ability.RunCLICommandsAbility]().Of(actor)
-	if err != nil {
-		return err
-	}
-
 	cmd := &ability.Command{
 		Dir:         a.workingDir,
 		Program:     a.name,
@@ -92,7 +87,7 @@ func (a *RunTheCommandAction) PerformAs(actor *screenplay.Actor) error {
 		Interactive: a.interactive,
 	}
 
-	return runCLICommands.Run(actor.Context(), cmd)
+	return screenplay.UseAnAbilityOf(actor).That(ability.RunCLICommands()).Run(actor.Context(), cmd)
 }
 
 // RunTheCommandAction implements the screenplay.Performable interface.

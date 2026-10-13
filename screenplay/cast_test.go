@@ -57,10 +57,19 @@ func TestCast(t *testing.T) {
 			cast.Prepare(adam)
 			cast.Prepare(bob)
 
-			adamCounts, err := screenplay.UseAbilityTo[*countingAbility]().Of(adam)
-			require.NoError(t, err)
-			bobCounts, err := screenplay.UseAbilityTo[*countingAbility]().Of(bob)
-			require.NoError(t, err)
+			var adamCounts, bobCounts *countingAbility
+			require.NoError(
+				t,
+				adam.AttemptsTo(
+					usingAnAbility[countingAbility, *countingAbility]{ability: newCountingAbility(), got: &adamCounts},
+				),
+			)
+			require.NoError(
+				t,
+				bob.AttemptsTo(
+					usingAnAbility[countingAbility, *countingAbility]{ability: newCountingAbility(), got: &bobCounts},
+				),
+			)
 			assert.NotSame(t, adamCounts, bobCounts)
 
 			// What Adam records stays Adam's, and Adam's exit forgets Adam's ability only.

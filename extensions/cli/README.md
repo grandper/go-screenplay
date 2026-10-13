@@ -32,6 +32,15 @@ anActor := screenplay.ActorNamed("Boby").WhoCan(RunCLICommands())
 The ability records the `Result` of every command it runs, so later questions can ask
 about them.
 
+An action or a question uses the ability in one chained statement, written in
+`PerformAs` or `AnsweredBy`, never in a test:
+```go
+err := screenplay.UseAnAbilityOf(theActor).That(RunCLICommands()).Run(theActor.Context(), cmd)
+```
+The argument of `That` carries the type; `That` returns the actor's own instance,
+or a nil pointer when the actor cannot run CLI commands, and the operation then
+reports `screenplay.ErrActorMissingAbility`.
+
 ## Actions
 
 ### Running a command

@@ -12,6 +12,7 @@ import (
 )
 
 func TestVerdict(t *testing.T) {
+	t.Parallel()
 
 	t.Run("describe", func(t *testing.T) {
 		t.Parallel()

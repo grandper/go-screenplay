@@ -72,11 +72,9 @@ func (a *OverwriteToAction) PerformAs(actor *screenplay.Actor) error {
 	if a.contentErr != nil {
 		return fmt.Errorf("failed to read the content: %w", a.contentErr)
 	}
-	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(actor)
-	if err != nil {
-		return err
-	}
-	return useTheFileSystem.OverwriteFileWithContent(a.filename, bytes.NewReader(a.content))
+	return screenplay.UseAnAbilityOf(actor).
+		That(ability.UseTheFileSystem()).
+		OverwriteFileWithContent(a.filename, bytes.NewReader(a.content))
 }
 
 // OverwriteToAction implements the screenplay.Performable interface.

@@ -180,14 +180,18 @@ func TestUseTheFileSystem(t *testing.T) {
 				assert.NoError(t, os.Remove(filename))
 			}()
 
-			temporary, err := useTheFileSystem.CreateTemporaryFileWithContent(filename, strings.NewReader("hello world"))
+			temporary, err := useTheFileSystem.CreateTemporaryFileWithContent(
+				filename,
+				strings.NewReader("hello world"),
+			)
 			require.NoError(t, err)
 			defer func() {
 				assert.NoError(t, os.Remove(temporary))
 			}()
 
 			assert.NotEqual(t, filename, temporary)
-			assert.Equal(t, filepath.Clean(os.TempDir()), filepath.Dir(temporary))
+			systemTemporaryDirectory := os.TempDir() //nolint:usetesting // the ability writes there
+			assert.Equal(t, filepath.Clean(systemTemporaryDirectory), filepath.Dir(temporary))
 		})
 
 		t.Run("fails if the content cannot be copied", func(t *testing.T) {
@@ -297,10 +301,10 @@ func TestUseTheFileSystem(t *testing.T) {
 	t.Run("never writes through a symbolic link", func(t *testing.T) {
 		// A dangling link: the target does not exist, so a naive existence check
 		// would see "no file" and a naive write would create the target.
-		newDanglingLink := func(t *testing.T) (link, target string) {
+		newDanglingLink := func(t *testing.T) (string, string) {
 			t.Helper()
-			target = getFilename()
-			link = getFilename()
+			target := getFilename()
+			link := getFilename()
 			require.NoError(t, os.Symlink(target, link))
 			t.Cleanup(func() {
 				assert.NoError(t, os.Remove(link))
@@ -344,7 +348,11 @@ func TestUseTheFileSystem(t *testing.T) {
 				assert.NoError(t, os.Remove(target))
 			})
 
-			require.ErrorIs(t, useTheFileSystem.OverwriteFileWithContent(link, strings.NewReader("owned")), ability.ErrSymbolicLink)
+			require.ErrorIs(
+				t,
+				useTheFileSystem.OverwriteFileWithContent(link, strings.NewReader("owned")),
+				ability.ErrSymbolicLink,
+			)
 			require.ErrorIs(t, useTheFileSystem.AppendTo(link, strings.NewReader("owned")), ability.ErrSymbolicLink)
 
 			content, err := useTheFileSystem.Read(target)
@@ -476,11 +484,11 @@ func TestUseTheFileSystem(t *testing.T) {
 		}
 		for name, dir := range protected {
 			t.Run(name, func(t *testing.T) {
-				err := useTheFileSystem.RemoveDirectory(dir)
-				require.ErrorIs(t, err, ability.ErrProtectedDirectory)
+				errRemove := useTheFileSystem.RemoveDirectory(dir)
+				require.ErrorIs(t, errRemove, ability.ErrProtectedDirectory)
 
-				_, err = os.Stat(dir)
-				require.NoError(t, err, "the directory must still exist")
+				_, errStat := os.Stat(dir)
+				require.NoError(t, errStat, "the directory must still exist")
 			})
 		}
 	})
@@ -514,6 +522,45 @@ func TestUseTheFileSystem(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, content, screenplay.DefaultMaxBufferedSize)
 	})
+
+	t.Run("fails every operation on a nil receiver", func(t *testing.T) {
+		var missing *ability.UseTheFileSystemAbility
+		_, err := missing.CurrentPath()
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
+		require.ErrorIs(t, missing.ChangeDirectory("."), screenplay.ErrActorMissingAbility)
+		_, err = missing.FileExists("notes.txt")
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
+		_, err = missing.DirectoryExists("notes")
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
+		_, err = missing.CreateTemporaryFile("notes-*.txt")
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
+		_, err = missing.CreateTemporaryFileWithContent("notes-*.txt", strings.NewReader("hello"))
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
+		require.ErrorIs(t, missing.CreateFile("notes.txt"), screenplay.ErrActorMissingAbility)
+		require.ErrorIs(
+			t,
+			missing.CreateFileWithContent("notes.txt", strings.NewReader("hello")),
+			screenplay.ErrActorMissingAbility,
+		)
+		require.ErrorIs(
+			t,
+			missing.OverwriteFileWithContent("notes.txt", strings.NewReader("hello")),
+			screenplay.ErrActorMissingAbility,
+		)
+		require.ErrorIs(
+			t,
+			missing.AppendTo("notes.txt", strings.NewReader("hello")),
+			screenplay.ErrActorMissingAbility,
+		)
+		_, err = missing.Read("notes.txt")
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
+		require.ErrorIs(t, missing.CreateDirectory("notes", 0o750), screenplay.ErrActorMissingAbility)
+		_, err = missing.CreateTemporaryDirectory("notes-*")
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
+		require.ErrorIs(t, missing.RemoveTheFile("notes.txt"), screenplay.ErrActorMissingAbility)
+		require.ErrorIs(t, missing.RemoveDirectory("notes"), screenplay.ErrActorMissingAbility)
+		assert.ErrorIs(t, missing.Forget(), screenplay.ErrActorMissingAbility)
+	})
 }
 
 type failingReader struct{}
@@ -521,5 +568,4 @@ type failingReader struct{}
 // Read always fails.
 func (r *failingReader) Read(_ []byte) (int, error) {
 	return 0, os.ErrInvalid
-
 }
