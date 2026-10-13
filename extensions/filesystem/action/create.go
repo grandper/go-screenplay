@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
@@ -53,26 +52,36 @@ func (b *CreateBuilder) TheTemporaryDirectory(directoryName string) *CreateTheDi
 // CreateTheFileAction is an action to create a file.
 type CreateTheFileAction struct {
 	filename    string
-	content     io.Reader
+	content     []byte
+	hasContent  bool
+	contentErr  error
 	temporary   bool
 	placeholder *string
 }
 
-// Containing sets the content to write into the file.
+// Containing sets the content to write into the file. The reader is buffered
+// once, so the action can be performed more than once.
 func (a *CreateTheFileAction) Containing(content io.Reader) *CreateTheFileAction {
-	a.content = content
+	if content == nil {
+		return a
+	}
+
+	a.content, a.contentErr = readTheContent(content)
+	a.hasContent = true
 	return a
 }
 
 // ContainingBytes sets the content to write into the file.
 func (a *CreateTheFileAction) ContainingBytes(b []byte) *CreateTheFileAction {
-	a.content = bytes.NewReader(b)
+	a.content = bytes.Clone(b)
+	a.hasContent = true
 	return a
 }
 
 // ContainingTheText sets the content to write into the file.
 func (a *CreateTheFileAction) ContainingTheText(text string) *CreateTheFileAction {
-	a.content = strings.NewReader(text)
+	a.content = []byte(text)
+	a.hasContent = true
 	return a
 }
 
@@ -95,18 +104,21 @@ func (a *CreateTheFileAction) PerformAs(actor *screenplay.Actor) error {
 	if a.filename == "" {
 		return ErrFilenameNotProvided
 	}
+	if a.contentErr != nil {
+		return fmt.Errorf("failed to read the content: %w", a.contentErr)
+	}
 	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(actor)
 	if err != nil {
 		return err
 	}
 	if !a.temporary {
-		if a.content != nil {
-			return useTheFileSystem.CreateFileWithContent(a.filename, a.content)
+		if a.hasContent {
+			return useTheFileSystem.CreateFileWithContent(a.filename, bytes.NewReader(a.content))
 		}
 		return useTheFileSystem.CreateFile(a.filename)
 	}
-	if a.content != nil {
-		name, errCreate := useTheFileSystem.CreateTemporaryFileWithContent(a.filename, a.content)
+	if a.hasContent {
+		name, errCreate := useTheFileSystem.CreateTemporaryFileWithContent(a.filename, bytes.NewReader(a.content))
 		if errCreate != nil {
 			return errCreate
 		}

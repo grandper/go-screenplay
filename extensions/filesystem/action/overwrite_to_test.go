@@ -2,6 +2,7 @@ package action_test
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -85,6 +86,20 @@ func TestOverwriteTo(t *testing.T) {
 		filename := fixture.CreateFilename(t)
 		action1 := action.OverwriteTo(filename).WithTheText("some text")
 		assert.Equal(t, "overwrite the file "+filename, action1.String())
+	})
+
+	t.Run("can be performed more than once", func(t *testing.T) {
+		filename := filepath.Join(t.TempDir(), "notes.txt")
+		require.NoError(t, os.WriteFile(filename, []byte("original"), 0o600))
+
+		overwrite := action.OverwriteTo(filename).WithTheContent(strings.NewReader("bye"))
+		require.NoError(t, adam.AttemptsTo(overwrite))
+		require.NoError(t, os.WriteFile(filename, []byte("original again"), 0o600))
+		require.NoError(t, adam.AttemptsTo(overwrite))
+
+		content, err := os.ReadFile(filename)
+		require.NoError(t, err)
+		assert.Equal(t, "bye", string(content))
 	})
 }
 

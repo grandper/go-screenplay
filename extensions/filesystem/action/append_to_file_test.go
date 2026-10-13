@@ -2,6 +2,7 @@ package action_test
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -74,6 +75,18 @@ func TestAppendTo(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		action1 := action.AppendTheText("some text").To("file.txt")
 		assert.Equal(t, "append content to the file file.txt", action1.String())
+	})
+
+	t.Run("can be performed more than once", func(t *testing.T) {
+		filename := filepath.Join(t.TempDir(), "notes.txt")
+		require.NoError(t, os.WriteFile(filename, nil, 0o600))
+
+		appendHello := action.AppendTheContent(strings.NewReader("hello ")).To(filename)
+		require.NoError(t, adam.AttemptsTo(appendHello, appendHello))
+
+		content, err := os.ReadFile(filename)
+		require.NoError(t, err)
+		assert.Equal(t, "hello hello ", string(content))
 	})
 }
 

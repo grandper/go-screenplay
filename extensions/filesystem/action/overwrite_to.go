@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
@@ -25,25 +24,35 @@ func OverwriteTo(filename string) *OverwriteToAction {
 
 // OverwriteToAction is an action to overwrite a file.
 type OverwriteToAction struct {
-	filename string
-	content  io.Reader
+	filename   string
+	content    []byte
+	hasContent bool
+	contentErr error
 }
 
-// WithTheContent sets the content to write into the file.
+// WithTheContent sets the content to write into the file. The reader is
+// buffered once, so the action can be performed more than once.
 func (a *OverwriteToAction) WithTheContent(content io.Reader) *OverwriteToAction {
-	a.content = content
+	if content == nil {
+		return a
+	}
+
+	a.content, a.contentErr = readTheContent(content)
+	a.hasContent = true
 	return a
 }
 
 // WithTheBytes sets the content to write into the file.
 func (a *OverwriteToAction) WithTheBytes(b []byte) *OverwriteToAction {
-	a.content = bytes.NewReader(b)
+	a.content = bytes.Clone(b)
+	a.hasContent = true
 	return a
 }
 
 // WithTheText sets the content to write into the file.
 func (a *OverwriteToAction) WithTheText(text string) *OverwriteToAction {
-	a.content = strings.NewReader(text)
+	a.content = []byte(text)
+	a.hasContent = true
 	return a
 }
 
@@ -57,14 +66,17 @@ func (a *OverwriteToAction) PerformAs(actor *screenplay.Actor) error {
 	if a.filename == "" {
 		return ErrFilenameNotProvided
 	}
-	if a.content == nil {
+	if !a.hasContent {
 		return ErrContentNotProvided
+	}
+	if a.contentErr != nil {
+		return fmt.Errorf("failed to read the content: %w", a.contentErr)
 	}
 	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(actor)
 	if err != nil {
 		return err
 	}
-	return useTheFileSystem.OverwriteFileWithContent(a.filename, a.content)
+	return useTheFileSystem.OverwriteFileWithContent(a.filename, bytes.NewReader(a.content))
 }
 
 // OverwriteToAction implements the screenplay.Performable interface.
