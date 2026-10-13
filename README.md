@@ -1,12 +1,11 @@
 # go-screenplay
 
-`go-screenplay` is a package that brings the *screenplay* pattern to Golang.
+[![Test](https://github.com/grandper/go-screenplay/actions/workflows/go-test.yml/badge.svg)](https://github.com/grandper/go-screenplay/actions/workflows/go-test.yml)
+[![Lint](https://github.com/grandper/go-screenplay/actions/workflows/go-lint.yml/badge.svg)](https://github.com/grandper/go-screenplay/actions/workflows/go-lint.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/grandper/go-screenplay/v2/screenplay.svg)](https://pkg.go.dev/github.com/grandper/go-screenplay/v2/screenplay)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-First, let's give credits, where credits is due. This package takes some inspiration from several other libraries written in other languages:
-- https://github.com/HamedStack/HamedStack.Playwright.Screenplay
-- https://github.com/testla-project/testla-screenplay-playwright-js
-- https://github.com/ScreenPyHQ/screenpy
-- https://serenity-js.org/handbook/design/screenplay-pattern/
+`go-screenplay` is a package that brings the *screenplay* pattern to Golang.
 
 **Main features:**
 
@@ -141,8 +140,8 @@ if actor.Recall[int]("the user id").IsPresent() { ... }              // or simpl
 Use `actor.Recall[any](key)` to retrieve a value whatever its type.
 
 You can also hand `Remember` a question directly, whatever its answer type. The
-actor answers it and stores the answer instead of the question. If the question fails to be answered, `nil` is
-stored for the key:
+actor answers it and stores the answer instead of the question. If the question
+fails to be answered, `nil` is stored for the key:
 ```go
 actor.Remember("the user id", UserID())
 userID := actor.Recall[int]("the user id").OrElse(0)
@@ -1418,6 +1417,13 @@ err = anActor.Should(see.The(question.ContentOfTheFileNamed("notes.txt")).Should
 Highlights: the `Create`, `Remove`, `AppendTheText`/`AppendTheBytes`/`AppendTheContent`,
 `OverwriteTo`, and `ChangeDirectoryTo` actions; the `FileNamed`, `DirectoryNamed`,
 and `ContentOfTheFileNamed` questions; and the `Exist` resolution.
+
+## References
+This package takes some inspiration from several other libraries written in other languages:
+- https://github.com/HamedStack/HamedStack.Playwright.Screenplay
+- https://github.com/testla-project/testla-screenplay-playwright-js
+- https://github.com/ScreenPyHQ/screenpy
+- https://serenity-js.org/handbook/design/screenplay-pattern/
 
 ## License
 Licensed under MIT License.
