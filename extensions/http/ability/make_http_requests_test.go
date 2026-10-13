@@ -212,4 +212,12 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "stopped after 10 redirects")
 	})
+
+	t.Run("does not panic when a header is added after Forget", func(t *testing.T) {
+		makeHTTPRequests := ability.MakeHTTPRequests()
+		require.NoError(t, makeHTTPRequests.Forget())
+
+		makeHTTPRequests.ToAddTheHeader("X-Api-Key", "secret-key")
+		assert.Equal(t, map[string]string{"X-Api-Key": "secret-key"}, makeHTTPRequests.ToRetrieveHeaders())
+	})
 }

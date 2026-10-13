@@ -62,6 +62,10 @@ func (mhr *MakeHTTPRequestsAbility) ToAddTheHeader(key, value string) {
 	mhr.mutex.Lock()
 	defer mhr.mutex.Unlock()
 
+	// After Forget the map is nil; a branch still running then must not panic.
+	if mhr.headers == nil {
+		mhr.headers = map[string]string{}
+	}
 	mhr.headers[key] = value
 }
 
