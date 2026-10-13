@@ -3,6 +3,7 @@ package ability_test
 import (
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -58,6 +59,47 @@ func TestUseTheFileSystem(t *testing.T) {
 
 		t.Run("fails if the path does not exist", func(t *testing.T) {
 			require.Error(t, useTheFileSystem.ChangeDirectory("foobar"))
+		})
+
+		t.Run("fails if the path is not a directory", func(t *testing.T) {
+			require.Error(t, useTheFileSystem.ChangeDirectory("use_the_file_system.go"))
+		})
+
+		t.Run("without changing the working directory of the process", func(t *testing.T) {
+			other := ability.UseTheFileSystem()
+			require.NoError(t, other.ChangeDirectory(t.TempDir()))
+
+			processDir, err := os.Getwd()
+			require.NoError(t, err)
+			assert.Equal(t, currentFolder, processDir)
+
+			// Another ability is not affected either.
+			path, err := useTheFileSystem.CurrentPath()
+			require.NoError(t, err)
+			assert.Equal(t, currentFolder, path)
+		})
+
+		t.Run("so that relative paths resolve against the new directory", func(t *testing.T) {
+			dir := t.TempDir()
+			other := ability.UseTheFileSystem()
+			require.NoError(t, other.ChangeDirectory(dir))
+
+			require.NoError(t, other.CreateDirectory("docs", fs.ModePerm))
+			require.NoError(t, other.CreateFileWithContent("docs/notes.txt", strings.NewReader("hello")))
+			require.NoError(t, other.AppendTo("docs/notes.txt", strings.NewReader(" world")))
+
+			exists, err := other.FileExists("docs/notes.txt")
+			require.NoError(t, err)
+			assert.True(t, exists)
+			content, err := other.Read("docs/notes.txt")
+			require.NoError(t, err)
+			assert.Equal(t, "hello world", string(content))
+			assert.FileExists(t, filepath.Join(dir, "docs", "notes.txt"))
+
+			require.NoError(t, other.OverwriteFileWithContent("docs/notes.txt", strings.NewReader("bye")))
+			require.NoError(t, other.RemoveTheFile("docs/notes.txt"))
+			require.NoError(t, other.RemoveDirectory("docs"))
+			assert.NoDirExists(t, filepath.Join(dir, "docs"))
 		})
 	})
 

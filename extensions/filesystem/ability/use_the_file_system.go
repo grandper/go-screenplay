@@ -2,9 +2,12 @@ package ability
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -20,21 +23,71 @@ func UseTheFileSystem() *UseTheFileSystemAbility {
 }
 
 // UseTheFileSystemAbility represents the ability of an actor to use the file system.
-type UseTheFileSystemAbility struct{}
+//
+// The ability has its own current directory, which starts as the working
+// directory of the process. ChangeDirectory moves this directory only, never
+// the process's, so two actors, or two concurrent branches, never disturb each
+// other. Every relative path given to the ability is resolved against it.
+type UseTheFileSystemAbility struct {
+	mutex sync.RWMutex
+	// currentDirectory is the ability's own current directory; empty until
+	// ChangeDirectory is called, meaning the working directory of the process.
+	currentDirectory string
+}
 
-// CurrentPath returns the path.
+// CurrentPath returns the ability's current directory.
 func (a *UseTheFileSystemAbility) CurrentPath() (string, error) {
+	a.mutex.RLock()
+	defer a.mutex.RUnlock()
+
+	if a.currentDirectory != "" {
+		return a.currentDirectory, nil
+	}
 	return os.Getwd()
 }
 
-// ChangeDirectory changes the current directory.
+// ChangeDirectory changes the ability's current directory. The working directory
+// of the process is left untouched.
 func (a *UseTheFileSystemAbility) ChangeDirectory(dir string) error {
-	return os.Chdir(dir)
+	path, err := a.resolve(dir)
+	if err != nil {
+		return err
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("chdir %s: not a directory", dir)
+	}
+
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	a.currentDirectory = path
+	return nil
+}
+
+// resolve returns the clean absolute path of name: an absolute name as is, a
+// relative name under the ability's current directory.
+func (a *UseTheFileSystemAbility) resolve(name string) (string, error) {
+	if filepath.IsAbs(name) {
+		return filepath.Clean(name), nil
+	}
+	current, err := a.CurrentPath()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(current, name), nil
 }
 
 // FileExists returns true if the file exists.
 func (a *UseTheFileSystemAbility) FileExists(filename string) (bool, error) {
-	info, err := os.Stat(filename)
+	path, err := a.resolve(filename)
+	if err != nil {
+		return false, err
+	}
+	info, err := os.Stat(path)
 	if err == nil {
 		return !info.IsDir(), nil
 	}
@@ -46,7 +99,11 @@ func (a *UseTheFileSystemAbility) FileExists(filename string) (bool, error) {
 
 // DirectoryExists returns true if the directory exists.
 func (a *UseTheFileSystemAbility) DirectoryExists(director string) (bool, error) {
-	info, err := os.Stat(director)
+	path, err := a.resolve(director)
+	if err != nil {
+		return false, err
+	}
+	info, err := os.Stat(path)
 	if err == nil {
 		return info.IsDir(), nil
 	}
@@ -126,14 +183,18 @@ func (a *UseTheFileSystemAbility) CreateFileWithContent(filename string, reader 
 }
 
 func (a *UseTheFileSystemAbility) createFile(filename string) (*os.File, error) {
-	exists, err := a.FileExists(filename)
+	path, err := a.resolve(filename)
+	if err != nil {
+		return nil, err
+	}
+	exists, err := a.FileExists(path)
 	if err != nil {
 		return nil, err
 	}
 	if exists {
 		return nil, ErrFileAlreadyExists
 	}
-	file, err := os.Create(filename)
+	file, err := os.Create(path)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +203,11 @@ func (a *UseTheFileSystemAbility) createFile(filename string) (*os.File, error) 
 
 // OverwriteFileWithContent overwrites the content of the specified file with the content from the provided reader.
 func (a *UseTheFileSystemAbility) OverwriteFileWithContent(filename string, reader io.Reader) error {
-	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_TRUNC, 0600)
+	path, err := a.resolve(filename)
+	if err != nil {
+		return err
+	}
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
@@ -156,7 +221,11 @@ func (a *UseTheFileSystemAbility) OverwriteFileWithContent(filename string, read
 
 // AppendTo appends content from the provided reader to the specified file.
 func (a *UseTheFileSystemAbility) AppendTo(filename string, reader io.Reader) error {
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0600)
+	path, err := a.resolve(filename)
+	if err != nil {
+		return err
+	}
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
@@ -170,12 +239,20 @@ func (a *UseTheFileSystemAbility) AppendTo(filename string, reader io.Reader) er
 
 // Read reads the content of the specified file and returns it as a byte slice.
 func (a *UseTheFileSystemAbility) Read(filename string) ([]byte, error) {
-	return os.ReadFile(filename)
+	path, err := a.resolve(filename)
+	if err != nil {
+		return nil, err
+	}
+	return os.ReadFile(path)
 }
 
 // CreateDirectory creates a new directory with the specified name and permission bits.
 func (a *UseTheFileSystemAbility) CreateDirectory(name string, perm os.FileMode) error {
-	return os.Mkdir(name, perm)
+	path, err := a.resolve(name)
+	if err != nil {
+		return err
+	}
+	return os.Mkdir(path, perm)
 }
 
 // CreateTemporaryDirectory creates a new temporary directory with the specified name and permission bits.
@@ -185,12 +262,20 @@ func (a *UseTheFileSystemAbility) CreateTemporaryDirectory(pattern string) (stri
 
 // RemoveTheFile removes the named file or (empty) directory.
 func (a *UseTheFileSystemAbility) RemoveTheFile(filename string) error {
-	return os.Remove(filename)
+	path, err := a.resolve(filename)
+	if err != nil {
+		return err
+	}
+	return os.Remove(path)
 }
 
 // RemoveDirectory removes a directory and its content.
 func (a *UseTheFileSystemAbility) RemoveDirectory(name string) error {
-	return os.RemoveAll(name)
+	path, err := a.resolve(name)
+	if err != nil {
+		return err
+	}
+	return os.RemoveAll(path)
 }
 
 // Forget cleans up the ability.

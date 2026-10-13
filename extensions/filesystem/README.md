@@ -95,6 +95,14 @@ err := anActor.AttemptsTo(Remove().TheDirectory("MyDocuments"))
 ```go
 err := anActor.AttemptsTo(ChangeDirectoryTo("MyDocuments"))
 ```
+The change applies to this actor only. Later relative paths of this actor
+resolve against it, and the working directory of the process is never changed:
+```go
+err := anActor.AttemptsTo(
+    ChangeDirectoryTo("MyDocuments"),
+    Create().TheFile("notes.txt"),      // creates MyDocuments/notes.txt
+)
+```
 
 ## Questions and resolutions
 

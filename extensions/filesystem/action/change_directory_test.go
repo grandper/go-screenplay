@@ -2,6 +2,8 @@ package action_test
 
 import (
 	"os"
+	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,11 +21,62 @@ func TestChangeDirectory(t *testing.T) {
 
 	t.Run("can change directory", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
-			dir := t.TempDir()
-			require.NoError(t, adam.AttemptsTo(action.ChangeDirectoryTo(dir)))
-			currentDir, err := os.Getwd()
+			processDir, err := os.Getwd()
 			require.NoError(t, err)
-			assert.Contains(t, currentDir, dir)
+
+			dir := t.TempDir()
+			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
+			require.NoError(t, adam.AttemptsTo(action.ChangeDirectoryTo(dir)))
+
+			useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(adam)
+			require.NoError(t, err)
+			currentDir, err := useTheFileSystem.CurrentPath()
+			require.NoError(t, err)
+			assert.Equal(t, dir, currentDir)
+
+			// The working directory of the process is never changed.
+			stillProcessDir, err := os.Getwd()
+			require.NoError(t, err)
+			assert.Equal(t, processDir, stillProcessDir)
+		})
+
+		t.Run("so that later relative paths resolve against the new directory", func(t *testing.T) {
+			dir := t.TempDir()
+			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
+			require.NoError(t, adam.AttemptsTo(
+				action.ChangeDirectoryTo(dir),
+				action.Create().TheFile("notes.txt").ContainingTheText("hello"),
+			))
+
+			content, err := os.ReadFile(filepath.Join(dir, "notes.txt"))
+			require.NoError(t, err)
+			assert.Equal(t, "hello", string(content))
+		})
+
+		t.Run("for this actor only", func(t *testing.T) {
+			// Run with -race: each actor has its own current directory, so two
+			// actors changing directory at the same time never disturb each other.
+			dirA, dirB := t.TempDir(), t.TempDir()
+			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
+			wanda := screenplay.ActorNamed("Wanda").WhoCan(ability.UseTheFileSystem())
+
+			var group sync.WaitGroup
+			errs := make([]error, 2)
+			group.Add(2)
+			go func() {
+				defer group.Done()
+				errs[0] = adam.AttemptsTo(action.ChangeDirectoryTo(dirA), action.Create().TheFile("notes.txt"))
+			}()
+			go func() {
+				defer group.Done()
+				errs[1] = wanda.AttemptsTo(action.ChangeDirectoryTo(dirB), action.Create().TheFile("notes.txt"))
+			}()
+			group.Wait()
+			require.NoError(t, errs[0])
+			require.NoError(t, errs[1])
+
+			assert.FileExists(t, filepath.Join(dirA, "notes.txt"))
+			assert.FileExists(t, filepath.Join(dirB, "notes.txt"))
 		})
 
 		t.Run("fail if the directory does not exist", func(t *testing.T) {
