@@ -30,4 +30,14 @@ func TestWindow(t *testing.T) {
 		window := timing.NewWindow(500*time.Millisecond, 2*time.Second)
 		assert.False(t, window.Valid())
 	})
+
+	t.Run("is invalid when the interval is zero or negative", func(t *testing.T) {
+		assert.False(t, timing.NewWindow(time.Second, 0).Valid())
+		assert.False(t, timing.NewWindow(time.Second, -time.Second).Valid())
+	})
+
+	t.Run("is invalid when the total is zero or negative", func(t *testing.T) {
+		assert.False(t, timing.NewWindow(0, 0).Valid())
+		assert.False(t, timing.NewWindow(-time.Second, -2*time.Second).Valid())
+	})
 }

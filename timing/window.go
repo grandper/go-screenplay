@@ -22,5 +22,5 @@ func NewWindow(total, interval time.Duration) Window {
 // Valid reports whether the interval between tries is not larger than the total
 // time during which the actor keeps trying.
 func (w Window) Valid() bool {
-	return w.Interval <= w.Total
+	return w.Interval > 0 && w.Total > 0 && w.Interval <= w.Total
 }

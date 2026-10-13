@@ -30,6 +30,14 @@ func TestEventuallyAction(t *testing.T) {
 		)
 	})
 
+	t.Run("fails if the polling is zero or negative instead of panicking", func(t *testing.T) {
+		err := adam.AttemptsTo(action.Eventually(openTheHomePage).PollingEvery(-1).Seconds())
+		require.ErrorIs(t, err, action.ErrPollingPeriodAndTimeoutMustBePositive)
+
+		err = adam.AttemptsTo(action.Eventually(openTheHomePage).For(-1).Seconds())
+		require.ErrorIs(t, err, action.ErrPollingPeriodAndTimeoutMustBePositive)
+	})
+
 	t.Run("fails when the underlying action fails", func(t *testing.T) {
 		underlyingErr := errors.New("the actor failed to perform the task")
 		failing := fixture.NewFakePerformable("open the home page", underlyingErr)

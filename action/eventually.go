@@ -13,6 +13,8 @@ import (
 var (
 	// ErrPollingPeriodMustBeLessThanOrEqualToTimeout is returned when the polling period is greater than the timeout.
 	ErrPollingPeriodMustBeLessThanOrEqualToTimeout = errors.New("polling period must be less than or equal to timeout")
+	// ErrPollingPeriodAndTimeoutMustBePositive is returned when the polling period or the timeout is zero or negative.
+	ErrPollingPeriodAndTimeoutMustBePositive = errors.New("polling period and timeout must be positive")
 	// ErrNoAttemptCompleted is returned when the timeout is reached while the only attempt is still running.
 	ErrNoAttemptCompleted = errors.New("no attempt completed within the timeout")
 )
@@ -57,6 +59,13 @@ func (a *EventuallyAction) String() string {
 // PerformAs performs the task or the action as the provided actor.
 func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 	window := a.windowFor(theActor)
+
+	if window.Interval <= 0 || window.Total <= 0 {
+		return fmt.Errorf(
+			"failed to eventually performed the action: %w",
+			ErrPollingPeriodAndTimeoutMustBePositive,
+		)
+	}
 
 	if !window.Valid() {
 		return fmt.Errorf(
