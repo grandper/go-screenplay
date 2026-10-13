@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // ErrAnswerIsNotASlice is returned when the wrapped question does not answer with a slice.

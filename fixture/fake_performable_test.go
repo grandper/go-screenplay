@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/fixture"
+	"github.com/grandper/go-screenplay/v2/fixture"
 )
 
 func TestFakePerformable(t *testing.T) {

@@ -3,7 +3,7 @@ package question
 import (
 	"fmt"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Recalled creates a question whose answer is the value stored in the actor's

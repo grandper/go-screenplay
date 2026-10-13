@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // TheBytes creates a matcher to tell if a slice of bytes contains a given slice of bytes.

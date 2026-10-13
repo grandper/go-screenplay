@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // ErrObjectTypeShouldBeString is returned when the object type is not a string.

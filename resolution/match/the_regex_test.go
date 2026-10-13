@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/resolution/match"
-	"github.com/grandper/go-screenplay/resolution/testdata"
+	"github.com/grandper/go-screenplay/v2/resolution/match"
+	"github.com/grandper/go-screenplay/v2/resolution/testdata"
 )
 
 func TestMatchTheRegexResolution(t *testing.T) {

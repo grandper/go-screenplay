@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Than creates a matcher to tell if a number is less than a given number.

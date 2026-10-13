@@ -9,9 +9,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/extensions/http/ability"
-	"github.com/grandper/go-screenplay/extensions/http/action"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/http/action"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestSendHTTPRequestAction(t *testing.T) {

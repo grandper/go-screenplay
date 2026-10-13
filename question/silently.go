@@ -1,7 +1,7 @@
 package question
 
 import (
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Silently wraps a question so that the narration produced while it is answered

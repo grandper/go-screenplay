@@ -3,8 +3,8 @@ package question
 import (
 	"fmt"
 
-	"github.com/grandper/go-screenplay/extensions/filesystem/ability"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // FileNamed returns a file with the provided name.

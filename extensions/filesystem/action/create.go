@@ -7,8 +7,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/grandper/go-screenplay/extensions/filesystem/ability"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 var (

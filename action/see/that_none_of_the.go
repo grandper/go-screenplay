@@ -1,6 +1,6 @@
 package see
 
-import "github.com/grandper/go-screenplay/screenplay"
+import "github.com/grandper/go-screenplay/v2/screenplay"
 
 // ThatNoneOfThe creates an action to see if none of the questions match a resolution.
 func ThatNoneOfThe(questions ...screenplay.Question) func(screenplay.Resolution) screenplay.Performable {

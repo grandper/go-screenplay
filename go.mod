@@ -1,4 +1,4 @@
-module github.com/grandper/go-screenplay
+module github.com/grandper/go-screenplay/v2
 
 go 1.27.2
 

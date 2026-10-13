@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/extensions/http/ability"
-	"github.com/grandper/go-screenplay/extensions/http/question/status"
-	"github.com/grandper/go-screenplay/fixture"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/http/question/status"
+	"github.com/grandper/go-screenplay/v2/fixture"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestCodeOfQuestion(t *testing.T) {

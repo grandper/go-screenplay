@@ -9,10 +9,10 @@ The symbols shown below live in the extension's sub-packages:
 
 | Package | Import path | Provides |
 |---------|-------------|----------|
-| `ability` | `github.com/grandper/go-screenplay/extensions/http/ability` | `MakeHTTPRequests`, `HTTPResponse`, `Credential` |
-| `action` | `github.com/grandper/go-screenplay/extensions/http/action` | `SendHTTPRequest` (and the per-method shortcuts), `AddHeader`, `AddHeaders`, `SetHeader`, `SetHeaders` |
-| `question` | `github.com/grandper/go-screenplay/extensions/http/question` | `Responses` |
-| `status` | `github.com/grandper/go-screenplay/extensions/http/question/status` | `CodeOf` |
+| `ability` | `github.com/grandper/go-screenplay/v2/extensions/http/ability` | `MakeHTTPRequests`, `HTTPResponse`, `Credential` |
+| `action` | `github.com/grandper/go-screenplay/v2/extensions/http/action` | `SendHTTPRequest` (and the per-method shortcuts), `AddHeader`, `AddHeaders`, `SetHeader`, `SetHeaders` |
+| `question` | `github.com/grandper/go-screenplay/v2/extensions/http/question` | `Responses` |
+| `status` | `github.com/grandper/go-screenplay/v2/extensions/http/question/status` | `CodeOf` |
 
 Assertions are written with the core screenplay packages (`action/see`,
 `resolution/equal`, `resolution/contain`, `question/last`, ...). For readability the

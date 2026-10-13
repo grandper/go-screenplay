@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Exactly creates a matcher to tell if a string match an exact text.

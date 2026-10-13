@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/narrator/logadapter"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/narrator/logadapter"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestLogAdapter(t *testing.T) {

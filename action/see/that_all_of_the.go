@@ -1,6 +1,6 @@
 package see
 
-import "github.com/grandper/go-screenplay/screenplay"
+import "github.com/grandper/go-screenplay/v2/screenplay"
 
 // ThatAllOfThe creates an action to see if all of the questions match a resolution.
 func ThatAllOfThe(questions ...screenplay.Question) func(screenplay.Resolution) screenplay.Performable {

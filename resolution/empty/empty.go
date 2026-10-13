@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // ErrObjectShouldBeACollection is returned when the object is not a collection.

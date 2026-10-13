@@ -6,7 +6,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Adapter writes narration to an *slog.Logger.

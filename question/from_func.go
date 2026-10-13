@@ -1,7 +1,7 @@
 package question
 
 import (
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // AnsweredFn represents a function that answers a question as an actor.

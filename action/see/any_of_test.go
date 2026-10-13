@@ -7,12 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/action/see"
-	"github.com/grandper/go-screenplay/fixture"
-	"github.com/grandper/go-screenplay/resolution/contain"
-	"github.com/grandper/go-screenplay/resolution/equal"
-	"github.com/grandper/go-screenplay/resolution/testdata"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/action/see"
+	"github.com/grandper/go-screenplay/v2/fixture"
+	"github.com/grandper/go-screenplay/v2/resolution/contain"
+	"github.com/grandper/go-screenplay/v2/resolution/equal"
+	"github.com/grandper/go-screenplay/v2/resolution/testdata"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestSeeAnyOfAction(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Either executes one of the two provided actions or tasks.

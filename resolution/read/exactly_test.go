@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/resolution/read"
-	"github.com/grandper/go-screenplay/resolution/testdata"
+	"github.com/grandper/go-screenplay/v2/resolution/read"
+	"github.com/grandper/go-screenplay/v2/resolution/testdata"
 )
 
 func TestReadExactlyResolution(t *testing.T) {

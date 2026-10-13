@@ -1,7 +1,7 @@
 package action
 
 import (
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Silently wraps a performable so that the narration produced while it runs is

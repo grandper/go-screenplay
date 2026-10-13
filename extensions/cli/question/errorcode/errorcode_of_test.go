@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/extensions/cli/ability"
-	"github.com/grandper/go-screenplay/extensions/cli/action"
-	"github.com/grandper/go-screenplay/extensions/cli/question"
-	"github.com/grandper/go-screenplay/extensions/cli/question/errorcode"
-	"github.com/grandper/go-screenplay/fixture"
-	"github.com/grandper/go-screenplay/question/last"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/action"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/question"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/question/errorcode"
+	"github.com/grandper/go-screenplay/v2/fixture"
+	"github.com/grandper/go-screenplay/v2/question/last"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestErrorCodeOfQuestion(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/extensions/filesystem/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
 )
 
 func TestUseTheFileSystem(t *testing.T) {

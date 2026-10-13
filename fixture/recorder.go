@@ -3,7 +3,7 @@ package fixture
 import (
 	"sync"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Recorder is a narration adapter that records every event it receives.

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Most starts a matcher that tells if a number is within a given delta from a

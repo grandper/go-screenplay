@@ -1,7 +1,7 @@
 package resolution
 
 import (
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // FromFunc creates a resolution with the given description and matcher factory.

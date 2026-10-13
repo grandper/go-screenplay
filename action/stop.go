@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/grandper/go-screenplay/action/see"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/action/see"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Stop makes an actor stop until a condition is met.

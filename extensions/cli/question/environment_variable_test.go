@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/extensions/cli/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
 
-	"github.com/grandper/go-screenplay/extensions/cli/question"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/question"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestEnvironmentVariable(t *testing.T) {

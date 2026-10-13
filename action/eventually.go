@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/grandper/go-screenplay/screenplay"
-	"github.com/grandper/go-screenplay/timing"
+	"github.com/grandper/go-screenplay/v2/screenplay"
+	"github.com/grandper/go-screenplay/v2/timing"
 )
 
 var (

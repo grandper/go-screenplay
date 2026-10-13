@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/resolution/contain"
-	"github.com/grandper/go-screenplay/resolution/testdata"
+	"github.com/grandper/go-screenplay/v2/resolution/contain"
+	"github.com/grandper/go-screenplay/v2/resolution/testdata"
 )
 
 func TestContainsTheKeyResolution(t *testing.T) {

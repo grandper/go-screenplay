@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // ErrAnswerIsNil is returned when the question to remember returns a nil answer.

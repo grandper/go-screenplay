@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // TheText creates a matcher to tell if a string contains a given text.

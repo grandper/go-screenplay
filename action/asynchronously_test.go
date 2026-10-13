@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/action"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/action"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestAsynchronouslyAction(t *testing.T) {

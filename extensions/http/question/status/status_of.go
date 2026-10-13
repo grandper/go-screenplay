@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/grandper/go-screenplay/extensions/http/ability"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // ErrAnswerIsNotAnHTTPResponse is returned when the answer of the wrapped question is not an HTTP response.

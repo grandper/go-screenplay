@@ -5,12 +5,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // asynchronousErrorsKey is the key under which the errors produced by the
 // asynchronous actions are stored in the actor's memory.
-const asynchronousErrorsKey = "github.com/grandper/go-screenplay/action.asynchronousErrors"
+const asynchronousErrorsKey = "github.com/grandper/go-screenplay/v2/action.asynchronousErrors"
 
 // Asynchronously performs the provided tasks or actions in the background.
 // Contrary to Concurrently, the actor does not wait for the actions to complete:

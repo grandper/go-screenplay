@@ -5,9 +5,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/extensions/filesystem/question"
-	"github.com/grandper/go-screenplay/extensions/filesystem/resolution"
-	"github.com/grandper/go-screenplay/resolution/testdata"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/question"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/resolution"
+	"github.com/grandper/go-screenplay/v2/resolution/testdata"
 )
 
 func TestExistsResolution(t *testing.T) {

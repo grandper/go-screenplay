@@ -3,7 +3,7 @@ package fixture
 import (
 	"sync"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // FakeQuestion represents a fake question that an actor can ask.

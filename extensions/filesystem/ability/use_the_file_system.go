@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 var (

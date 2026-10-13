@@ -3,8 +3,8 @@ package resolution
 import (
 	"errors"
 
-	"github.com/grandper/go-screenplay/extensions/filesystem/question"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/question"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 var (

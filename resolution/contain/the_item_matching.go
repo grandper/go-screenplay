@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"regexp"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // TheItemMatching creates a matcher to tell if an iterable contains an item matching a regular expression.

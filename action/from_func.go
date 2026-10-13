@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // PerformableFn represents is function that makes an actor performs an action or a task.

@@ -1,6 +1,6 @@
 package fixture
 
-import "github.com/grandper/go-screenplay/screenplay"
+import "github.com/grandper/go-screenplay/v2/screenplay"
 
 // FakePerformable represents a fake performable that can be performed by an actor.
 type FakePerformable struct {

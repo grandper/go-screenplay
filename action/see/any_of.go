@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // ErrInvalidAnyOfArguments is returned when the arguments passed to AnyOf are not valid question-resolution pairs.

@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/extensions/filesystem/question"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/question"
 )
 
 func TestCreateFakeExistingFile(t *testing.T) {

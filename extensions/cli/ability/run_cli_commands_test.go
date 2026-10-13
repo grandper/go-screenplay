@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/extensions/cli/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
 )
 
 func TestRunCLICommands(t *testing.T) {

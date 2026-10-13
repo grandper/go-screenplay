@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/resolution/equal"
-	"github.com/grandper/go-screenplay/resolution/testdata"
+	"github.com/grandper/go-screenplay/v2/resolution/equal"
+	"github.com/grandper/go-screenplay/v2/resolution/testdata"
 )
 
 func TestEqualToResolution(t *testing.T) {

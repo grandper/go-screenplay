@@ -17,7 +17,7 @@ First, let's give credits, where credits is due. This package takes some inspira
 ## Installation
 
 ```bash
-go get github.com/grandper/go-screenplay
+go get github.com/grandper/go-screenplay/v2
 ```
 The library requires Go 1.27 or later.
 
@@ -397,8 +397,8 @@ program or test:
 import (
     "log/slog"
 
-    "github.com/grandper/go-screenplay/narrator/slogadapter"
-    "github.com/grandper/go-screenplay/screenplay"
+    "github.com/grandper/go-screenplay/v2/narrator/slogadapter"
+    "github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 narrator := screenplay.NewNarrator(slogadapter.New(slog.Default()))
@@ -418,7 +418,7 @@ The `log` adapter renders an indented, human-readable tree:
 import (
     "log"
 
-    "github.com/grandper/go-screenplay/narrator/logadapter"
+    "github.com/grandper/go-screenplay/v2/narrator/logadapter"
 )
 
 narrator := screenplay.NewNarrator(logadapter.New(log.Default()))

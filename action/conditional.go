@@ -3,7 +3,7 @@ package action
 import (
 	"fmt"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // condition reports whether the guarded action should run, and describes itself.

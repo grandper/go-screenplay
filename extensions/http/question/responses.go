@@ -1,8 +1,8 @@
 package question
 
 import (
-	"github.com/grandper/go-screenplay/extensions/http/ability"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Responses asks about all the HTTP responses received by the actor.

@@ -9,11 +9,11 @@ The symbols shown below live in the extension's sub-packages:
 
 | Package | Import path | Provides |
 |---------|-------------|----------|
-| `ability` | `github.com/grandper/go-screenplay/extensions/cli/ability` | `RunCLICommands`, `Command`, `Result` |
-| `action` | `github.com/grandper/go-screenplay/extensions/cli/action` | `RunTheCommand`, `Type` |
-| `question` | `github.com/grandper/go-screenplay/extensions/cli/question` | `EnvironmentVariableNamed`, `Responses` |
-| `errorcode` | `github.com/grandper/go-screenplay/extensions/cli/question/errorcode` | `Of` |
-| `standard` | `github.com/grandper/go-screenplay/extensions/cli/question/standard` | `OutputOf`, `ErrorOf` |
+| `ability` | `github.com/grandper/go-screenplay/v2/extensions/cli/ability` | `RunCLICommands`, `Command`, `Result` |
+| `action` | `github.com/grandper/go-screenplay/v2/extensions/cli/action` | `RunTheCommand`, `Type` |
+| `question` | `github.com/grandper/go-screenplay/v2/extensions/cli/question` | `EnvironmentVariableNamed`, `Responses` |
+| `errorcode` | `github.com/grandper/go-screenplay/v2/extensions/cli/question/errorcode` | `Of` |
+| `standard` | `github.com/grandper/go-screenplay/v2/extensions/cli/question/standard` | `OutputOf`, `ErrorOf` |
 
 Assertions are written with the core screenplay packages (`action/see`,
 `resolution/equal`, `resolution/contain`, `resolution/length`, `question/last`, ...).

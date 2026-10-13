@@ -6,17 +6,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	action2 "github.com/grandper/go-screenplay/action"
-	"github.com/grandper/go-screenplay/action/see"
-	"github.com/grandper/go-screenplay/extensions/cli/question"
-	"github.com/grandper/go-screenplay/extensions/cli/question/standard"
-	"github.com/grandper/go-screenplay/question/last"
-	"github.com/grandper/go-screenplay/resolution/equal"
+	action2 "github.com/grandper/go-screenplay/v2/action"
+	"github.com/grandper/go-screenplay/v2/action/see"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/question"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/question/standard"
+	"github.com/grandper/go-screenplay/v2/question/last"
+	"github.com/grandper/go-screenplay/v2/resolution/equal"
 
-	"github.com/grandper/go-screenplay/extensions/cli/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
 
-	"github.com/grandper/go-screenplay/extensions/cli/action"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/action"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestType(t *testing.T) {

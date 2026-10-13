@@ -1,8 +1,8 @@
 package question
 
 import (
-	"github.com/grandper/go-screenplay/extensions/cli/ability"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // Responses asks about all the responses recorded so far.

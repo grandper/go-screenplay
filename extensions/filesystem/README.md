@@ -10,10 +10,10 @@ The symbols shown below live in the extension's sub-packages:
 
 | Package | Import path | Provides |
 |---------|-------------|----------|
-| `ability` | `github.com/grandper/go-screenplay/extensions/filesystem/ability` | `UseTheFileSystem` |
-| `action` | `github.com/grandper/go-screenplay/extensions/filesystem/action` | `Create`, `Remove`, `AppendTheText`/`AppendTheBytes`/`AppendTheContent`, `OverwriteTo`, `ChangeDirectoryTo` |
-| `question` | `github.com/grandper/go-screenplay/extensions/filesystem/question` | `FileNamed`, `DirectoryNamed`, `ContentOfTheFileNamed` |
-| `resolution` | `github.com/grandper/go-screenplay/extensions/filesystem/resolution` | `Exists` |
+| `ability` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/ability` | `UseTheFileSystem` |
+| `action` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action` | `Create`, `Remove`, `AppendTheText`/`AppendTheBytes`/`AppendTheContent`, `OverwriteTo`, `ChangeDirectoryTo` |
+| `question` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/question` | `FileNamed`, `DirectoryNamed`, `ContentOfTheFileNamed` |
+| `resolution` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/resolution` | `Exists` |
 
 Assertions are written with the core screenplay packages (`action/see`,
 `resolution/equal`, ...) alongside this extension's `resolution.Exists`. For readability

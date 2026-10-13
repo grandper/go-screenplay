@@ -3,7 +3,7 @@ package see
 import (
 	"fmt"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // The starts an assertion about the answer to a question. The verb (and its negation) is

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/grandper/go-screenplay/extensions/cli/ability"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // ErrAnswerIsNotAResult is returned when the wrapped question does not answer with a CLI result.

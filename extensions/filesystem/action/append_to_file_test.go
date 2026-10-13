@@ -8,11 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/extensions/filesystem/action/fixture"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/fixture"
 
-	"github.com/grandper/go-screenplay/extensions/filesystem/ability"
-	"github.com/grandper/go-screenplay/extensions/filesystem/action"
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestAppendTo(t *testing.T) {

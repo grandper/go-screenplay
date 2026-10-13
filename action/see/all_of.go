@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grandper/go-screenplay/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // ErrInvalidAllOfArguments is returned when the arguments passed to AllOf are not valid question-resolution pairs.
