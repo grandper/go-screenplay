@@ -15,7 +15,7 @@ import (
 func TestSilentlyAction(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		silent := action.Silently(fixture.NewFakePerformable("log in", nil))
-		assert.Equal(t, "silently log in", silent.String())
+		assert.Equal(t, "silently perform an action", silent.String())
 	})
 
 	t.Run("performs the wrapped performable", func(t *testing.T) {
@@ -50,8 +50,19 @@ func TestSilentlyAction(t *testing.T) {
 
 		events := recorder.Events()
 		require.Len(t, events, 2)
-		assert.Equal(t, "Adam attempts to silently log in", events[0].Message)
-		assert.Equal(t, "Adam attempts to silently log in", events[1].Message)
+		assert.Equal(t, "Adam attempts to silently perform an action", events[0].Message)
+		assert.Equal(t, "Adam attempts to silently perform an action", events[1].Message)
+	})
+
+	t.Run("never narrates the description of the wrapped performable", func(t *testing.T) {
+		recorder := fixture.NewRecorder()
+		adam := narratedActor(recorder)
+
+		require.NoError(t, adam.AttemptsTo(action.Silently(fixture.NewFakePerformable("type the password 'hunter2'", nil))))
+
+		for _, message := range recorder.Messages() {
+			assert.NotContains(t, message, "hunter2")
+		}
 	})
 
 	t.Run("restores the narrator once the performable is done", func(t *testing.T) {

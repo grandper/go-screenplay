@@ -473,19 +473,30 @@ err := theActor.AttemptsTo(Log(Number.Of(ItemsInTheList)))
 
 ##### Silencing steps with `Silently`
 Wrap a performable with `action.Silently` (or a question with `question.Silently`)
-to mute the narration its steps would produce: the nested beats and asides it
+to mute the narration its actions would produce: the nested beats and asides it
 would emit never reach the adapters, collapsing a whole sub-tree into a single,
-opaque line. It keeps secrets out of the logs — a step that types a password or
-sets an authorization header can be silenced so its value never reaches an
+opaque line. It keeps secrets out of the logs — an action that types a password
+or sets an authorization header can be silenced so its value never reaches an
 adapter — and trims the noise of a verbose task:
 ```go
 err := theActor.AttemptsTo(action.Silently(LogInAs("wanda", secret)))
+// narrated: Adam attempts to silently perform an action
 answer, err := theActor.AsksFor(question.Silently(TheAuthToken()))
+// narrated: Adam asks for a secret
 ```
-Only the wrapped step's own line is still narrated; everything underneath is
-dropped. `Silently` mutes a private view of the actor rather than the actor
+Only that one line is narrated: the wrapped action's own description, the
+wrapped question's description and its answer are never passed to an adapter.
+What remains visible is the error of a failed action, as returned by that
+action. `Silently` mutes a private view of the actor rather than the actor
 itself, so it is safe under `Concurrently`: a silenced branch never mutes another
 branch running at the same time.
+
+**What reaches the adapters.** The narration is the sentence the actor performs,
+values included: command arguments, typed text, URLs, request bodies, header
+values, logged answers, and the actual value of every unmet expectation
+("got ..."). Point the adapters at a sink that may hold those values, or keep a
+value out of the narration with `action.Silently`, `question.Silently`, or the
+`Secretly()` of header and request actions.
 
 ##### Forcing all narration
 When debugging, you often want to see every step — including the ones a

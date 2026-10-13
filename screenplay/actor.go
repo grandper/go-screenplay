@@ -436,7 +436,14 @@ func (a *Actor) AsksFor(question Question) (any, error) {
 	narrator.WhispersTheAside(a.name, message)
 
 	answer, err := question.AnsweredBy(a)
-	narrator.RevealsTheAnswer(a.name, message, answer, err)
+
+	// A question that keeps its answer secret (question.Silently) is narrated
+	// without its answer, so the value never reaches an adapter.
+	if _, secret := any(question).(interface{ KeepsItsAnswerSecret() }); secret {
+		narrator.RevealsTheAnswer(a.name, message, nil, err)
+	} else {
+		narrator.RevealsTheAnswer(a.name, message, answer, err)
+	}
 
 	return answer, err
 }

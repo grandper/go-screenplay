@@ -6,10 +6,12 @@ import (
 
 // Silently wraps a performable so that the narration produced while it runs is
 // muted: the nested beats and asides it would emit never reach the narrator's
-// adapters, collapsing a whole sub-tree of steps into a single, opaque line.
+// adapters, collapsing a whole sub-tree of actions into a single, opaque line
+// that reads "silently perform an action". The wrapped performable's own
+// description is never narrated, so a value it carries never reaches an adapter.
 //
-// It is meant to keep secrets out of the logs — a step that enters a password or
-// sets an authorization header can be silenced so its value never reaches an
+// It is meant to keep secrets out of the logs — an action that enters a password
+// or sets an authorization header can be silenced so its value never reaches an
 // adapter — and to trim the noise of a verbose task down to a single line.
 //
 // A production configured with screenplay.WithForceAllNarration neutralizes
@@ -26,9 +28,10 @@ type SilentlyAction struct {
 	performable screenplay.Performable
 }
 
-// String describes the action.
+// String describes the action without describing the wrapped performable, so
+// that a value the wrapped performable carries is never narrated.
 func (a *SilentlyAction) String() string {
-	return "silently " + a.performable.String()
+	return "silently perform an action"
 }
 
 // PerformAs performs the wrapped performable through a muted view of the actor,

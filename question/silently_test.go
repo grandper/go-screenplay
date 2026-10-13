@@ -14,7 +14,7 @@ import (
 func TestSilentlyQuestion(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		silent := question.Silently(fixture.NewFakeQuestion("the token", "secret"))
-		assert.Equal(t, "silently the token", silent.String())
+		assert.Equal(t, "a secret", silent.String())
 	})
 
 	t.Run("answers with the answer of the wrapped question", func(t *testing.T) {
@@ -48,10 +48,25 @@ func TestSilentlyQuestion(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "secret", answer)
 
-		// Only the outer aside and answer are narrated; the inner question stays muted.
+		// Only the outer aside is narrated; the inner question stays muted.
 		events := recorder.Events()
 		require.Len(t, events, 2)
-		assert.Equal(t, "Adam asks for silently the token", events[0].Message)
+		assert.Equal(t, "Adam asks for a secret", events[0].Message)
+		assert.Equal(t, "Adam asks for a secret", events[1].Message)
+	})
+
+	t.Run("never narrates the answer", func(t *testing.T) {
+		recorder := fixture.NewRecorder()
+		adam := narratedActor(recorder)
+
+		answer, err := adam.Sees(question.Silently(fixture.NewFakeQuestion("the token", "tok-123")))
+		require.NoError(t, err)
+		assert.Equal(t, "tok-123", answer)
+
+		for _, event := range recorder.Events() {
+			assert.Nil(t, event.Answer)
+			assert.NotContains(t, event.Message, "tok-123")
+		}
 	})
 
 	t.Run("restores the narrator once the question is answered", func(t *testing.T) {
