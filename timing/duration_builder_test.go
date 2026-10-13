@@ -116,4 +116,11 @@ func TestDurationBuilder(t *testing.T) {
 			timing.NewDurationBuilder(parent, nil).For(1).Seconds()
 		})
 	})
+
+	t.Run("uses the plural for zero", func(t *testing.T) {
+		parent := &fakeParent{}
+		zero := timing.NewDurationBuilder(parent, &parent.duration).For(0)
+		zero.Seconds()
+		assert.Equal(t, "0 seconds", zero.String())
+	})
 }

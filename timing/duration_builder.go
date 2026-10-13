@@ -126,12 +126,12 @@ func (b *DurationBuilder[T]) resolve(singular, plural string, magnitude time.Dur
 	return b.parent
 }
 
-// singularOrPlural returns the plural form when count denotes more than one unit
-// and the singular form otherwise.
+// singularOrPlural returns the singular form for exactly one unit and the
+// plural form otherwise, zero included: "0 seconds", "1 second", "2 seconds".
 func singularOrPlural(count int, singular, plural string) string {
-	if count > 1 {
-		return plural
+	if count == 1 {
+		return singular
 	}
 
-	return singular
+	return plural
 }
