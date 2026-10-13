@@ -11,7 +11,7 @@ const DefaultForceAllNarration = false
 // without the global mutable state.
 //
 //	prod := NewProduction(WithNarrator(narrator))
-//	stage := prod.SetTheStage(CastWhereEveryoneCan(browseTheWeb))
+//	stage := prod.SetTheStage(CastWhereEveryoneCan(BrowseTheWeb))
 type Production struct {
 	narrator          *Narrator
 	timeout           time.Duration

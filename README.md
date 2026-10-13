@@ -163,9 +163,12 @@ The simplest cast creates actors with no predefined abilities:
 ```go
 cast := screenplay.CastOfStandardActors()
 ```
-When all actors in a scenario share the same abilities, you can use:
+When every actor in a scenario needs the same abilities, give the cast their
+constructors, without parentheses. Each actor gets its own instances, so what an
+actor records through an ability stays its own and its exit forgets its abilities
+only:
 ```go
-cast := screenplay.CastWhereEveryoneCan(MakeHTTPRequests(), UseDatabase())
+cast := screenplay.CastWhereEveryoneCan(MakeHTTPRequests).And(UseDatabase)
 ```
 For more control over how each actor is prepared you can supply a function:
 ```go
@@ -182,7 +185,7 @@ are automatically prepared when they first appear.
 
 To create a stage, provide it with a cast:
 ```go
-stage := screenplay.SetTheStage(screenplay.CastWhereEveryoneCan(MakeHTTPRequests()))
+stage := screenplay.SetTheStage(screenplay.CastWhereEveryoneCan(MakeHTTPRequests))
 ```
 Use `ActorNamed` to retrieve an actor by name. If the actor does not exist
 yet, the stage creates one and lets the cast prepare it. Calling it a second
@@ -425,7 +428,7 @@ import (
 narrator := screenplay.NewNarrator(slogadapter.New(slog.Default()))
 production := screenplay.NewProduction(screenplay.WithNarrator(narrator))
 
-stage := production.SetTheStage(screenplay.CastWhereEveryoneCan(MakeHTTPRequests()))
+stage := production.SetTheStage(screenplay.CastWhereEveryoneCan(MakeHTTPRequests))
 wanda := stage.ActorNamed("Wanda") // already narrating
 ```
 Every actor the production's stage creates narrates through that same narrator:

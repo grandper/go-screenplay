@@ -10,18 +10,36 @@ func CastOfStandardActors() Cast {
 	return &standardCast{}
 }
 
-// CastWhereEveryoneCan creates a cast where every actor
-// is given the listed abilities.
-func CastWhereEveryoneCan(abilities ...Ability) Cast {
-	return &standardCast{abilities: abilities}
+// CastWhereEveryoneCan creates a cast where every actor is given its own
+// instance of the ability built by newAbility, so that what an actor records
+// through an ability (HTTP responses, command results, a current directory)
+// stays its own, and an actor's Exit forgets its abilities only. Add the other
+// abilities with And:
+//
+//	SetTheStage(CastWhereEveryoneCan(MakeHTTPRequests).And(UseDatabase))
+func CastWhereEveryoneCan[A Ability](newAbility func() A) *standardCast {
+	return (&standardCast{}).And(newAbility)
 }
 
+// standardCast builds, for each actor it prepares, a fresh instance of every
+// ability it was given a constructor for.
 type standardCast struct {
-	abilities []Ability
+	newAbilities []func() Ability
 }
 
+// And adds an ability every actor is given its own instance of. It reads
+// "cast where everyone can make HTTP requests and use database".
+func (c *standardCast) And[A Ability](newAbility func() A) *standardCast {
+	c.newAbilities = append(c.newAbilities, func() Ability { return newAbility() })
+
+	return c
+}
+
+// Prepare gives the actor a fresh instance of every ability of the cast.
 func (c *standardCast) Prepare(actor *Actor) {
-	actor.WhoCan(c.abilities...)
+	for _, newAbility := range c.newAbilities {
+		actor.WhoCan(newAbility())
+	}
 }
 
 // CastFunc adapts a function to the Cast interface.

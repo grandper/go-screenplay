@@ -53,11 +53,10 @@ func TestStage(t *testing.T) {
 		t.Run("prepares the actor through the cast", func(t *testing.T) {
 			t.Parallel()
 
-			performTesting := performTestingAbility{}
-			stage := screenplay.SetTheStage(screenplay.CastWhereEveryoneCan(performTesting))
+			stage := screenplay.SetTheStage(screenplay.CastWhereEveryoneCan(newPerformTestingAbility))
 			adam := stage.ActorNamed("Adam")
 
-			assert.True(t, adam.HasAbilityTo(performTesting))
+			assert.True(t, adam.HasAbilityTo(performTestingAbility{}))
 		})
 
 		t.Run("places the actor in the spotlight", func(t *testing.T) {
@@ -116,8 +115,7 @@ func TestStage(t *testing.T) {
 		t.Run("makes all actors exit the stage", func(t *testing.T) {
 			t.Parallel()
 
-			performTesting := performTestingAbility{}
-			stage := screenplay.SetTheStage(screenplay.CastWhereEveryoneCan(performTesting))
+			stage := screenplay.SetTheStage(screenplay.CastWhereEveryoneCan(newPerformTestingAbility))
 			adam := stage.ActorNamed("Adam")
 			stage.ActorNamed("Bob")
 
