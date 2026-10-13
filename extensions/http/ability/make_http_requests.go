@@ -12,14 +12,36 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
+// maxRedirects is the number of consecutive redirects followed before a request
+// fails, the same limit as the default policy of net/http.
+const maxRedirects = 10
+
 // MakeHTTPRequests enables the actor to make HTTP requests.
 func MakeHTTPRequests() *MakeHTTPRequestsAbility {
 	mhr := &MakeHTTPRequestsAbility{
 		headers:   map[string]string{},
 		responses: []*HTTPResponse{},
 	}
-	mhr.client = &http.Client{}
+	mhr.client = &http.Client{
+		CheckRedirect: mhr.checkRedirect,
+	}
 	return mhr
+}
+
+// checkRedirect is the redirect policy of the ability's client. Redirects are
+// followed, up to maxRedirects, but when a redirect leaves the host the request
+// was sent to, every header added through the ability is removed from the
+// redirected request, so a session header never reaches another host.
+func (mhr *MakeHTTPRequestsAbility) checkRedirect(request *http.Request, via []*http.Request) error {
+	if len(via) >= maxRedirects {
+		return fmt.Errorf("stopped after %d redirects", maxRedirects)
+	}
+	if request.URL.Host != via[0].URL.Host {
+		for key := range mhr.ToRetrieveHeaders() {
+			request.Header.Del(key)
+		}
+	}
+	return nil
 }
 
 // MakeHTTPRequestsAbility is the ability to make HTTP requests.

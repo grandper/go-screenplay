@@ -48,6 +48,9 @@ err := anActor.AttemptsTo(SetHeaders(
 `AddHeaders` and `SetHeaders` take an even number of arguments, read as
 `key, value, key, value, ...`.
 
+Headers are sent with every request of the actor. When a server redirects to another
+host, the headers added through the ability are not forwarded to it.
+
 If a header holds a secret you do not want in the narration, mark the action secret
 with `Secretly` (or its longer alias `WhichShouldBeKeptSecret`):
 ```go

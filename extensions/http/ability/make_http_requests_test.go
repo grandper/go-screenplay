@@ -165,4 +165,51 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		require.ErrorIs(t, err, context.DeadlineExceeded)
 		assert.Less(t, time.Since(start), 5*time.Second)
 	})
+
+	t.Run("does not forward the session headers to another host", func(t *testing.T) {
+		var otherHostHeader http.Header
+		otherHost := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			otherHostHeader = r.Header.Clone()
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer otherHost.Close()
+
+		var sameHostHeader http.Header
+		var server *httptest.Server
+		server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/to-other-host":
+				http.Redirect(w, r, otherHost.URL+"/landing", http.StatusFound)
+			case "/to-same-host":
+				http.Redirect(w, r, server.URL+"/home", http.StatusFound)
+			default:
+				sameHostHeader = r.Header.Clone()
+				w.WriteHeader(http.StatusOK)
+			}
+		}))
+		defer server.Close()
+
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+		require.NoError(t, adam.AttemptsTo(
+			httpaction.AddHeader("X-Api-Key", "secret-key"),
+			httpaction.SendGetRequest().To(server.URL+"/to-other-host"),
+			httpaction.SendGetRequest().To(server.URL+"/to-same-host"),
+		))
+
+		assert.Empty(t, otherHostHeader.Get("X-Api-Key"), "the session header must not reach another host")
+		assert.Equal(t, "secret-key", sameHostHeader.Get("X-Api-Key"), "the session header is kept on the same host")
+	})
+
+	t.Run("stops after ten redirects by default", func(t *testing.T) {
+		var server *httptest.Server
+		server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, server.URL+"/again", http.StatusFound)
+		}))
+		defer server.Close()
+
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+		err := adam.AttemptsTo(httpaction.SendGetRequest().To(server.URL))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "stopped after 10 redirects")
+	})
 }
