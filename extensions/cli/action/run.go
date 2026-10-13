@@ -54,6 +54,9 @@ func (a *RunTheCommandAction) WithEnv(env map[string]string) *RunTheCommandActio
 
 // WithEnvVar adds a single environment variable for the command.
 func (a *RunTheCommandAction) WithEnvVar(key, value string) *RunTheCommandAction {
+	if a.env == nil {
+		a.env = map[string]string{}
+	}
 	a.env[key] = value
 	return a
 }

@@ -137,4 +137,15 @@ func TestRunTheCommand(t *testing.T) {
 			action4.String(),
 		)
 	})
+
+	t.Run("does not panic when a variable is added to a nil environment", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
+		require.NoError(t, adam.AttemptsTo(action.RunTheCommand("sh", "-c", "echo $GREETING").
+			WithEnv(nil).
+			WithEnvVar("GREETING", "Hello, World!")))
+
+		value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
+		require.NoError(t, err)
+		assert.Equal(t, []byte("Hello, World!\n"), value)
+	})
 }
