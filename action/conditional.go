@@ -87,9 +87,12 @@ func (a *ConditionalAction) When(cond bool) *ConditionalAction {
 	return a.If(cond)
 }
 
-// Unless guards the action behind the negation of a boolean expression.
+// Unless guards the action behind the negation of a boolean expression. It is
+// narrated "unless the condition holds".
 func (a *ConditionalAction) Unless(cond bool) *ConditionalAction {
-	return a.If(!cond)
+	a.condition = booleanCondition(cond).negated()
+
+	return a
 }
 
 // IfThe guards the action behind what the answer to a question happens to be.

@@ -165,6 +165,15 @@ func TestConditionalAction(t *testing.T) {
 		booleanAction := action.Conditionally(doTask).If(true)
 		assert.Equal(t, "conditionally do the task if the condition holds", booleanAction.String())
 
+		// Unless is narrated with the word written in the code, whatever the boolean.
+		assert.Equal(t, "conditionally do the task unless the condition holds", action.Conditionally(doTask).Unless(true).String())
+		assert.Equal(t, "conditionally do the task unless the condition holds", action.Conditionally(doTask).Unless(false).String())
+		assert.Equal(
+			t,
+			"conditionally do the task unless the condition holds, otherwise do the alternative",
+			action.Conditionally(doTask).Unless(true).Otherwise(doTheAlternative).String(),
+		)
+
 		questionAction := action.Conditionally(doTask).
 			IfThe(question).
 			HappensTo(be.EqualTo(200)).
