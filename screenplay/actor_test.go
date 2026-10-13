@@ -489,6 +489,18 @@ func TestActor(t *testing.T) {
 		waitGroup.Wait()
 	})
 
+	t.Run("ignores a nil ability and looks an interface type up without panicking", func(t *testing.T) {
+		var forgotten screenplay.Ability
+		adam := screenplay.ActorNamed("Adam").WhoCan(forgotten)
+
+		assert.Equal(t, 0, adam.NumAbilities())
+		assert.False(t, adam.HasAbilityTo(nil))
+
+		_, err := screenplay.UseAbilityTo[screenplay.Ability]().Of(adam)
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
+		assert.Contains(t, err.Error(), "does not have the ability 'Ability'")
+	})
+
 	t.Run("narrates the cleanup tasks performed at exit", func(t *testing.T) {
 		recorder := fixture.NewRecorder()
 		adam := narratedActor(recorder)

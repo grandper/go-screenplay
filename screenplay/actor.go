@@ -194,8 +194,12 @@ func (a *Actor) WhoCan(abilities ...Ability) *Actor {
 	defer a.mu.Unlock()
 
 	for _, ability := range abilities {
-		str := abilityStr(ability)
-		a.abilities[str] = ability
+		// A nil ability is ignored, as a nil action is: the mistake never panics.
+		if ability == nil {
+			continue
+		}
+
+		a.abilities[abilityName(reflect.TypeOf(ability))] = ability
 	}
 
 	return a
@@ -208,9 +212,11 @@ func (a *Actor) Can(abilities ...Ability) *Actor {
 
 // HasAbilityTo returns whether an actor has an ability or not.
 func (a *Actor) HasAbilityTo(ability Ability) bool {
-	str := abilityStr(ability)
+	if ability == nil {
+		return false
+	}
 
-	_, ok := a.ability(str)
+	_, ok := a.ability(abilityName(reflect.TypeOf(ability)))
 
 	return ok
 }
@@ -239,7 +245,9 @@ type UseAbility[A Ability] struct{}
 func (ae UseAbility[A]) Of(actor *Actor) (A, error) {
 	var ability A
 
-	str := abilityStr(ability)
+	// The name comes from the type parameter itself, never from a value of it:
+	// the zero value of an interface type is nil and has no type.
+	str := abilityName(reflect.TypeFor[A]())
 	if v, found := actor.ability(str); found {
 		var ok bool
 		if ability, ok = v.(A); ok {
@@ -258,9 +266,10 @@ func (ae UseAbility[A]) Of(actor *Actor) (A, error) {
 	)
 }
 
-func abilityStr(a Ability) string {
-	t := reflect.TypeOf(a)
-	if t.Kind() == reflect.Ptr {
+// abilityName is the key an ability is stored under: the name of its type,
+// pointer or not.
+func abilityName(t reflect.Type) string {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
