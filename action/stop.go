@@ -188,7 +188,8 @@ func (c *awaitedCondition) PerformAs(actor *screenplay.Actor) error {
 func (a *StopAction) neverSeen(actor *screenplay.Actor) error {
 	err := a.term.MetBy(actor)
 	if err == nil {
-		return nil
+		// Met now, but only after the timeout: the actor still failed to see it in time.
+		return fmt.Errorf("%s stopped for %s without seeing that %s in time", actor.Name(), actor.Timeout(), a.term)
 	}
 
 	var unmet *sentence.UnmetError

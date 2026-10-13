@@ -12,6 +12,7 @@ import (
 
 	"github.com/grandper/go-screenplay/v2/action"
 	"github.com/grandper/go-screenplay/v2/fixture"
+	"github.com/grandper/go-screenplay/v2/question"
 	"github.com/grandper/go-screenplay/v2/resolution/be"
 	"github.com/grandper/go-screenplay/v2/resolution/match"
 	"github.com/grandper/go-screenplay/v2/screenplay"
@@ -94,5 +95,24 @@ func TestStopAction(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, r.Close())
 		require.Error(t, adam.AttemptsTo(action.Stop().UntilAnInputIsProvidedBy(r)))
+	})
+
+	t.Run("fails when the condition is met only after the timeout", func(t *testing.T) {
+		production := screenplay.NewProduction(
+			screenplay.WithTimeout(30*time.Millisecond),
+			screenplay.WithPolling(12*time.Millisecond),
+		)
+		bob := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Bob")
+
+		// False during the whole window, true right after it: the last judgment,
+		// made after the timeout to explain the failure, sees it met.
+		start := time.Now()
+		lateCondition := question.FromFunc("late condition", func(_ *screenplay.Actor) (bool, error) {
+			return time.Since(start) > 30*time.Millisecond, nil
+		})
+
+		err := bob.AttemptsTo(action.Stop().UntilThe(lateCondition).HappensTo(be.True()))
+		require.Error(t, err)
+		assert.EqualError(t, err, "Bob stopped for 30ms without seeing that the late condition happens to be true in time")
 	})
 }
