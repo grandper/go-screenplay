@@ -1,6 +1,7 @@
 package action_test
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -59,6 +60,38 @@ func TestRunTheCommand(t *testing.T) {
 		})
 
 		t.Run("with a single environment variable", func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
+			require.NoError(t, adam.AttemptsTo(action.RunTheCommand("sh", "-c", "echo $GREETING").
+				WithEnvVar("GREETING", "Hello, World!")))
+
+			value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
+			require.NoError(t, err)
+			assert.Equal(t, []byte("Hello, World!\n"), value)
+		})
+
+		t.Run("inheriting the environment of the test process", func(t *testing.T) {
+			t.Setenv("INHERITED_GREETING", "Hello from the parent!")
+			adam := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
+			require.NoError(t, adam.AttemptsTo(action.RunTheCommand("sh", "-c", "echo $INHERITED_GREETING; echo $PATH")))
+
+			value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
+			require.NoError(t, err)
+			assert.Equal(t, "Hello from the parent!\n"+os.Getenv("PATH")+"\n", string(value))
+		})
+
+		t.Run("inheriting the environment when variables are added", func(t *testing.T) {
+			t.Setenv("INHERITED_GREETING", "Hello from the parent!")
+			adam := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
+			require.NoError(t, adam.AttemptsTo(action.RunTheCommand("sh", "-c", "echo $INHERITED_GREETING; echo $GREETING").
+				WithEnvVar("GREETING", "Hello, World!")))
+
+			value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
+			require.NoError(t, err)
+			assert.Equal(t, []byte("Hello from the parent!\nHello, World!\n"), value)
+		})
+
+		t.Run("overriding an inherited environment variable", func(t *testing.T) {
+			t.Setenv("GREETING", "Hello from the parent!")
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
 			require.NoError(t, adam.AttemptsTo(action.RunTheCommand("sh", "-c", "echo $GREETING").
 				WithEnvVar("GREETING", "Hello, World!")))

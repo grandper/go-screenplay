@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
 	"os/exec"
 	"sync"
 
@@ -48,8 +49,12 @@ func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error {
 	if cmd.Dir != "" {
 		c.Dir = cmd.Dir
 	}
-	if cmd.Env != nil {
-		env := make([]string, 0, len(cmd.Env))
+	// The child inherits the parent's environment (exec does so when Env is nil)
+	// and the command's own variables are added on top of it. A later entry wins
+	// over an inherited one of the same name, so a command variable overrides
+	// the parent's.
+	if len(cmd.Env) > 0 {
+		env := os.Environ()
 		for k, v := range cmd.Env {
 			env = append(env, k+"="+v)
 		}

@@ -43,7 +43,8 @@ Run it in a specific working directory:
 ```go
 err := anActor.AttemptsTo(RunTheCommand("ls").InTheWorkingDirectory("/home/boby"))
 ```
-Pass environment variables, one at a time or as a map:
+Pass environment variables, added to the environment the test inherits, one at
+a time or as a map. A variable named like an inherited one overrides it:
 ```go
 err := anActor.AttemptsTo(RunTheCommand("printenv", "TOKEN").WithEnvVar("TOKEN", "s3cret"))
 err := anActor.AttemptsTo(RunTheCommand("printenv").WithEnv(map[string]string{
