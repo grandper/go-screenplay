@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/grandper/go-monad"
 )
 
 var (
@@ -148,12 +150,28 @@ func (a *Actor) store(key string, value any) {
 	a.memory[key] = value
 }
 
-// Recall retrieves a value from the actor's memory.
-func (a *Actor) Recall(key string) any {
+// recollect reads a value from the actor's memory under the actor's lock.
+func (a *Actor) recollect(key string) any {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
 	return a.memory[key]
+}
+
+// Recall retrieves a value of type T from the actor's memory:
+//
+//	totalCost := actor.Recall[int]("Total Cost").OrElse(0)
+//
+// The option is empty when nothing is stored under the key, when nil is
+// stored under it, or when the stored value is not a T. Use Recall[any] to
+// retrieve a value whatever its type.
+func (a *Actor) Recall[T any](key string) monad.Option[T] {
+	value, isAT := a.recollect(key).(T)
+	if !isAT {
+		return monad.None[T]()
+	}
+
+	return monad.Some(value)
 }
 
 // Share starts sharing a value from the actor's memory.
@@ -172,12 +190,14 @@ type ShareAction struct {
 }
 
 // With completes the share by copying the value into the target actor's memory.
+// It does nothing when the source actor remembers nothing under the key.
 func (s *ShareAction) With(target *Actor) {
-	value := s.source.Recall(s.key)
+	value := s.source.recollect(s.key)
 	if value == nil {
 		return
 	}
-	target.Remember(s.key, value)
+
+	target.store(s.key, value)
 }
 
 // Forget removes a value from the actor's memory.

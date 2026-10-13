@@ -12,8 +12,7 @@ import (
 // as a question, so it can be checked with see.The, wrapped in Eventually, or
 // handed to any other component that expects a screenplay.Question.
 //
-// The answer is exactly what actor.Recall returns: the stored value, or nil
-// when nothing is stored under the key.
+// The answer is the stored value, or nil when nothing is stored under the key.
 func Recalled(key string) *RecalledQuestion {
 	return &RecalledQuestion{
 		key: key,
@@ -33,7 +32,7 @@ func (q *RecalledQuestion) String() string {
 // AnsweredBy returns the value the actor remembers under the question's key,
 // or nil when the actor remembers nothing under it.
 func (q *RecalledQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
-	return actor.Recall(q.key), nil
+	return actor.Recall[any](q.key).OrElse(nil), nil
 }
 
 // RecalledQuestion implements the screenplay.Question interface.

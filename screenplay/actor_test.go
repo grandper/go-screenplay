@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/grandper/go-monad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -66,22 +67,46 @@ func TestActor(t *testing.T) {
 		adam.Remember("username", "adam123")
 		adam.Remember("is_logged_in", true)
 
-		username, ok := adam.Recall("username").(string)
-		require.True(t, ok)
-		assert.Equal(t, "adam123", username)
+		assert.Equal(t, monad.Some("adam123"), adam.Recall[string]("username"))
+		assert.Equal(t, "adam123", adam.Recall[string]("username").OrElse(""))
+		assert.True(t, adam.Recall[bool]("is_logged_in").OrElse(false))
+	})
 
-		isLoggedIn, ok := adam.Recall("is_logged_in").(bool)
-		require.True(t, ok)
-		assert.True(t, isLoggedIn)
+	t.Run("recalls a value whatever its type with Recall[any]", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		adam.Remember("username", "adam123")
 
-		assert.Nil(t, adam.Recall("non_existent_key"))
+		assert.Equal(t, monad.Some[any]("adam123"), adam.Recall[any]("username"))
+	})
+
+	t.Run("recalls nothing when nothing is remembered under the key", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+
+		assert.True(t, adam.Recall[int]("non_existent_key").IsEmpty())
+		assert.True(t, adam.Recall[any]("non_existent_key").IsEmpty())
+		assert.Equal(t, 42, adam.Recall[int]("non_existent_key").OrElse(42))
+	})
+
+	t.Run("recalls nothing when the remembered value is not of the asked type", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		adam.Remember("status_code", 200)
+
+		assert.True(t, adam.Recall[string]("status_code").IsEmpty())
+		assert.Equal(t, monad.Some(200), adam.Recall[int]("status_code"))
+	})
+
+	t.Run("recalls nothing when nil is remembered", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		adam.Remember("data", nil)
+
+		assert.True(t, adam.Recall[any]("data").IsEmpty())
 	})
 
 	t.Run("remembers the answer when the value is a question", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		adam.Remember("status_code", fixture.NewFakeQuestion("status code", 200))
 
-		assert.Equal(t, 200, adam.Recall("status_code"))
+		assert.Equal(t, monad.Some(200), adam.Recall[int]("status_code"))
 	})
 
 	t.Run("remembers nil when the question fails to be answered", func(t *testing.T) {
@@ -91,7 +116,7 @@ func TestActor(t *testing.T) {
 			errors.New("failed to get the status code"),
 		))
 
-		assert.Nil(t, adam.Recall("status_code"))
+		assert.True(t, adam.Recall[any]("status_code").IsEmpty())
 	})
 
 	t.Run("can share information with another actor", func(t *testing.T) {
@@ -102,7 +127,7 @@ func TestActor(t *testing.T) {
 			adam.Remember("session_token", "abc123")
 			adam.Share("session_token").With(bob)
 
-			assert.Equal(t, "abc123", bob.Recall("session_token"))
+			assert.Equal(t, monad.Some("abc123"), bob.Recall[string]("session_token"))
 		})
 
 		t.Run("does not remove the value from the source actor", func(t *testing.T) {
@@ -112,7 +137,7 @@ func TestActor(t *testing.T) {
 			adam.Remember("session_token", "abc123")
 			adam.Share("session_token").With(bob)
 
-			assert.Equal(t, "abc123", adam.Recall("session_token"))
+			assert.Equal(t, monad.Some("abc123"), adam.Recall[string]("session_token"))
 		})
 
 		t.Run("does nothing when the key does not exist in the source actor", func(t *testing.T) {
@@ -121,7 +146,7 @@ func TestActor(t *testing.T) {
 
 			adam.Share("unknown_key").With(bob)
 
-			assert.Nil(t, bob.Recall("unknown_key"))
+			assert.True(t, bob.Recall[any]("unknown_key").IsEmpty())
 		})
 
 		t.Run("overwrites the value in the target actor if the key already exists", func(t *testing.T) {
@@ -132,17 +157,17 @@ func TestActor(t *testing.T) {
 			adam.Remember("session_token", "new_value")
 			adam.Share("session_token").With(bob)
 
-			assert.Equal(t, "new_value", bob.Recall("session_token"))
+			assert.Equal(t, monad.Some("new_value"), bob.Recall[string]("session_token"))
 		})
 	})
 
 	t.Run("can forget information", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		adam.Remember("session_token", "abc123")
-		assert.Equal(t, "abc123", adam.Recall("session_token"))
+		assert.True(t, adam.Recall[string]("session_token").IsPresent())
 
 		adam.Forget("session_token")
-		assert.Nil(t, adam.Recall("session_token"))
+		assert.True(t, adam.Recall[string]("session_token").IsEmpty())
 	})
 
 	t.Run("does not have ability at first", func(t *testing.T) {
@@ -443,7 +468,7 @@ func TestActor(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam")
 			adam.Remember("greeting", "hello world")
 
-			assert.Equal(t, "hello world", adam.Muted().Recall("greeting"))
+			assert.Equal(t, monad.Some("hello world"), adam.Muted().Recall[string]("greeting"))
 		})
 
 		t.Run("still performs the actions it is asked to", func(t *testing.T) {
@@ -478,7 +503,7 @@ func TestActor(t *testing.T) {
 				key := fmt.Sprintf("key-%d", i)
 
 				adam.Remember(key, i)
-				_ = adam.Recall(key)
+				_ = adam.Recall[int](key)
 				adam.Can(flyInTheSkyAbility{})
 				_ = adam.HasAbilityTo(flyInTheSkyAbility{})
 				_ = adam.NumAbilities()

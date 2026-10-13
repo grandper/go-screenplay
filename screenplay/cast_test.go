@@ -66,7 +66,7 @@ func TestCast(t *testing.T) {
 			cast.Prepare(adam)
 
 			assert.Equal(t, 1, adam.NumAbilities())
-			assert.Equal(t, "tester", adam.Recall("role"))
+			assert.Equal(t, "tester", adam.Recall[string]("role").OrElse(""))
 		})
 	})
 }

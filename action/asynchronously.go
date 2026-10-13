@@ -145,8 +145,8 @@ type AsynchronousErrorsQuestion struct{}
 // AnsweredBy waits for every pending asynchronous action to complete and returns
 // the slice of non-nil errors they produced.
 func (q *AsynchronousErrorsQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
-	collector, ok := actor.Recall(asynchronousErrorsKey).(*asynchronousErrors)
-	if !ok {
+	collector := actor.Recall[*asynchronousErrors](asynchronousErrorsKey).OrElse(nil)
+	if collector == nil {
 		return []error{}, nil
 	}
 
@@ -172,7 +172,7 @@ type asynchronousErrors struct {
 // asynchronousErrorsOf returns the errors collector stored in the actor's
 // memory, creating and storing a new one when there is none yet.
 func asynchronousErrorsOf(actor *screenplay.Actor) *asynchronousErrors {
-	if collector, ok := actor.Recall(asynchronousErrorsKey).(*asynchronousErrors); ok {
+	if collector := actor.Recall[*asynchronousErrors](asynchronousErrorsKey).OrElse(nil); collector != nil {
 		return collector
 	}
 

@@ -3,6 +3,7 @@ module github.com/grandper/go-screenplay/v2
 go 1.27.2
 
 require (
+	github.com/grandper/go-monad v1.0.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.16.0
 )

@@ -120,21 +120,34 @@ err := neo.Exit()
 
 ### Actor specific session data
 Sometimes we need to store information in a step or task and reuse it in a subsequent one.
-To do so, each actor can call the `remember` and `recall` methods to store and retrieve
+To do so, each actor can call the `Remember` and `Recall` methods to store and retrieve
 data in a key-value store.
 ```go
 actor.Remember("the user id", 1234)
-userID := actor.Recall("the user id").(int)
+userID := actor.Recall[int]("the user id").OrElse(0)
 ```
+`Recall` is a generic method: you give it the type of the value you expect, and it hands
+the value back typed, wrapped in a `monad.Option` from
+[go-monad](https://github.com/grandper/go-monad). The option is empty when nothing is
+stored under the key, when `nil` is stored under it, or when the stored value is not of
+the type you asked for, so you decide what happens in that case:
+```go
+userID := actor.Recall[int]("the user id").OrElse(0)                 // fall back to a default value
+userID, err := actor.Recall[int]("the user id").OrElseError(ErrNoUser) // or turn the absence into an error
+if actor.Recall[int]("the user id").IsPresent() { ... }              // or simply check
+```
+Use `actor.Recall[any](key)` to retrieve a value whatever its type.
+
 You can also hand `Remember` a question directly. The actor answers it and stores
 the answer instead of the question. If the question fails to be answered, `nil` is
 stored for the key:
 ```go
 actor.Remember("the user id", UserID())
-userID := actor.Recall("the user id").(int)
+userID := actor.Recall[int]("the user id").OrElse(0)
 ```
-An actor can forget the data it has stored using
+An actor can share a value with another actor, and forget the data it has stored using
 ```go
+actor.Share("the user id").With(anotherActor)
 actor.Forget("the user id")
 ```
 The actor's memory and abilities are safe to access from several goroutines at
@@ -517,7 +530,7 @@ stores the answer in the actor's memory under a given key. You can then retrieve
 with `Recall` (see [Actor specific session data](#actor-specific-session-data)):
 ```go
 err := theActor.AttemptsTo(Remember(StatusCode()).As("statusCode"))
-statusCode := theActor.Recall("statusCode").(int)
+statusCode := theActor.Recall[int]("statusCode").OrElse(0)
 ```
 By default the action fails if the question returns a `nil` answer. Use `AllowingNil`
 to store it anyway:
@@ -531,7 +544,7 @@ err := theActor.AttemptsTo(Eventually(Remember(UserProfile()).As("profile")).Try
 ```
 
 The counterpart of `Remember` is the `question.Recalled` question: it answers with the
-value stored under a key, exactly as `actor.Recall` would (`nil` when nothing is
+value stored under a key, exactly as `actor.Recall[any]` would (`nil` when nothing is
 stored). Because it is a question, the remembered value can be checked with
 `see.The`, waited for with `Eventually`, or passed anywhere a question is expected:
 ```go

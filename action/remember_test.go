@@ -20,7 +20,7 @@ func TestRememberAction(t *testing.T) {
 
 	t.Run("remembers the answer to the question under the given key", func(t *testing.T) {
 		require.NoError(t, adam.AttemptsTo(action.Remember(statusCode).As("statusCode")))
-		assert.Equal(t, 200, adam.Recall("statusCode"))
+		assert.Equal(t, 200, adam.Recall[int]("statusCode").OrElse(0))
 	})
 
 	t.Run("fails when the question fails", func(t *testing.T) {
@@ -33,7 +33,7 @@ func TestRememberAction(t *testing.T) {
 
 	t.Run("remembers a nil answer when allowing nil", func(t *testing.T) {
 		require.NoError(t, adam.AttemptsTo(action.Remember(optionalData).As("data").AllowingNil()))
-		assert.Nil(t, adam.Recall("data"))
+		assert.True(t, adam.Recall[any]("data").IsEmpty())
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
