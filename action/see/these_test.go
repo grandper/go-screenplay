@@ -36,6 +36,13 @@ func TestThese(t *testing.T) {
 			)))
 		})
 
+		t.Run("fails when there is no term", func(t *testing.T) {
+			t.Parallel()
+			err := adam.AttemptsTo(see.AllOfTheseMet())
+			require.ErrorIs(t, err, term.ErrInvalidTerm)
+			assert.EqualError(t, err, "invalid term: see.AllOfTheseMet needs at least one term")
+		})
+
 		t.Run("fails when one term is not met", func(t *testing.T) {
 			t.Parallel()
 
@@ -187,6 +194,11 @@ func TestThese(t *testing.T) {
 			)))
 		})
 
+		t.Run("fails when there is no term", func(t *testing.T) {
+			t.Parallel()
+			require.ErrorIs(t, adam.AttemptsTo(see.NoneOfTheseMet()), term.ErrInvalidTerm)
+		})
+
 		t.Run("fails when one term is met", func(t *testing.T) {
 			t.Parallel()
 
@@ -248,6 +260,8 @@ func TestThese(t *testing.T) {
 
 			require.NoError(t, adam.AttemptsTo(
 				see.ThatAllOfThe(helloAdam, helloEve).Should(contain.Substring("hello"))))
+			require.ErrorIs(t, adam.AttemptsTo(
+				see.ThatAllOfThe[string]().Should(contain.Substring("hello"))), term.ErrInvalidTerm)
 			require.Error(t, adam.AttemptsTo(
 				see.ThatAllOfThe(helloAdam, goodbyeEve).Should(contain.Substring("hello"))))
 			require.ErrorIs(t, adam.AttemptsTo(
@@ -386,5 +400,12 @@ func TestThese(t *testing.T) {
 			assert.Equal(t, expected, narrated(
 				see.ThatAllOfThe(profileWidget, loginForm).Should(contain.Substring("hello"))))
 		})
+	})
+
+	t.Run("fails when there is no question", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		err := adam.AttemptsTo(see.ThatAllOfThe[int]().Should(be.EqualTo(200)))
+		require.ErrorIs(t, err, term.ErrInvalidTerm)
+		assert.EqualError(t, err, "invalid term: see.ThatAllOfThe needs at least one question")
 	})
 }

@@ -86,6 +86,12 @@ func these(q quantifier, name string, terms []*term.Term) *TheseAction {
 		action.terms = append(action.terms, t)
 	}
 
+	// An assertion with nothing to see is a mistake, like a verb with no
+	// resolution: it must not pass silently.
+	if len(terms) == 0 && action.err == nil {
+		action.err = fmt.Errorf("%w: %s needs at least one term", term.ErrInvalidTerm, name)
+	}
+
 	return action
 }
 
@@ -305,7 +311,12 @@ func (s *TheSubjects[T]) see(verb sentence.Verb, resolutions []screenplay.Resolu
 		terms[i] = sentence.NewTerm(question, clause)
 	}
 
-	return these(s.quantifier, s.constructor, terms)
+	action := these(s.quantifier, s.constructor, terms)
+	if len(s.questions) == 0 {
+		action.err = fmt.Errorf("%w: %s needs at least one question", term.ErrInvalidTerm, s.constructor)
+	}
+
+	return action
 }
 
 // isAMistake reports whether an error comes from a sentence or a resolution
