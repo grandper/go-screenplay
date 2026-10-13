@@ -170,17 +170,23 @@ func TestUseTheFileSystem(t *testing.T) {
 			assert.Equal(t, "hello world", string(content))
 		})
 
-		t.Run("fails if the file already exists", func(t *testing.T) {
+		t.Run("in the temporary directory, whatever the files of the current directory", func(t *testing.T) {
+			// A file of the same name in the current directory is unrelated: the
+			// temporary file gets a random suffix in the temporary directory.
 			filename := getFilename()
-			err := useTheFileSystem.CreateFile(filename)
-			require.NoError(t, err)
-
+			require.NoError(t, useTheFileSystem.CreateFile(filename))
 			defer func() {
 				assert.NoError(t, os.Remove(filename))
 			}()
 
-			_, err = useTheFileSystem.CreateTemporaryFileWithContent(filename, strings.NewReader("hello world"))
-			require.ErrorIs(t, err, ability.ErrFileAlreadyExists)
+			temporary, err := useTheFileSystem.CreateTemporaryFileWithContent(filename, strings.NewReader("hello world"))
+			require.NoError(t, err)
+			defer func() {
+				assert.NoError(t, os.Remove(temporary))
+			}()
+
+			assert.NotEqual(t, filename, temporary)
+			assert.Equal(t, filepath.Clean(os.TempDir()), filepath.Dir(temporary))
 		})
 
 		t.Run("fails if the content cannot be copied", func(t *testing.T) {

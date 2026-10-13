@@ -156,17 +156,10 @@ func (a *UseTheFileSystemAbility) CreateTemporaryFileWithContent(pattern string,
 	return file.Name(), nil
 }
 
+// createTemporaryFile creates the file in the temporary directory of the
+// system. os.CreateTemp adds a random suffix to the pattern, so the name never
+// collides with an existing file: no check against another directory is made.
 func (a *UseTheFileSystemAbility) createTemporaryFile(pattern string) (*os.File, error) {
-	if strings.Contains(pattern, "*") {
-		return os.CreateTemp("", pattern)
-	}
-	exists, err := a.FileExists(pattern)
-	if err != nil {
-		return nil, err
-	}
-	if exists {
-		return nil, ErrFileAlreadyExists
-	}
 	return os.CreateTemp("", pattern)
 }
 
