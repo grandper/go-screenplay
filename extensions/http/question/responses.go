@@ -15,7 +15,7 @@ type ResponsesQuestion struct{}
 
 // String describes the question.
 func (q *ResponsesQuestion) String() string {
-	return "the HTTP responses"
+	return "HTTP responses"
 }
 
 // AnsweredBy returns the answer that an actor provided to the question.

@@ -60,6 +60,6 @@ func TestResponsesQuestion(t *testing.T) {
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		assert.Equal(t, "the HTTP responses", question.Responses().String())
+		assert.Equal(t, "HTTP responses", question.Responses().String())
 	})
 }

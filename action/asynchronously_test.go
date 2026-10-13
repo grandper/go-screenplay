@@ -220,6 +220,8 @@ func TestAsynchronouslyAction(t *testing.T) {
 	})
 
 	t.Run("the asynchronous errors question is a stringer", func(t *testing.T) {
-		assert.Equal(t, "the asynchronous errors", action.AsynchronousErrors().String())
+		assert.Equal(t, "asynchronous errors", action.AsynchronousErrors().String())
+		// The sentence builders add the article once.
+		assert.Equal(t, "remember the asynchronous errors as 'errs'", action.Remember(action.AsynchronousErrors()).As("errs").String())
 	})
 }

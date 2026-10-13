@@ -155,7 +155,7 @@ func (q *AsynchronousErrorsQuestion) AnsweredBy(actor *screenplay.Actor) (any, e
 
 // String describes the question.
 func (q *AsynchronousErrorsQuestion) String() string {
-	return "the asynchronous errors"
+	return "asynchronous errors"
 }
 
 // AsynchronousErrorsQuestion implements the screenplay.Question interface.
