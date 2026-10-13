@@ -890,7 +890,10 @@ Contexts are hold by actors to share information across different part of a sequ
 ctx := context.Background()
 actor := screenplay.ActorNamed("Alice").WithContext(ctx)
 ```
-The context can later be retrieved using
+`WithContext` returns a view of the actor with that context, like
+`http.Request.WithContext`: the actor it was called on is untouched, and so is
+every other goroutine holding it. The view shares the actor's memory, abilities
+and cleanup tasks. The context can later be retrieved using
 ```go
 ctx := actor.Context()
 ```

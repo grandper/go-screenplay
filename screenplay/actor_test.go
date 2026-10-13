@@ -514,6 +514,41 @@ func TestActor(t *testing.T) {
 		waitGroup.Wait()
 	})
 
+	t.Run("with context returns a view and leaves the actor untouched", func(t *testing.T) {
+		type key struct{}
+		adam := screenplay.ActorNamed("Adam")
+		adam.Remember("Total Cost", 42)
+
+		withDeadline := adam.WithContext(context.WithValue(context.Background(), key{}, "deadline"))
+
+		// The view carries the context; the actor, and whoever holds it, does not.
+		assert.Equal(t, "deadline", withDeadline.Context().Value(key{}))
+		assert.Equal(t, context.Background(), adam.Context())
+
+		// The view shares the actor's memory, abilities and cleanup tasks.
+		assert.Equal(t, 42, withDeadline.Recall[int]("Total Cost").OrElse(0))
+		withDeadline.Remember("Seen From The View", true)
+		assert.True(t, adam.Recall[bool]("Seen From The View").OrElse(false))
+
+		// A muted view keeps the context of the view it comes from.
+		assert.Equal(t, "deadline", withDeadline.Muted().Context().Value(key{}))
+
+		// Run with -race: views are made while others read the actor's context.
+		var group sync.WaitGroup
+		for i := 0; i < 8; i++ {
+			group.Add(2)
+			go func() {
+				defer group.Done()
+				_ = adam.WithContext(context.WithValue(context.Background(), key{}, i)).Context()
+			}()
+			go func() {
+				defer group.Done()
+				_ = adam.Context()
+			}()
+		}
+		group.Wait()
+	})
+
 	t.Run("ignores a nil ability and looks an interface type up without panicking", func(t *testing.T) {
 		var forgotten screenplay.Ability
 		adam := screenplay.ActorNamed("Adam").WhoCan(forgotten)

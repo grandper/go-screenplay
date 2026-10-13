@@ -25,7 +25,8 @@ var (
 type Actor struct {
 	*actorCore
 
-	muted bool // a view's own flag; the actor itself is never muted
+	muted bool            // a view's own flag; the actor itself is never muted
+	ctx   context.Context // a view's own context, set when the view is made and never changed
 }
 
 // actorCore holds the state shared by every view of an actor. A view (see
@@ -35,7 +36,6 @@ type Actor struct {
 // touching state other goroutines read.
 type actorCore struct {
 	name                    string
-	ctx                     context.Context
 	production              *Production
 	mu                      sync.RWMutex
 	abilities               map[string]Ability
@@ -49,7 +49,8 @@ func (a *Actor) Name() string {
 	return a.name
 }
 
-// Context returns the context of the actor.
+// Context returns the context of the actor, context.Background() when none was
+// given.
 func (a *Actor) Context() context.Context {
 	if a.ctx == nil {
 		return context.Background()
@@ -58,10 +59,17 @@ func (a *Actor) Context() context.Context {
 	return a.ctx
 }
 
-// WithContext sets the context the actor uses for cancellation and deadlines.
+// WithContext returns a view of the actor whose Context is ctx, the context
+// used for cancellation and deadlines by the actions the view performs. As
+// http.Request.WithContext does, it leaves the actor itself untouched: every
+// other goroutine holding the actor keeps the actor's context. The view shares
+// the actor's memory, abilities and cleanup tasks.
 func (a *Actor) WithContext(ctx context.Context) *Actor {
-	a.ctx = ctx
-	return a
+	return &Actor{
+		actorCore: a.actorCore,
+		muted:     a.muted,
+		ctx:       ctx,
+	}
 }
 
 // narrator returns the microphone the actor narrates through, never nil: its
@@ -119,6 +127,7 @@ func (a *Actor) Muted() *Actor {
 	return &Actor{
 		actorCore: a.actorCore,
 		muted:     true,
+		ctx:       a.ctx,
 	}
 }
 
