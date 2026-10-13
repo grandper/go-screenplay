@@ -481,8 +481,10 @@ func (a *Actor) cleansUpIndependentTasks() error {
 
 	var errs []error
 
+	// Every task is performed through AttemptsTo, so it is narrated like any
+	// other action the actor performs.
 	for _, task := range tasks {
-		err := task.PerformAs(a)
+		err := a.AttemptsTo(task)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -502,7 +504,7 @@ func (a *Actor) cleansUpOrderedTasks() error {
 	a.mu.Unlock()
 
 	for _, task := range tasks {
-		err := task.PerformAs(a)
+		err := a.AttemptsTo(task)
 		if err != nil {
 			return err
 		}

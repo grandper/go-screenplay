@@ -488,6 +488,19 @@ func TestActor(t *testing.T) {
 
 		waitGroup.Wait()
 	})
+
+	t.Run("narrates the cleanup tasks performed at exit", func(t *testing.T) {
+		recorder := fixture.NewRecorder()
+		adam := narratedActor(recorder)
+		adam.HasOrderedCleanupTasks(fixture.NewFakePerformable("close the account", nil))
+		adam.HasIndependentCleanupTasks(fixture.NewFakePerformable("log out", nil))
+
+		require.NoError(t, adam.Exit())
+
+		messages := recorder.Messages()
+		assert.Contains(t, messages, "Adam attempts to close the account")
+		assert.Contains(t, messages, "Adam attempts to log out")
+	})
 }
 
 // TestActorIsThreadSafe exercises the actor from many goroutines at once. It is
