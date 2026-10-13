@@ -10,17 +10,23 @@ import (
 	"sync"
 
 	"github.com/grandper/go-screenplay/v2/screenplay"
+	"github.com/grandper/go-screenplay/v2/timing"
 )
 
-// maxRedirects is the number of consecutive redirects followed before a request
-// fails, the same limit as the default policy of net/http.
-const maxRedirects = 10
+// defaultMaxRedirects is the number of consecutive redirects followed before a
+// request fails when WithAtMost is not used, the same limit as the default
+// policy of net/http.
+const defaultMaxRedirects = 10
 
-// MakeHTTPRequests enables the actor to make HTTP requests.
+// MakeHTTPRequests enables the actor to make HTTP requests. The ability is
+// configured fluently, reading "make HTTP requests with ...":
+//
+//	MakeHTTPRequests().WithTimingOutAfter(5).Seconds().WithAtMost(3).Redirects()
 func MakeHTTPRequests() *MakeHTTPRequestsAbility {
 	mhr := &MakeHTTPRequestsAbility{
-		headers:   map[string]string{},
-		responses: []*HTTPResponse{},
+		headers:      map[string]string{},
+		responses:    []*HTTPResponse{},
+		maxRedirects: defaultMaxRedirects,
 	}
 	mhr.client = &http.Client{
 		CheckRedirect: mhr.checkRedirect,
@@ -28,13 +34,43 @@ func MakeHTTPRequests() *MakeHTTPRequestsAbility {
 	return mhr
 }
 
+// WithTimingOutAfter bounds every request the ability sends; it reads "with
+// timing out after 5 seconds". Without it, a request is bounded only by the
+// deadline of the actor's context.
+func (mhr *MakeHTTPRequestsAbility) WithTimingOutAfter(amount int) *timing.DurationBuilder[MakeHTTPRequestsAbility] {
+	return timing.NewDurationBuilder(mhr, &mhr.client.Timeout).For(amount)
+}
+
+// WithAtMost bounds the number of consecutive redirects followed before a
+// request fails; it reads "with at most 3 redirects". Without it, ten
+// redirects are followed, as the default policy of net/http does.
+func (mhr *MakeHTTPRequestsAbility) WithAtMost(amount int) *AtMostBuilder {
+	return &AtMostBuilder{ability: mhr, amount: amount}
+}
+
+// AtMostBuilder holds the amount given to WithAtMost and waits for the unit that
+// closes the setting.
+type AtMostBuilder struct {
+	ability *MakeHTTPRequestsAbility
+	amount  int
+}
+
+// Redirects makes the amount the number of consecutive redirects followed
+// before a request fails. Zero makes every redirect fail.
+func (b *AtMostBuilder) Redirects() *MakeHTTPRequestsAbility {
+	b.ability.maxRedirects = b.amount
+
+	return b.ability
+}
+
 // checkRedirect is the redirect policy of the ability's client. Redirects are
-// followed, up to maxRedirects, but when a redirect leaves the host the request
-// was sent to, every header added through the ability is removed from the
-// redirected request, so a session header never reaches another host.
+// followed, up to the limit set with WithAtMost, but when a redirect leaves the
+// host the request was sent to, every header added through the ability is
+// removed from the redirected request, so a session header never reaches
+// another host.
 func (mhr *MakeHTTPRequestsAbility) checkRedirect(request *http.Request, via []*http.Request) error {
-	if len(via) >= maxRedirects {
-		return fmt.Errorf("stopped after %d redirects", maxRedirects)
+	if len(via) >= mhr.maxRedirects {
+		return fmt.Errorf("stopped after %d redirects", mhr.maxRedirects)
 	}
 	if request.URL.Host != via[0].URL.Host {
 		for key := range mhr.ToRetrieveHeaders() {
@@ -51,10 +87,11 @@ func (mhr *MakeHTTPRequestsAbility) checkRedirect(request *http.Request, via []*
 // http.DefaultClient, and carry the actor's context so that a deadline or a
 // cancellation set on the actor stops a request in flight.
 type MakeHTTPRequestsAbility struct {
-	client    *http.Client
-	mutex     sync.RWMutex
-	headers   map[string]string
-	responses []*HTTPResponse
+	client       *http.Client
+	maxRedirects int
+	mutex        sync.RWMutex
+	headers      map[string]string
+	responses    []*HTTPResponse
 }
 
 // ToAddTheHeader adds a header to the HTTP activity.

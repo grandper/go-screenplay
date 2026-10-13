@@ -30,6 +30,28 @@ anActor := screenplay.ActorNamed("Wanda").WhoCan(MakeHTTPRequests())
 The ability keeps the headers set for the session and records every response it
 receives, so later questions can ask about them.
 
+The ability is configured fluently, and the chain reads as English: "make HTTP
+requests with timing out after 5 seconds with at most 3 redirects":
+```go
+anActor := screenplay.ActorNamed("Wanda").WhoCan(
+    MakeHTTPRequests().WithTimingOutAfter(5).Seconds().WithAtMost(3).Redirects(),
+)
+```
+`WithTimingOutAfter` bounds every request the actor sends. Without it, a request is
+bounded only by the deadline of the actor's context (see `WithContext`). A request
+that outlasts the timeout fails:
+```go
+err := anActor.AttemptsTo(SendGetRequest().To("https://slow.example.com/report"))
+// Get "https://slow.example.com/report": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+```
+`WithAtMost(n).Redirects()` bounds the number of consecutive redirects followed
+before a request fails. Without it, ten redirects are followed, as `net/http` does
+by default; zero makes every redirect fail:
+```go
+err := anActor.AttemptsTo(SendGetRequest().To("https://www.example.com/loop"))
+// Get "https://www.example.com/loop": stopped after 3 redirects
+```
+
 ## Actions
 
 ### Headers
