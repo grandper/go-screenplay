@@ -18,6 +18,10 @@ var (
 	// ErrSymbolicLink is returned when a write is refused because the path is a
 	// symbolic link: the ability never writes through a symbolic link.
 	ErrSymbolicLink = errors.New("the path is a symbolic link")
+	// ErrProtectedDirectory is returned when RemoveDirectory refuses to remove
+	// the root of the file system, the home directory, the current working
+	// directory or a directory that contains it.
+	ErrProtectedDirectory = errors.New("refused to remove a protected directory")
 )
 
 // createdFileMode is the permission of every file the ability creates: readable
@@ -292,13 +296,56 @@ func (a *UseTheFileSystemAbility) RemoveTheFile(filename string) error {
 	return os.Remove(path)
 }
 
-// RemoveDirectory removes a directory and its content.
+// RemoveDirectory removes a directory and its content. It refuses, with
+// ErrProtectedDirectory, to remove the root of the file system, the home
+// directory, the current working directory or a directory that contains it.
 func (a *UseTheFileSystemAbility) RemoveDirectory(name string) error {
 	path, err := a.resolve(name)
 	if err != nil {
 		return err
 	}
+	if err := a.refuseProtectedDirectory(name, path); err != nil {
+		return err
+	}
 	return os.RemoveAll(path)
+}
+
+// refuseProtectedDirectory fails with ErrProtectedDirectory when removing the
+// resolved directory would be catastrophic: the root of the file system, the
+// home directory, the ability's current directory or the working directory of
+// the process, or a directory that contains one of those two.
+func (a *UseTheFileSystemAbility) refuseProtectedDirectory(name, dir string) error {
+	if dir == filepath.Dir(dir) {
+		return fmt.Errorf("%w: '%s' is the root of the file system", ErrProtectedDirectory, name)
+	}
+
+	if home, err := os.UserHomeDir(); err == nil && dir == filepath.Clean(home) {
+		return fmt.Errorf("%w: '%s' is the home directory", ErrProtectedDirectory, name)
+	}
+
+	current, err := a.CurrentPath()
+	if err != nil {
+		return err
+	}
+	if dir == current {
+		return fmt.Errorf("%w: '%s' is the current working directory", ErrProtectedDirectory, name)
+	}
+	if strings.HasPrefix(current, dir+string(filepath.Separator)) {
+		return fmt.Errorf("%w: '%s' contains the current working directory", ErrProtectedDirectory, name)
+	}
+
+	processDirectory, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	if dir == processDirectory {
+		return fmt.Errorf("%w: '%s' is the working directory of the process", ErrProtectedDirectory, name)
+	}
+	if strings.HasPrefix(processDirectory, dir+string(filepath.Separator)) {
+		return fmt.Errorf("%w: '%s' contains the working directory of the process", ErrProtectedDirectory, name)
+	}
+
+	return nil
 }
 
 // Forget cleans up the ability.

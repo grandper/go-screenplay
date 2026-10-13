@@ -93,6 +93,13 @@ err := anActor.AttemptsTo(OverwriteTo("foobar.txt").WithTheText("Hello World"))
 err := anActor.AttemptsTo(Remove().TheFile("foobar.txt"))
 err := anActor.AttemptsTo(Remove().TheDirectory("MyDocuments"))
 ```
+Removing a directory removes its content too. The action refuses to remove the
+root of the file system, the home directory, the current working directory and
+any directory that contains it:
+```go
+err := anActor.AttemptsTo(Remove().TheDirectory(".."))
+// Adam attempts to remove the directory '..': refused to remove a protected directory: '..' contains the current working directory
+```
 
 ### Change the current directory
 ```go

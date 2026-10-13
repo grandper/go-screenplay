@@ -100,6 +100,9 @@ func TestUseTheFileSystem(t *testing.T) {
 			require.NoError(t, other.RemoveTheFile("docs/notes.txt"))
 			require.NoError(t, other.RemoveDirectory("docs"))
 			assert.NoDirExists(t, filepath.Join(dir, "docs"))
+
+			// Removing the ability's own current directory is refused.
+			require.ErrorIs(t, other.RemoveDirectory("."), ability.ErrProtectedDirectory)
 		})
 	})
 
@@ -446,6 +449,44 @@ func TestUseTheFileSystem(t *testing.T) {
 	t.Run("create and remove directory", func(t *testing.T) {
 		require.NoError(t, useTheFileSystem.CreateDirectory("test", fs.ModePerm))
 		require.NoError(t, useTheFileSystem.RemoveDirectory("test"))
+	})
+
+	t.Run("refuses to remove a protected directory", func(t *testing.T) {
+		home, err := os.UserHomeDir()
+		require.NoError(t, err)
+		root := currentFolder
+		for filepath.Dir(root) != root {
+			root = filepath.Dir(root)
+		}
+
+		protected := map[string]string{
+			"the root of the file system":            root,
+			"the home directory":                     home,
+			"the current working directory":          ".",
+			"the current working directory, by path": currentFolder,
+			"the parent of the current directory":    "..",
+			"an ancestor of the current directory":   filepath.Dir(filepath.Dir(currentFolder)),
+		}
+		for name, dir := range protected {
+			t.Run(name, func(t *testing.T) {
+				err := useTheFileSystem.RemoveDirectory(dir)
+				require.ErrorIs(t, err, ability.ErrProtectedDirectory)
+
+				_, err = os.Stat(dir)
+				require.NoError(t, err, "the directory must still exist")
+			})
+		}
+	})
+
+	t.Run("removes a sibling directory whose name starts like the current one", func(t *testing.T) {
+		// "/path/to/go-screenplay-copy" contains the cwd "/path/to/go-screenplay"
+		// as a string prefix but not as a directory: it must not be protected.
+		sibling := currentFolder + "-sibling"
+		require.NoError(t, os.Mkdir(sibling, fs.ModePerm))
+		require.NoError(t, useTheFileSystem.RemoveDirectory(sibling))
+
+		_, err := os.Stat(sibling)
+		assert.ErrorIs(t, err, os.ErrNotExist)
 	})
 
 	t.Run("should be able to forget", func(t *testing.T) {
