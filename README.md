@@ -19,6 +19,7 @@ First, let's give credits, where credits is due. This package takes some inspira
 ```bash
 go get github.com/grandper/go-screenplay
 ```
+The library requires Go 1.27 or later.
 
 ## What is the Screenplay Pattern?
 The Screenplay Pattern helps
