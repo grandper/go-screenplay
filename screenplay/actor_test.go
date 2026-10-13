@@ -444,22 +444,25 @@ func TestActor(t *testing.T) {
 		}
 	})
 
-	t.Run("timeout and polling", func(t *testing.T) {
-		t.Run("falls back to the default timeout and polling without a production", func(t *testing.T) {
+	t.Run("timeout, polling and buffered size", func(t *testing.T) {
+		t.Run("falls back to the defaults without a production", func(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam")
 			assert.Equal(t, screenplay.DefaultTimeout, adam.Timeout())
 			assert.Equal(t, screenplay.DefaultPolling, adam.Polling())
+			assert.Equal(t, screenplay.DefaultMaxBufferedSize, adam.MaxBufferedSize())
 		})
 
-		t.Run("reads the timeout and polling from the production", func(t *testing.T) {
+		t.Run("reads the values from the production", func(t *testing.T) {
 			production := screenplay.NewProduction(
 				screenplay.WithTimeout(10*time.Second),
 				screenplay.WithPolling(250*time.Millisecond),
+				screenplay.WithMaxBufferedSize(8<<20),
 			)
 			adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
 
 			assert.Equal(t, 10*time.Second, adam.Timeout())
 			assert.Equal(t, 250*time.Millisecond, adam.Polling())
+			assert.Equal(t, 8<<20, adam.MaxBufferedSize())
 		})
 	})
 

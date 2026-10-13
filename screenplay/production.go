@@ -16,6 +16,7 @@ type Production struct {
 	narrator          *Narrator
 	timeout           time.Duration
 	polling           time.Duration
+	maxBufferedSize   int
 	forceAllNarration bool
 }
 
@@ -43,6 +44,14 @@ func WithPolling(polling time.Duration) ProductionOption {
 	}
 }
 
+// WithMaxBufferedSize bounds, in bytes, what one command output, one HTTP body
+// or one file read may hold in memory.
+func WithMaxBufferedSize(size int) ProductionOption {
+	return func(p *Production) {
+		p.maxBufferedSize = size
+	}
+}
+
 // WithForceAllNarration forces every action and question of the production to
 // narrate, neutralizing the action.Silently and question.Silently decorators.
 // It is handy when debugging a scenario whose interesting step happens to be
@@ -53,12 +62,14 @@ func WithForceAllNarration() ProductionOption {
 	}
 }
 
-// NewProduction creates a production, defaulting the timeout and the polling
-// interval to DefaultTimeout and DefaultPolling.
+// NewProduction creates a production, defaulting the timeout, the polling
+// interval and the buffered size to DefaultTimeout, DefaultPolling and
+// DefaultMaxBufferedSize.
 func NewProduction(options ...ProductionOption) *Production {
 	production := &Production{
 		timeout:           DefaultTimeout,
 		polling:           DefaultPolling,
+		maxBufferedSize:   DefaultMaxBufferedSize,
 		forceAllNarration: DefaultForceAllNarration,
 	}
 
@@ -83,6 +94,12 @@ func (p *Production) Timeout() time.Duration {
 // Polling returns the polling interval used by actions that wait on something.
 func (p *Production) Polling() time.Duration {
 	return p.polling
+}
+
+// MaxBufferedSize returns the bound, in bytes, on what one command output, one
+// HTTP body or one file read may hold in memory.
+func (p *Production) MaxBufferedSize() int {
+	return p.maxBufferedSize
 }
 
 // ForceAllNarration reports whether the production forces every action and

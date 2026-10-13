@@ -417,6 +417,18 @@ Every actor the production's stage creates then reports those values through
 `actor.Timeout()` and `actor.Polling()`, and every `Eventually`/`Stop` they run
 inherits them unless the action overrides the window itself.
 
+The production also bounds what one command output, one HTTP body or one file
+read may hold in memory. An actor created on its own uses the package default
+(`screenplay.DefaultMaxBufferedSize`, 64 MiB). To change it for a whole
+scenario, configure the production with `WithMaxBufferedSize`:
+```go
+production := screenplay.NewProduction(
+    screenplay.WithMaxBufferedSize(8 << 20),
+)
+```
+Every actor the production's stage creates then reports the bound through
+`actor.MaxBufferedSize()`.
+
 #### Logging and narration
 As actors perform actions and ask questions, the library can emit a readable,
 hierarchical narrative of what is happening — an idea borrowed from

@@ -14,13 +14,14 @@ import (
 func TestProduction(t *testing.T) {
 	t.Parallel()
 
-	t.Run("defaults the timeout and the polling interval", func(t *testing.T) {
+	t.Run("defaults the timeout, the polling interval and the buffered size", func(t *testing.T) {
 		t.Parallel()
 
 		production := screenplay.NewProduction()
 
 		assert.Equal(t, screenplay.DefaultTimeout, production.Timeout())
 		assert.Equal(t, screenplay.DefaultPolling, production.Polling())
+		assert.Equal(t, screenplay.DefaultMaxBufferedSize, production.MaxBufferedSize())
 		assert.Equal(t, screenplay.DefaultForceAllNarration, production.ForceAllNarration())
 		assert.Nil(t, production.Narrator())
 	})
@@ -33,12 +34,14 @@ func TestProduction(t *testing.T) {
 			screenplay.WithNarrator(narrator),
 			screenplay.WithTimeout(10*time.Second),
 			screenplay.WithPolling(250*time.Millisecond),
+			screenplay.WithMaxBufferedSize(8<<20),
 			screenplay.WithForceAllNarration(),
 		)
 
 		assert.Same(t, narrator, production.Narrator())
 		assert.Equal(t, 10*time.Second, production.Timeout())
 		assert.Equal(t, 250*time.Millisecond, production.Polling())
+		assert.Equal(t, 8<<20, production.MaxBufferedSize())
 		assert.True(t, production.ForceAllNarration())
 	})
 

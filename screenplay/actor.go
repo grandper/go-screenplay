@@ -109,6 +109,17 @@ func (a *Actor) Polling() time.Duration {
 	return DefaultPolling
 }
 
+// MaxBufferedSize returns the bound, in bytes, the actor's production puts on
+// what one command output, one HTTP body or one file read may hold in memory,
+// falling back to DefaultMaxBufferedSize when the actor has no production.
+func (a *Actor) MaxBufferedSize() int {
+	if a.production != nil {
+		return a.production.MaxBufferedSize()
+	}
+
+	return DefaultMaxBufferedSize
+}
+
 // narrates reports whether the actor should narrate its next step: it has an
 // active narrator and is either not muted or forced to narrate anyway by a
 // production configured with WithForceAllNarration.
