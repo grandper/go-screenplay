@@ -3,52 +3,47 @@ package first
 import (
 	"errors"
 	"fmt"
-	"reflect"
 
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-// ErrAnswerIsNotASlice is returned when the wrapped question does not answer with a slice.
-var ErrAnswerIsNotASlice = errors.New("the answer of the question is not a slice")
-
 // ErrAnswerIsEmpty is returned when the wrapped question answers with an empty slice.
 var ErrAnswerIsEmpty = errors.New("the answer of the question is an empty slice")
 
-// Of creates a question whose answer is the first element of the slice answered by the wrapped question.
-func Of(question screenplay.Question) *OfQuestion {
-	return &OfQuestion{
+// Of creates a question whose answer is the first element of the slice answered
+// by the wrapped question. The wrapped question must answer with a slice; its
+// element type is the answer type of the question.
+func Of[S ~[]E, E any](question screenplay.Question[S]) *OfQuestion[S, E] {
+	return &OfQuestion[S, E]{
 		question: question,
 	}
 }
 
 // OfQuestion is a question whose answer is the first element of the answer of the wrapped question.
-type OfQuestion struct {
-	question screenplay.Question
+type OfQuestion[S ~[]E, E any] struct {
+	question screenplay.Question[S]
 }
 
 // AnsweredBy returns the first element of the slice answered by the wrapped question.
-func (q *OfQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
+func (q *OfQuestion[S, E]) AnsweredBy(actor *screenplay.Actor) (E, error) {
+	var zero E
+
 	answer, err := q.question.AnsweredBy(actor)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
 
-	value := reflect.ValueOf(answer)
-	if !value.IsValid() || (value.Kind() != reflect.Slice && value.Kind() != reflect.Array) {
-		return nil, fmt.Errorf("%w: %s", ErrAnswerIsNotASlice, q.question)
+	if len(answer) == 0 {
+		return zero, fmt.Errorf("%w: %s", ErrAnswerIsEmpty, q.question)
 	}
 
-	if value.Len() == 0 {
-		return nil, fmt.Errorf("%w: %s", ErrAnswerIsEmpty, q.question)
-	}
-
-	return value.Index(0).Interface(), nil
+	return answer[0], nil
 }
 
 // String describes the question.
-func (q *OfQuestion) String() string {
+func (q *OfQuestion[S, E]) String() string {
 	return "first of " + q.question.String()
 }
 
 // OfQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*OfQuestion)(nil)
+var _ screenplay.Question[any] = (*OfQuestion[[]any, any])(nil)

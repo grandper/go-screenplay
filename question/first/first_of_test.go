@@ -20,9 +20,7 @@ func TestFirstOfQuestion(t *testing.T) {
 	numbers := fixture.NewFakeQuestion("numbers", []int{1, 2, 3})
 	mixed := fixture.NewFakeQuestion("mixed", []any{"red", 1, true})
 	emptyList := fixture.NewFakeQuestion("empty list", []string{})
-	notASlice := fixture.NewFakeQuestion("not a slice", "hello")
-	nilAnswer := fixture.NewFakeQuestion("nil answer", nil)
-	failingQuestion := fixture.NewFailingFakeQuestion(
+	failingQuestion := fixture.NewFailingFakeQuestion[[]string](
 		"failing question",
 		errors.New("failed to get the answer"),
 	)
@@ -60,25 +58,7 @@ func TestFirstOfQuestion(t *testing.T) {
 		answer, err := adam.AsksFor(first.Of(emptyList))
 
 		require.ErrorIs(t, err, first.ErrAnswerIsEmpty)
-		assert.Nil(t, answer)
-	})
-
-	t.Run("fails when the answer is not a slice", func(t *testing.T) {
-		t.Parallel()
-
-		answer, err := adam.AsksFor(first.Of(notASlice))
-
-		require.ErrorIs(t, err, first.ErrAnswerIsNotASlice)
-		assert.Nil(t, answer)
-	})
-
-	t.Run("fails when the answer is nil", func(t *testing.T) {
-		t.Parallel()
-
-		answer, err := adam.AsksFor(first.Of(nilAnswer))
-
-		require.ErrorIs(t, err, first.ErrAnswerIsNotASlice)
-		assert.Nil(t, answer)
+		assert.Empty(t, answer)
 	})
 
 	t.Run("fails when the wrapped question fails", func(t *testing.T) {
@@ -87,7 +67,7 @@ func TestFirstOfQuestion(t *testing.T) {
 		answer, err := adam.AsksFor(first.Of(failingQuestion))
 
 		require.Error(t, err)
-		assert.Nil(t, answer)
+		assert.Empty(t, answer)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
@@ -96,5 +76,11 @@ func TestFirstOfQuestion(t *testing.T) {
 		question := first.Of(colors)
 
 		assert.Equal(t, "first of colors", question.String())
+	})
+
+	t.Run("implements the question interface", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Implements(t, (*screenplay.Question[string])(nil), first.Of(colors))
 	})
 }

@@ -138,12 +138,17 @@ if actor.Recall[int]("the user id").IsPresent() { ... }              // or simpl
 ```
 Use `actor.Recall[any](key)` to retrieve a value whatever its type.
 
-You can also hand `Remember` a question directly. The actor answers it and stores
-the answer instead of the question. If the question fails to be answered, `nil` is
+You can also hand `Remember` a question directly, whatever its answer type. The
+actor answers it and stores the answer instead of the question. If the question fails to be answered, `nil` is
 stored for the key:
 ```go
 actor.Remember("the user id", UserID())
 userID := actor.Recall[int]("the user id").OrElse(0)
+```
+To read a remembered value back as a question, ask the `question.Recalled[T]` question
+(see [Remembering answers to questions](#remembering-answers-to-questions)):
+```go
+userID, err := actor.AsksFor(question.Recalled[int]("the user id"))
 ```
 An actor can share a value with another actor, and forget the data it has stored using
 ```go
@@ -297,15 +302,23 @@ and finally an assertion.
 The counterpart of assertions in the Screenplay Pattern are questions and resolutions.
 When an actor asks a question, the answer to this question can be asserted using a resolution.
 
-A question is simply a struct that implements the following interface
+A question is simply a struct that implements the following generic interface,
+where `T` is the type of its answer:
 ```go
-type Question interface {
-	AnsweredBy(actor *Actor) (any, error)
+type Question[T any] interface {
+	AnsweredBy(actor *Actor) (T, error)
 	String() string
 }
 ```
 By passing the actor to the `AnsweredBy` method, we are able to use the actor `abilities` to answer the question.
-The answer can be of any type.
+The answer can be of any type, and that type is carried by the question: an actor asking a
+`Question[int]` gets an `int` back, without any type assertion, because `AsksFor` (and its alias
+`Sees`) is a generic method:
+```go
+statusCode, err := theActor.AsksFor(StatusCode()) // StatusCode() is a Question[int]
+```
+A question that is only known at runtime, or that legitimately answers with values of
+different types, is simply a `Question[any]`.
 
 The resolution is a struct that implements the following interface
 ```go
@@ -546,12 +559,15 @@ is available:
 err := theActor.AttemptsTo(Eventually(Remember(UserProfile()).As("profile")).TryingFor(10).Seconds())
 ```
 
-The counterpart of `Remember` is the `question.Recalled` question: it answers with the
-value stored under a key, exactly as `actor.Recall[any]` would (`nil` when nothing is
-stored). Because it is a question, the remembered value can be checked with
-`see.The`, waited for with `Eventually`, or passed anywhere a question is expected:
+The counterpart of `Remember` is the `question.Recalled[T]` question: it answers with the
+value stored under a key, typed as `T` (the zero value of `T` — `nil` for `any` — when
+nothing is stored). It fails with `ErrRecalledValueHasWrongType` when the stored value is
+not a `T`. Because it is a question, the remembered value can be checked with `see.The`,
+waited for with `Eventually`, asked for with a typed answer, or passed anywhere a question
+is expected:
 ```go
-err := theActor.Should(see.The(question.Recalled("statusCode")).Is(equal.To(200)))
+err := theActor.Should(see.The(question.Recalled[int]("statusCode")).Is(equal.To(200)))
+statusCode, err := theActor.AsksFor(question.Recalled[int]("statusCode"))
 ```
 
 #### Working with multiple actions
@@ -609,8 +625,7 @@ are collected instead, and you can investigate them later with the
 action to complete and returns the slice of non-nil errors they produced:
 ```go
 theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()))
-answer, _ := theActor.AsksFor(AsynchronousErrors())
-errs := answer.([]error)
+errs, _ := theActor.AsksFor(AsynchronousErrors()) // errs is a []error
 ```
 Like `Concurrently`, several flavors of execution are available. By default (or
 with an explicit `WaitingForAll`) it waits for every action to complete before
@@ -733,23 +748,6 @@ The simplest way to ask a question is to use the action `see`.
 err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(start.With("Hello")))
 ```
 
-It is possible to check if the actor sees any or all of a list of question-resolution pair.
-```go
-err := theActor.Should(see.AnyOf(
-			profilWidget, contain.TheText("Adam"),
-			loginForm, contain.TheText("Login")))
-err := theActor.Should(see.AllOf(
-			profilWidget, contain.TheText("Adam"),
-			loginForm, contain.TheText("Login")))
-```
-
-You can check that all, any, or none of a set of questions match a resolution:
-```go
-err := theActor.Should(see.ThatAllOfThe(profilWidget, loginForm)(contain.TheText("Adam")))
-err := theActor.Should(see.ThatAnyOfThe(profilWidget, loginForm)(contain.TheText("Adam")))
-err := theActor.Should(see.ThatNoneOfThe(profilWidget, loginForm)(contain.TheText("Adam")))
-```
-
 #### Checking texts
 You can check if a text starts with, ends with, or contains a string:
 ```go
@@ -810,26 +808,32 @@ err := theActor.Should(see.The(HeadersOf(TheLastResponse)).Does(contain.TheEntry
 ```
 
 When a question answers with a slice, you may want to assert against a single element of it
-rather than the whole collection. The `first` and `last` questions wrap another question and
-answer with, respectively, the first and last element of the slice it returns:
+rather than the whole collection. The `first` and `last` questions wrap a question answering
+with a slice and answer with, respectively, its first and last element — typed as the
+element of the slice, so `last.Of(Responses())` answers with a `*HTTPResponse` when
+`Responses()` answers with a `[]*HTTPResponse`:
 ```go
 err := theActor.Should(see.The(first.Of(items.InThe(TodoList))).Does(read.Exactly("Add tests for the Go package")))
 err := theActor.Should(see.The(last.Of(items.InThe(TodoList))).Does(read.Exactly("by the end of the year")))
 ```
-Both fail with `ErrAnswerIsNotASlice` if the wrapped question does not answer with a slice,
-and with `ErrAnswerIsEmpty` if it answers with an empty one.
+Wrapping a question that does not answer with a slice is a compile-time error. Both fail
+with `ErrAnswerIsEmpty` if the wrapped question answers with an empty slice.
 
 When a question answers with a struct, you may want to assert against one of its fields rather
 than the whole value. The `body`, `data`, and `header` questions wrap another question and answer
-with, respectively, the `Body`, `Data`, and `Header` field of the struct it returns, whatever its
-type:
+with, respectively, the `Body`, `Data`, and `Header` field of the struct it returns. Go cannot
+express "a struct with a `Body` field" as a constraint, so the type of the field is given as the
+first type argument while the type of the wrapped question is inferred:
 ```go
-err := theActor.Should(see.The(body.Of(TheLastResponse)).Is(equal.To("created")))
-err := theActor.Should(see.The(data.Of(last.Of(NATSMessages))).Is(equal.To("payload")))
-err := theActor.Should(see.The(header.Of(last.Of(HTTPResponses))).Is(equal.To("application/json")))
+err := theActor.Should(see.The(body.Of[string](TheLastResponse)).Is(equal.To("created")))
+err := theActor.Should(see.The(data.Of[string](last.Of(NATSMessages))).Is(equal.To("payload")))
+err := theActor.Should(see.The(header.Of[string](last.Of(HTTPResponses))).Is(equal.To("application/json")))
+body, err := theActor.AsksFor(body.Of[string](TheLastResponse)) // body is a string
 ```
-They fail with `ErrAnswerIsNotAStruct` if the wrapped question does not answer with a struct (or a
-pointer to one), and with `ErrFieldNotFound` if the struct has no matching field.
+Use `body.Of[any](...)` when the field may be of any type. They fail with `ErrAnswerIsNotAStruct`
+if the wrapped question does not answer with a struct (or a pointer to one), with
+`ErrFieldNotFound` if the struct has no matching field, and with `ErrFieldHasWrongType` if the
+field is not of the given type.
 
 When a question answers with a slice or a map, you may want to assert against the number of
 elements it contains. The `number` question wraps another question and answers with the count
@@ -837,8 +841,8 @@ of elements in the slice or map it returns:
 ```go
 err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Is(equal.To(2)))
 ```
-It fails with `ErrAnswerIsNotACollection` if the wrapped question does not answer with a slice or
-a map.
+It answers with an `int` and fails with `ErrAnswerIsNotACollection` if the wrapped question does
+not answer with a slice or a map.
 
 #### Choosing the verb, and negating
 `see.The(question)` returns a builder on which you pick the verb — and its negation — that
@@ -997,20 +1001,42 @@ err := actor.AttemptsTo(
 )
 ```
 The first parameter of the function must be `*screenplay.Actor` and the remaining
-parameters must match, in order and type, the answers returned by the questions.
+parameters must match, in order and type, the answers returned by the questions. The
+questions may have different answer types, so they are received as plain values and
+checked when the action is performed: a value that is not a question fails with
+`ErrNotAQuestion`.
 
 ### Creating your own Question
 The quickest way to create a question is `question.FromFunc`. It wraps a plain
-function of type `func(theActor *screenplay.Actor) (any, error)` into a `Question`,
-using the `description` you provide as the result of its `String` method:
+function of type `func(theActor *screenplay.Actor) (T, error)` into a `Question[T]`,
+using the `description` you provide as the result of its `String` method. The answer
+type is inferred from the function:
 ```go
-theAnswer := question.FromFunc("the answer", func(theActor *screenplay.Actor) (any, error) {
+theAnswer := question.FromFunc("the answer", func(theActor *screenplay.Actor) (int, error) {
     return 42, nil
 })
-answer, err := theAnswer.AnsweredBy(adam)
+answer, err := adam.AsksFor(theAnswer) // answer is an int
 ```
 As with actions, you can wrap the call behind builder methods to make the code
 more fluent when the answer depends on parameters.
+
+When you write a question as a struct, declare the answer type in its `AnsweredBy`
+method and let the compiler check it implements the interface:
+```go
+type StatusCodeQuestion struct{}
+
+func (q *StatusCodeQuestion) AnsweredBy(actor *screenplay.Actor) (int, error) { ... }
+func (q *StatusCodeQuestion) String() string                                 { return "the status code" }
+
+var _ screenplay.Question[int] = (*StatusCodeQuestion)(nil)
+```
+A question that wraps another one takes it as a `screenplay.Question[T]` — either with the
+precise `T` it needs (`status.CodeOf` takes a `Question[*HTTPResponse]`) or with a type
+parameter of its own when it works for any answer (`question.Silently[T]`). The same goes
+for an action that holds a question: make it generic over the answer type, as
+`Remember`, `Log`, and `ChooseBasedOnThe` are, or let a generic function or method capture
+the typed question, as `see.The`, `Conditionally(...).IfThe`, `Choose().WhenThe`, and
+`Stop().UntilThe` do.
 
 ### Reusable builders (the `timing` package)
 The `timing` package holds small, dependency-free building blocks you can reuse

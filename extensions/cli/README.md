@@ -109,8 +109,7 @@ A `*ability.Result` exposes its parts through getters — `ExitCode()` (an `int`
 `StdOut()` and `StdErr()` (each a `[]byte`), and `Err()` (the error returned while
 waiting for the command, if any):
 ```go
-answer, _ := last.Of(Responses()).AnsweredBy(anActor)
-result := answer.(*ability.Result)
+result, _ := anActor.AsksFor(last.Of(Responses())) // result is a *ability.Result
 
 exitCode := result.ExitCode()
 output := string(result.StdOut())

@@ -27,7 +27,7 @@ func TestSilentlyQuestion(t *testing.T) {
 
 	t.Run("propagates the error of the wrapped question", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
-		failing := fixture.NewFailingFakeQuestion("the token", assert.AnError)
+		failing := fixture.NewFailingFakeQuestion[string]("the token", assert.AnError)
 
 		_, err := question.Silently(failing).AnsweredBy(adam)
 		require.ErrorIs(t, err, assert.AnError)
@@ -40,7 +40,7 @@ func TestSilentlyQuestion(t *testing.T) {
 		// A question whose answer is itself obtained by asking another question,
 		// which normally narrates an aside and its answer.
 		inner := fixture.NewFakeQuestion("the inner value", "secret")
-		chatty := question.FromFunc("the token", func(theActor *screenplay.Actor) (any, error) {
+		chatty := question.FromFunc("the token", func(theActor *screenplay.Actor) (string, error) {
 			return theActor.Sees(inner)
 		})
 
@@ -91,7 +91,7 @@ func TestSilentlyQuestion(t *testing.T) {
 		adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
 
 		inner := fixture.NewFakeQuestion("the inner value", "secret")
-		chatty := question.FromFunc("the token", func(theActor *screenplay.Actor) (any, error) {
+		chatty := question.FromFunc("the token", func(theActor *screenplay.Actor) (string, error) {
 			return theActor.Sees(inner)
 		})
 
@@ -106,7 +106,7 @@ func TestSilentlyQuestion(t *testing.T) {
 	t.Run("implements the question interface", func(t *testing.T) {
 		assert.Implements(
 			t,
-			(*screenplay.Question)(nil),
+			(*screenplay.Question[string])(nil),
 			question.Silently(fixture.NewFakeQuestion("the token", "secret")),
 		)
 	})

@@ -7,25 +7,25 @@ import "fmt"
 // without the "asks for" narration of Sees — and whispers the value at the
 // current depth. The aside is rendered by whatever adapters are attached to the
 // actor's narrator; with none attached it stays silent.
-func Log(question Question) *LogAction {
-	return &LogAction{
+func Log[T any](question Question[T]) *LogAction[T] {
+	return &LogAction[T]{
 		question: question,
 	}
 }
 
 // LogAction is an action that narrates the answer to a question.
-type LogAction struct {
-	question Question
+type LogAction[T any] struct {
+	question Question[T]
 }
 
 // String describes the action.
-func (a *LogAction) String() string {
+func (a *LogAction[T]) String() string {
 	return fmt.Sprintf("log the %s", a.question.String())
 }
 
 // PerformAs answers the question and, when the actor is narrating, whispers its
 // value as an aside. It returns any error the question produced.
-func (a *LogAction) PerformAs(actor *Actor) error {
+func (a *LogAction[T]) PerformAs(actor *Actor) error {
 	answer, err := a.question.AnsweredBy(actor)
 	if err != nil {
 		return err
@@ -39,4 +39,4 @@ func (a *LogAction) PerformAs(actor *Actor) error {
 }
 
 // LogAction implements the Performable interface.
-var _ Performable = (*LogAction)(nil)
+var _ Performable = (*LogAction[any])(nil)

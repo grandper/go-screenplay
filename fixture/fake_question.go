@@ -6,17 +6,20 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-// FakeQuestion represents a fake question that an actor can ask.
-type FakeQuestion struct {
+// FakeQuestion represents a fake question that an actor can ask. T is the type
+// of its answer.
+type FakeQuestion[T any] struct {
 	mutex       sync.RWMutex
-	answer      any
+	answer      T
 	err         error
 	description string
 }
 
-// NewFakeQuestion creates a new fake question.
-func NewFakeQuestion(description string, answer any) *FakeQuestion {
-	return &FakeQuestion{
+// NewFakeQuestion creates a new fake question answering with the given value.
+// The answer type is inferred from the value; spell it out when the value is
+// untyped, for example NewFakeQuestion[any]("nil answer", nil).
+func NewFakeQuestion[T any](description string, answer T) *FakeQuestion[T] {
+	return &FakeQuestion[T]{
 		mutex:       sync.RWMutex{},
 		answer:      answer,
 		err:         nil,
@@ -24,29 +27,32 @@ func NewFakeQuestion(description string, answer any) *FakeQuestion {
 	}
 }
 
-// NewFailingFakeQuestion creates a new fake question that fails.
-func NewFailingFakeQuestion(description string, err error) *FakeQuestion {
-	return &FakeQuestion{
+// NewFailingFakeQuestion creates a new fake question that fails. The answer
+// type cannot be inferred and must be provided, for example
+// NewFailingFakeQuestion[string]("the token", err).
+func NewFailingFakeQuestion[T any](description string, err error) *FakeQuestion[T] {
+	return &FakeQuestion[T]{
 		mutex:       sync.RWMutex{},
-		answer:      nil,
 		err:         err,
 		description: description,
 	}
 }
 
 // AnsweredBy returns the answer that an actor provided to the question.
-func (q *FakeQuestion) AnsweredBy(_ *screenplay.Actor) (any, error) {
+func (q *FakeQuestion[T]) AnsweredBy(_ *screenplay.Actor) (T, error) {
 	q.mutex.RLock()
 	defer q.mutex.RUnlock()
 	if q.err != nil {
-		return nil, q.err
+		var zero T
+
+		return zero, q.err
 	}
 
 	return q.answer, nil
 }
 
 // AnswerWith sets the answer that an actor provided to the question.
-func (q *FakeQuestion) AnswerWith(answer string) {
+func (q *FakeQuestion[T]) AnswerWith(answer T) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
@@ -54,9 +60,9 @@ func (q *FakeQuestion) AnswerWith(answer string) {
 }
 
 // String describes the question.
-func (q *FakeQuestion) String() string {
+func (q *FakeQuestion[T]) String() string {
 	return q.description
 }
 
 // FakeQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*FakeQuestion)(nil)
+var _ screenplay.Question[any] = (*FakeQuestion[any])(nil)

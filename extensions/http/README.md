@@ -109,8 +109,7 @@ err := anActor.Should(see.The(status.CodeOf(last.Of(Responses()))).Is(equal.To(2
 An `*ability.HTTPResponse` exposes its parts through getters — `Body()` (a
 `string`), `Headers()` (a `map[string]string`), and `StatusCode()` (an `int`):
 ```go
-answer, _ := last.Of(Responses()).AnsweredBy(anActor)
-response := answer.(*ability.HTTPResponse)
+response, _ := anActor.AsksFor(last.Of(Responses())) // response is a *ability.HTTPResponse
 
 body := response.Body()
 statusCode := response.StatusCode()
@@ -125,8 +124,8 @@ anActor := screenplay.ActorNamed("Wanda").WhoCan(MakeHTTPRequests())
 
 err := anActor.AttemptsTo(SendPostRequest().To(loginURL).WithAuth(username, password))
 
-answer, _ := last.Of(Responses()).AnsweredBy(anActor)
-bearerToken := answer.(*ability.HTTPResponse).Body()
+response, _ := anActor.AsksFor(last.Of(Responses()))
+bearerToken := response.Body()
 
 err = anActor.AttemptsTo(AddHeader("Authorization", "Bearer "+bearerToken).Secretly())
 ```

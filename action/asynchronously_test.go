@@ -54,11 +54,8 @@ func TestAsynchronouslyAction(t *testing.T) {
 	asynchronousErrors := func(t *testing.T, actor *screenplay.Actor) []error {
 		t.Helper()
 
-		answer, err := action.AsynchronousErrors().AnsweredBy(actor)
+		errs, err := action.AsynchronousErrors().AnsweredBy(actor)
 		require.NoError(t, err)
-
-		errs, ok := answer.([]error)
-		require.True(t, ok)
 
 		return errs
 	}

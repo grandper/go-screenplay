@@ -33,7 +33,7 @@ func TestRunTheCommand(t *testing.T) {
 
 			value, err := standard.OutputOf(last.Of(question.Responses())).AnsweredBy(adam)
 			require.NoError(t, err)
-			assert.Contains(t, string(value.([]byte)), dir+"\n")
+			assert.Contains(t, string(value), dir+"\n")
 		})
 
 		t.Run("interactively", func(t *testing.T) {

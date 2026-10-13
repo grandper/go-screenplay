@@ -20,7 +20,7 @@ type FileNamedQuestion struct {
 }
 
 // AnsweredBy returns the answer that an actor provided to the question.
-func (q *FileNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (any, error) {
+func (q *FileNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (*File, error) {
 	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(theActor)
 	if err != nil {
 		return nil, err
@@ -38,4 +38,4 @@ func (q *FileNamedQuestion) String() string {
 }
 
 // FileNamedQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*FileNamedQuestion)(nil)
+var _ screenplay.Question[*File] = (*FileNamedQuestion)(nil)

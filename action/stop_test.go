@@ -20,7 +20,7 @@ import (
 func TestStopAction(t *testing.T) {
 	adam := screenplay.ActorNamed("Adam")
 	formField := fixture.NewFakeQuestion("form field", "")
-	failingFormField := fixture.NewFailingFakeQuestion("form field", errors.New("failed to find the form field"))
+	failingFormField := fixture.NewFailingFakeQuestion[string]("form field", errors.New("failed to find the form field"))
 	isEqualFailed := testdata.NewFailingResolution("is equal", errors.New("resolution failed"))
 
 	t.Run("should stop until the actor press enter", func(t *testing.T) {

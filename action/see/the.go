@@ -9,109 +9,109 @@ import (
 // The starts an assertion about the answer to a question. The verb (and its negation) is
 // chosen with a method: Is, IsNot, Are, AreNot, Does, DoesNot, Do, DoNot, Has, HasNot,
 // Have, HaveNot, Had, HadNot, Was, WasNot, Were, WereNot.
-func The(question screenplay.Question) *Assertion {
-	return &Assertion{
+func The[T any](question screenplay.Question[T]) *Assertion[T] {
+	return &Assertion[T]{
 		question: question,
 	}
 }
 
 // Assertion picks the verb and polarity of an assertion about a question's answer.
-type Assertion struct {
-	question screenplay.Question
+type Assertion[T any] struct {
+	question screenplay.Question[T]
 }
 
 // Is asserts that the answer matches the resolution.
-func (a *Assertion) Is(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) Is(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("is", false, resolution)
 }
 
 // IsNot asserts that the answer does not match the resolution.
-func (a *Assertion) IsNot(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) IsNot(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("is not", true, resolution)
 }
 
 // Are asserts that the answer matches the resolution.
-func (a *Assertion) Are(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) Are(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("are", false, resolution)
 }
 
 // AreNot asserts that the answer does not match the resolution.
-func (a *Assertion) AreNot(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) AreNot(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("are not", true, resolution)
 }
 
 // Does asserts that the answer matches the resolution.
-func (a *Assertion) Does(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) Does(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("does", false, resolution)
 }
 
 // DoesNot asserts that the answer does not match the resolution.
-func (a *Assertion) DoesNot(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) DoesNot(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("does not", true, resolution)
 }
 
 // Do asserts that the answer matches the resolution.
-func (a *Assertion) Do(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) Do(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("do", false, resolution)
 }
 
 // DoNot asserts that the answer does not match the resolution.
-func (a *Assertion) DoNot(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) DoNot(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("do not", true, resolution)
 }
 
 // Has asserts that the answer matches the resolution.
-func (a *Assertion) Has(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) Has(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("has", false, resolution)
 }
 
 // HasNot asserts that the answer does not match the resolution.
-func (a *Assertion) HasNot(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) HasNot(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("has not", true, resolution)
 }
 
 // Have asserts that the answer matches the resolution.
-func (a *Assertion) Have(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) Have(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("have", false, resolution)
 }
 
 // HaveNot asserts that the answer does not match the resolution.
-func (a *Assertion) HaveNot(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) HaveNot(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("have not", true, resolution)
 }
 
 // Had asserts that the answer matches the resolution.
-func (a *Assertion) Had(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) Had(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("had", false, resolution)
 }
 
 // HadNot asserts that the answer does not match the resolution.
-func (a *Assertion) HadNot(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) HadNot(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("had not", true, resolution)
 }
 
 // Was asserts that the answer matches the resolution.
-func (a *Assertion) Was(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) Was(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("was", false, resolution)
 }
 
 // WasNot asserts that the answer does not match the resolution.
-func (a *Assertion) WasNot(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) WasNot(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("was not", true, resolution)
 }
 
 // Were asserts that the answer matches the resolution.
-func (a *Assertion) Were(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) Were(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("were", false, resolution)
 }
 
 // WereNot asserts that the answer does not match the resolution.
-func (a *Assertion) WereNot(resolution screenplay.Resolution) *TheAction {
+func (a *Assertion[T]) WereNot(resolution screenplay.Resolution) *TheAction[T] {
 	return a.check("were not", true, resolution)
 }
 
-func (a *Assertion) check(verb string, negated bool, resolution screenplay.Resolution) *TheAction {
-	return &TheAction{
+func (a *Assertion[T]) check(verb string, negated bool, resolution screenplay.Resolution) *TheAction[T] {
+	return &TheAction[T]{
 		question:   a.question,
 		verb:       verb,
 		negated:    negated,
@@ -121,20 +121,20 @@ func (a *Assertion) check(verb string, negated bool, resolution screenplay.Resol
 
 // TheAction sees whether the answer to a question matches the resolution (or, when negated,
 // does not match it).
-type TheAction struct {
-	question   screenplay.Question
+type TheAction[T any] struct {
+	question   screenplay.Question[T]
 	verb       string
 	negated    bool
 	resolution screenplay.Resolution
 }
 
 // String describes the action.
-func (a *TheAction) String() string {
+func (a *TheAction[T]) String() string {
 	return fmt.Sprintf("see if the %s %s %s", a.question, a.verb, a.resolution)
 }
 
 // PerformAs performs the task or the action as the provided actor.
-func (a *TheAction) PerformAs(actor *screenplay.Actor) error {
+func (a *TheAction[T]) PerformAs(actor *screenplay.Actor) error {
 	value, err := a.question.AnsweredBy(actor)
 	if err != nil {
 		return err
@@ -153,4 +153,4 @@ func (a *TheAction) PerformAs(actor *screenplay.Actor) error {
 }
 
 // TheAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = (*TheAction)(nil)
+var _ screenplay.Performable = (*TheAction[any])(nil)

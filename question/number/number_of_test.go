@@ -22,8 +22,8 @@ func TestNumberOfQuestion(t *testing.T) {
 	emptyList := fixture.NewFakeQuestion("empty list", []string{})
 	emptyMap := fixture.NewFakeQuestion("empty map", map[string]int{})
 	notACollection := fixture.NewFakeQuestion("not a collection", "hello")
-	nilAnswer := fixture.NewFakeQuestion("nil answer", nil)
-	failingQuestion := fixture.NewFailingFakeQuestion(
+	nilAnswer := fixture.NewFakeQuestion[any]("nil answer", nil)
+	failingQuestion := fixture.NewFailingFakeQuestion[[]string](
 		"failing question",
 		errors.New("failed to get the answer"),
 	)
@@ -79,7 +79,7 @@ func TestNumberOfQuestion(t *testing.T) {
 		answer, err := adam.AsksFor(number.Of(notACollection))
 
 		require.ErrorIs(t, err, number.ErrAnswerIsNotACollection)
-		assert.Nil(t, answer)
+		assert.Zero(t, answer)
 	})
 
 	t.Run("fails when the answer is nil", func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestNumberOfQuestion(t *testing.T) {
 		answer, err := adam.AsksFor(number.Of(nilAnswer))
 
 		require.ErrorIs(t, err, number.ErrAnswerIsNotACollection)
-		assert.Nil(t, answer)
+		assert.Zero(t, answer)
 	})
 
 	t.Run("fails when the wrapped question fails", func(t *testing.T) {
@@ -97,7 +97,7 @@ func TestNumberOfQuestion(t *testing.T) {
 		answer, err := adam.AsksFor(number.Of(failingQuestion))
 
 		require.Error(t, err)
-		assert.Nil(t, answer)
+		assert.Zero(t, answer)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
@@ -106,5 +106,11 @@ func TestNumberOfQuestion(t *testing.T) {
 		question := number.Of(colors)
 
 		assert.Equal(t, "number of colors", question.String())
+	})
+
+	t.Run("implements the question interface", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Implements(t, (*screenplay.Question[int])(nil), number.Of(colors))
 	})
 }

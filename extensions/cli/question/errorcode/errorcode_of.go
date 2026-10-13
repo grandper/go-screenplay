@@ -8,11 +8,11 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-// ErrAnswerIsNotAResult is returned when the wrapped question does not answer with a CLI result.
-var ErrAnswerIsNotAResult = errors.New("the answer of the question is not a CLI result")
+// ErrAnswerIsNil is returned when the wrapped question answers with a nil CLI result.
+var ErrAnswerIsNil = errors.New("the answer of the question is a nil CLI result")
 
 // Of creates a question whose answer is the error code of the result answered by the wrapped question.
-func Of(question screenplay.Question) *OfQuestion {
+func Of(question screenplay.Question[*ability.Result]) *OfQuestion {
 	return &OfQuestion{
 		question: question,
 	}
@@ -20,19 +20,18 @@ func Of(question screenplay.Question) *OfQuestion {
 
 // OfQuestion is a question whose answer is the error code of the answer of the wrapped question.
 type OfQuestion struct {
-	question screenplay.Question
+	question screenplay.Question[*ability.Result]
 }
 
 // AnsweredBy returns the error code of the result answered by the wrapped question.
-func (q *OfQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
-	answer, err := q.question.AnsweredBy(actor)
+func (q *OfQuestion) AnsweredBy(actor *screenplay.Actor) (int, error) {
+	result, err := q.question.AnsweredBy(actor)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	result, ok := answer.(*ability.Result)
-	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrAnswerIsNotAResult, q.question)
+	if result == nil {
+		return 0, fmt.Errorf("%w: %s", ErrAnswerIsNil, q.question)
 	}
 
 	return result.ExitCode(), nil
@@ -44,4 +43,4 @@ func (q *OfQuestion) String() string {
 }
 
 // OfQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*OfQuestion)(nil)
+var _ screenplay.Question[int] = (*OfQuestion)(nil)

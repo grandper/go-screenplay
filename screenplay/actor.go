@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/grandper/go-monad"
+
+	"github.com/grandper/go-screenplay/v2/internal/reflected"
 )
 
 var (
@@ -132,10 +134,11 @@ func (a *Actor) Muted() *Actor {
 }
 
 // Remember stores a value in the actor's memory.
-// When the value is a Question, the actor answers it and stores the answer instead.
+// When the value is a Question, whatever its answer type, the actor answers it
+// and stores the answer instead.
 // If the question fails to be answered, nil is stored for the key.
 func (a *Actor) Remember(key string, value any) {
-	if question, isAQuestion := value.(Question); isAQuestion {
+	if question, isAQuestion := reflected.QuestionOf(value, reflect.TypeOf(a)); isAQuestion {
 		// AnsweredBy is called without holding the lock: it may itself call
 		// Recall or Remember on the same actor, which would deadlock otherwise.
 		answer, err := question.AnsweredBy(a)
@@ -463,8 +466,9 @@ func (a *Actor) Should(actions ...Performable) error {
 	return a.performs("should", actions)
 }
 
-// AsksFor asks the given question.
-func (a *Actor) AsksFor(question Question) (any, error) {
+// AsksFor asks the given question and returns its answer, typed as the
+// question declares it: asking a Question[int] yields an int.
+func (a *Actor) AsksFor[T any](question Question[T]) (T, error) {
 	if !a.narrates() {
 		return question.AnsweredBy(a)
 	}
@@ -487,7 +491,8 @@ func (a *Actor) AsksFor(question Question) (any, error) {
 }
 
 // Sees asks a question about what the actor sees on the screen.
-func (a *Actor) Sees(question Question) (any, error) {
+// This method is an alias to 'AsksFor'.
+func (a *Actor) Sees[T any](question Question[T]) (T, error) {
 	return a.AsksFor(question)
 }
 

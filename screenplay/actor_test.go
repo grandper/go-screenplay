@@ -111,7 +111,7 @@ func TestActor(t *testing.T) {
 
 	t.Run("remembers nil when the question fails to be answered", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
-		adam.Remember("status_code", fixture.NewFailingFakeQuestion(
+		adam.Remember("status_code", fixture.NewFailingFakeQuestion[int](
 			"status code",
 			errors.New("failed to get the status code"),
 		))
@@ -374,7 +374,7 @@ func TestActor(t *testing.T) {
 	})
 
 	thePhoneNumber := fixture.NewFakeQuestion("phone number", "0123456789")
-	thePhoneNumberButAnErrorOccurred := fixture.NewFailingFakeQuestion(
+	thePhoneNumberButAnErrorOccurred := fixture.NewFailingFakeQuestion[string](
 		"phone number",
 		errors.New("cannot find the phone number"),
 	)
@@ -390,7 +390,7 @@ func TestActor(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		answer, err := adam.AsksFor(thePhoneNumberButAnErrorOccurred)
 		require.Error(t, err)
-		assert.Nil(t, answer)
+		assert.Empty(t, answer)
 	})
 
 	t.Run("should see something", func(t *testing.T) {
@@ -404,7 +404,7 @@ func TestActor(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		answer, err := adam.Sees(thePhoneNumberButAnErrorOccurred)
 		require.Error(t, err)
-		assert.Nil(t, answer)
+		assert.Empty(t, answer)
 	})
 
 	t.Run("attempts to aliases", func(t *testing.T) {

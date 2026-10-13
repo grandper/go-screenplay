@@ -13,11 +13,11 @@ import (
 )
 
 func TestEnvironmentVariable(t *testing.T) {
-	t.Run("returns a nil interface if the environment variable does not exist", func(t *testing.T) {
+	t.Run("returns an empty string if the environment variable does not exist", func(t *testing.T) {
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
 		value, err := question.EnvironmentVariableNamed("HELLO").AnsweredBy(theActor)
 		require.ErrorIs(t, err, question.ErrEnvironmentVariableNotFound)
-		assert.Nil(t, value)
+		assert.Empty(t, value)
 	})
 
 	t.Run("returns the value of the environment variable if it exists", func(t *testing.T) {
@@ -33,11 +33,15 @@ func TestEnvironmentVariable(t *testing.T) {
 			theActor := screenplay.ActorNamed("Adam")
 			value, err := question.EnvironmentVariableNamed("HELLO").AnsweredBy(theActor)
 			require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
-			assert.Nil(t, value)
+			assert.Empty(t, value)
 		})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		q := question.EnvironmentVariableNamed("HELLO")
 		assert.Equal(t, "environment variable named 'HELLO'", q.String())
+	})
+
+	t.Run("implements the question interface", func(t *testing.T) {
+		assert.Implements(t, (*screenplay.Question[string])(nil), question.EnvironmentVariableNamed("FOO"))
 	})
 }

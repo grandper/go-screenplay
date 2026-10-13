@@ -111,7 +111,7 @@ func TestChooseAction(t *testing.T) {
 
 	t.Run("returns the error when a reached question fails to answer", func(t *testing.T) {
 		reset()
-		failing := fixture.NewFailingFakeQuestion("the status code", assert.AnError)
+		failing := fixture.NewFailingFakeQuestion[int]("the status code", assert.AnError)
 		require.ErrorIs(t, adam.AttemptsTo(
 			action.Choose().
 				To(doTask).WhenThe(failing, isEqualTo(200)).
@@ -133,7 +133,7 @@ func TestChooseAction(t *testing.T) {
 
 	t.Run("does not evaluate a later branch once an earlier one holds", func(t *testing.T) {
 		reset()
-		failing := fixture.NewFailingFakeQuestion("the status code", assert.AnError)
+		failing := fixture.NewFailingFakeQuestion[int]("the status code", assert.AnError)
 		require.NoError(t, adam.AttemptsTo(
 			action.Choose().
 				To(doTask).When(true).
@@ -272,7 +272,7 @@ func TestChooseBasedOnTheAction(t *testing.T) {
 
 	t.Run("returns the error when the question fails to answer", func(t *testing.T) {
 		reset()
-		failing := fixture.NewFailingFakeQuestion("the status code", assert.AnError)
+		failing := fixture.NewFailingFakeQuestion[int]("the status code", assert.AnError)
 		require.ErrorIs(t, adam.AttemptsTo(
 			action.ChooseBasedOnThe(failing).
 				To(doTask).When(isEqualTo(200)).

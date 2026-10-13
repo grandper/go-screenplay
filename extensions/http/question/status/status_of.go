@@ -8,11 +8,11 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-// ErrAnswerIsNotAnHTTPResponse is returned when the answer of the wrapped question is not an HTTP response.
-var ErrAnswerIsNotAnHTTPResponse = errors.New("the answer of the question is not an HTTP response")
+// ErrAnswerIsNil is returned when the wrapped question answers with a nil HTTP response.
+var ErrAnswerIsNil = errors.New("the answer of the question is a nil HTTP response")
 
 // CodeOf creates a question whose answer is the status code of the HTTP response answered by the wrapped question.
-func CodeOf(question screenplay.Question) *CodeOfQuestion {
+func CodeOf(question screenplay.Question[*ability.HTTPResponse]) *CodeOfQuestion {
 	return &CodeOfQuestion{
 		question: question,
 	}
@@ -20,19 +20,18 @@ func CodeOf(question screenplay.Question) *CodeOfQuestion {
 
 // CodeOfQuestion is a question whose answer is the status code of the answer of the wrapped question.
 type CodeOfQuestion struct {
-	question screenplay.Question
+	question screenplay.Question[*ability.HTTPResponse]
 }
 
 // AnsweredBy returns the status code of the HTTP response answered by the wrapped question.
-func (q *CodeOfQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
-	answer, err := q.question.AnsweredBy(actor)
+func (q *CodeOfQuestion) AnsweredBy(actor *screenplay.Actor) (int, error) {
+	response, err := q.question.AnsweredBy(actor)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	response, ok := answer.(*ability.HTTPResponse)
-	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrAnswerIsNotAnHTTPResponse, q.question)
+	if response == nil {
+		return 0, fmt.Errorf("%w: %s", ErrAnswerIsNil, q.question)
 	}
 
 	return response.StatusCode(), nil
@@ -44,4 +43,4 @@ func (q *CodeOfQuestion) String() string {
 }
 
 // CodeOfQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*CodeOfQuestion)(nil)
+var _ screenplay.Question[int] = (*CodeOfQuestion)(nil)

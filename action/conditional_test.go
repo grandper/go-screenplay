@@ -99,7 +99,7 @@ func TestConditionalAction(t *testing.T) {
 
 	t.Run("returns the error when the question fails to answer", func(t *testing.T) {
 		reset()
-		question := fixture.NewFailingFakeQuestion("the status code", assert.AnError)
+		question := fixture.NewFailingFakeQuestion[int]("the status code", assert.AnError)
 		require.ErrorIs(
 			t,
 			adam.AttemptsTo(action.Conditionally(doTask).IfThe(question, isEqualTo(200)).Otherwise(doTheAlternative)),

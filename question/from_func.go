@@ -5,30 +5,31 @@ import (
 )
 
 // AnsweredFn represents a function that answers a question as an actor.
-type AnsweredFn func(theActor *screenplay.Actor) (any, error)
+type AnsweredFn[T any] func(theActor *screenplay.Actor) (T, error)
 
-// FromFunc creates a new question from a function.
-func FromFunc(description string, fn AnsweredFn) screenplay.Question {
-	return &funcQuestion{
+// FromFunc creates a new question from a function. The answer type is inferred
+// from the function's return type.
+func FromFunc[T any](description string, fn AnsweredFn[T]) screenplay.Question[T] {
+	return &funcQuestion[T]{
 		answeredBy:  fn,
 		description: description,
 	}
 }
 
-type funcQuestion struct {
-	answeredBy  AnsweredFn
+type funcQuestion[T any] struct {
+	answeredBy  AnsweredFn[T]
 	description string
 }
 
 // String describes the question.
-func (q *funcQuestion) String() string {
+func (q *funcQuestion[T]) String() string {
 	return q.description
 }
 
 // AnsweredBy returns the answer that the provided actor gives to the question.
-func (q *funcQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
+func (q *funcQuestion[T]) AnsweredBy(actor *screenplay.Actor) (T, error) {
 	return q.answeredBy(actor)
 }
 
 // funcQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*funcQuestion)(nil)
+var _ screenplay.Question[any] = (*funcQuestion[any])(nil)

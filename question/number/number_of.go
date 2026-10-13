@@ -11,38 +11,41 @@ import (
 // ErrAnswerIsNotACollection is returned when the wrapped question does not answer with a slice or a map.
 var ErrAnswerIsNotACollection = errors.New("the answer of the question is not a slice or a map")
 
-// Of creates a question whose answer is the number of elements in the slice or map answered by the wrapped question.
-func Of(question screenplay.Question) *OfQuestion {
-	return &OfQuestion{
+// Of creates a question whose answer is the number of elements in the slice or
+// map answered by the wrapped question. A single type parameter cannot range
+// over both slices and maps, so the collection type is left unconstrained and
+// checked when the question is answered.
+func Of[C any](question screenplay.Question[C]) *OfQuestion[C] {
+	return &OfQuestion[C]{
 		question: question,
 	}
 }
 
 // OfQuestion is a question whose answer is the number of elements in the answer of the wrapped question.
-type OfQuestion struct {
-	question screenplay.Question
+type OfQuestion[C any] struct {
+	question screenplay.Question[C]
 }
 
 // AnsweredBy returns the number of elements in the slice or map answered by the wrapped question.
-func (q *OfQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
+func (q *OfQuestion[C]) AnsweredBy(actor *screenplay.Actor) (int, error) {
 	answer, err := q.question.AnsweredBy(actor)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	value := reflect.ValueOf(answer)
 	if !value.IsValid() ||
 		(value.Kind() != reflect.Slice && value.Kind() != reflect.Array && value.Kind() != reflect.Map) {
-		return nil, fmt.Errorf("%w: %s", ErrAnswerIsNotACollection, q.question)
+		return 0, fmt.Errorf("%w: %s", ErrAnswerIsNotACollection, q.question)
 	}
 
 	return value.Len(), nil
 }
 
 // String describes the question.
-func (q *OfQuestion) String() string {
+func (q *OfQuestion[C]) String() string {
 	return "number of " + q.question.String()
 }
 
 // OfQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*OfQuestion)(nil)
+var _ screenplay.Question[int] = (*OfQuestion[any])(nil)

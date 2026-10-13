@@ -29,11 +29,9 @@ func TestResponsesQuestion(t *testing.T) {
 		assert.NoError(t, adam.AttemptsTo(action.SendGetRequest().To(server.URL)))
 		assert.NoError(t, adam.AttemptsTo(action.SendGetRequest().To(server.URL)))
 
-		answer, err := adam.AsksFor(question.Responses())
+		responses, err := adam.AsksFor(question.Responses())
 
 		require.NoError(t, err)
-		responses, ok := answer.([]*ability.HTTPResponse)
-		require.True(t, ok)
 		assert.Len(t, responses, 2)
 	})
 
@@ -61,5 +59,9 @@ func TestResponsesQuestion(t *testing.T) {
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		assert.Equal(t, "HTTP responses", question.Responses().String())
+	})
+
+	t.Run("implements the question interface", func(t *testing.T) {
+		assert.Implements(t, (*screenplay.Question[[]*ability.HTTPResponse])(nil), question.Responses())
 	})
 }

@@ -30,10 +30,8 @@ func TestDirectoryNamedQuestion(t *testing.T) {
 			assert.NoError(t, os.Remove(directoryName))
 		}()
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
-		d, err := question.DirectoryNamed(directoryName).AnsweredBy(theActor)
+		directory, err := question.DirectoryNamed(directoryName).AnsweredBy(theActor)
 		require.NoError(t, err)
-		directory, ok := d.(*question.Directory)
-		assert.True(t, ok)
 		assert.Equal(t, path.Base(directoryName), directory.Name())
 		assert.Equal(t, path.Dir(directoryName), directory.Dir())
 		assert.True(t, directory.Exists())
@@ -41,10 +39,8 @@ func TestDirectoryNamedQuestion(t *testing.T) {
 
 	t.Run("returns information for non-existing file", func(t *testing.T) {
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
-		d, err := question.DirectoryNamed("foobar").AnsweredBy(theActor)
+		directory, err := question.DirectoryNamed("foobar").AnsweredBy(theActor)
 		require.NoError(t, err)
-		directory, ok := d.(*question.Directory)
-		assert.True(t, ok)
 		assert.Equal(t, "foobar", directory.Name())
 		assert.Equal(t, ".", directory.Dir())
 		assert.False(t, directory.Exists())
@@ -53,5 +49,9 @@ func TestDirectoryNamedQuestion(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		directoryNamedFoobar := question.DirectoryNamed("foobar")
 		assert.Equal(t, "directory named 'foobar'", directoryNamedFoobar.String())
+	})
+
+	t.Run("implements the question interface", func(t *testing.T) {
+		assert.Implements(t, (*screenplay.Question[*question.Directory])(nil), question.DirectoryNamed("foobar"))
 	})
 }

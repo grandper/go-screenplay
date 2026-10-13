@@ -19,7 +19,7 @@ func TestSeeTheAction(t *testing.T) {
 
 	adam := screenplay.ActorNamed("Adam")
 	formField := fixture.NewFakeQuestion("form field", "hello world")
-	missingFormField := fixture.NewFailingFakeQuestion("form field", errors.New("failed to get the field content"))
+	missingFormField := fixture.NewFailingFakeQuestion[string]("form field", errors.New("failed to get the field content"))
 	isEqualButFails := testdata.NewFailingResolution(
 		"equal to hello world",
 		errors.New("failed to match the content of the field"),
@@ -75,7 +75,7 @@ func TestSeeTheAction(t *testing.T) {
 
 		resolution := equal.To("hello world")
 		for _, testCase := range []struct {
-			action *see.TheAction
+			action *see.TheAction[string]
 			reads  string
 			passes bool
 		}{

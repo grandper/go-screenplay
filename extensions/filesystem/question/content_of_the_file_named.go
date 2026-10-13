@@ -20,16 +20,13 @@ type ContentOfTheFileNamedQuestion struct {
 }
 
 // AnsweredBy returns the answer that an actor provided to the question.
-func (q *ContentOfTheFileNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (any, error) {
+func (q *ContentOfTheFileNamedQuestion) AnsweredBy(theActor *screenplay.Actor) ([]byte, error) {
 	useTheFileSystem, err := screenplay.UseAbilityTo[*ability.UseTheFileSystemAbility]().Of(theActor)
 	if err != nil {
 		return nil, err
 	}
-	content, err := useTheFileSystem.Read(q.filename)
-	if err != nil {
-		return nil, err
-	}
-	return content, nil
+
+	return useTheFileSystem.Read(q.filename)
 }
 
 // String describes the question.
@@ -38,4 +35,4 @@ func (q *ContentOfTheFileNamedQuestion) String() string {
 }
 
 // ContentOfTheFileNamedQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*ContentOfTheFileNamedQuestion)(nil)
+var _ screenplay.Question[[]byte] = (*ContentOfTheFileNamedQuestion)(nil)

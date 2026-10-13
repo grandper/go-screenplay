@@ -83,8 +83,8 @@ func (a *ChoiceAction) When(cond bool) *ChoiceAction {
 }
 
 // WhenThe closes the pending branch with a question/resolution condition.
-func (a *ChoiceAction) WhenThe(
-	question screenplay.Question,
+func (a *ChoiceAction) WhenThe[T any](
+	question screenplay.Question[T],
 	resolution screenplay.Resolution,
 ) *ChoiceAction {
 	a.branches = append(a.branches, choiceBranch{
@@ -146,8 +146,8 @@ type resolutionBranch struct {
 }
 
 // ChooseBasedOnThe starts a multi-way choice on the answer of a question; branches are resolutions.
-func ChooseBasedOnThe(question screenplay.Question) *ChoiceOnAction {
-	return &ChoiceOnAction{
+func ChooseBasedOnThe[T any](question screenplay.Question[T]) *ChoiceOnAction[T] {
+	return &ChoiceOnAction[T]{
 		question: question,
 		branches: []resolutionBranch{},
 		pending:  []screenplay.Performable{},
@@ -156,22 +156,22 @@ func ChooseBasedOnThe(question screenplay.Question) *ChoiceOnAction {
 }
 
 // ChoiceOnAction performs the performables of the first branch whose resolution matches the answer.
-type ChoiceOnAction struct {
-	question screenplay.Question
+type ChoiceOnAction[T any] struct {
+	question screenplay.Question[T]
 	branches []resolutionBranch
 	pending  []screenplay.Performable
 	fallback []screenplay.Performable
 }
 
 // To names the performables of the next branch; close it with When.
-func (a *ChoiceOnAction) To(performables ...screenplay.Performable) *ChoiceOnAction {
+func (a *ChoiceOnAction[T]) To(performables ...screenplay.Performable) *ChoiceOnAction[T] {
 	a.pending = performables
 
 	return a
 }
 
 // When closes the pending branch with the resolution the single answer must match.
-func (a *ChoiceOnAction) When(resolution screenplay.Resolution) *ChoiceOnAction {
+func (a *ChoiceOnAction[T]) When(resolution screenplay.Resolution) *ChoiceOnAction[T] {
 	a.branches = append(a.branches, resolutionBranch{resolution: resolution, performables: a.pending})
 	a.pending = []screenplay.Performable{}
 
@@ -179,7 +179,7 @@ func (a *ChoiceOnAction) When(resolution screenplay.Resolution) *ChoiceOnAction 
 }
 
 // Otherwise closes the pending To branch as the fallback, run when no branch matches.
-func (a *ChoiceOnAction) Otherwise() *ChoiceOnAction {
+func (a *ChoiceOnAction[T]) Otherwise() *ChoiceOnAction[T] {
 	a.fallback = a.pending
 	a.pending = []screenplay.Performable{}
 
@@ -187,12 +187,12 @@ func (a *ChoiceOnAction) Otherwise() *ChoiceOnAction {
 }
 
 // Default closes the pending To branch as the fallback, run when no branch matches.
-func (a *ChoiceOnAction) Default() *ChoiceOnAction {
+func (a *ChoiceOnAction[T]) Default() *ChoiceOnAction[T] {
 	return a.Otherwise()
 }
 
 // String describes the action.
-func (a *ChoiceOnAction) String() string {
+func (a *ChoiceOnAction[T]) String() string {
 	clauses := make([]string, 0, len(a.branches))
 	for i, b := range a.branches {
 		subject := "it"
@@ -207,7 +207,7 @@ func (a *ChoiceOnAction) String() string {
 }
 
 // PerformAs performs the task or the action as the provided actor.
-func (a *ChoiceOnAction) PerformAs(theActor *screenplay.Actor) error {
+func (a *ChoiceOnAction[T]) PerformAs(theActor *screenplay.Actor) error {
 	value, err := a.question.AnsweredBy(theActor)
 	if err != nil {
 		return err
@@ -230,4 +230,4 @@ func (a *ChoiceOnAction) PerformAs(theActor *screenplay.Actor) error {
 }
 
 // ChoiceOnAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = (*ChoiceOnAction)(nil)
+var _ screenplay.Performable = (*ChoiceOnAction[any])(nil)

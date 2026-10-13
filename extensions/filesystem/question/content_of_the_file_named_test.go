@@ -29,10 +29,8 @@ func TestContentOfTheFileNamedQuestion(t *testing.T) {
 		defer func() {
 			assert.NoError(t, os.Remove(filename))
 		}()
-		data, err := question.ContentOfTheFileNamed(filename).AnsweredBy(theActor)
+		content, err := question.ContentOfTheFileNamed(filename).AnsweredBy(theActor)
 		require.NoError(t, err)
-		content, ok := data.([]byte)
-		assert.True(t, ok)
 		assert.Equal(t, []byte("foo"), content)
 	})
 
@@ -45,5 +43,9 @@ func TestContentOfTheFileNamedQuestion(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		contentOfTheFileNamedFooBar := question.ContentOfTheFileNamed("foo.bar")
 		assert.Equal(t, "content of the file named 'foo.bar'", contentOfTheFileNamedFooBar.String())
+	})
+
+	t.Run("implements the question interface", func(t *testing.T) {
+		assert.Implements(t, (*screenplay.Question[[]byte])(nil), question.ContentOfTheFileNamed("foo.bar"))
 	})
 }

@@ -16,36 +16,36 @@ import (
 //
 // A production configured with screenplay.WithForceAllNarration neutralizes
 // this decorator, so a scenario can be debugged with every step narrated again.
-func Silently(q screenplay.Question) screenplay.Question {
-	return &SilentlyQuestion{
+func Silently[T any](q screenplay.Question[T]) screenplay.Question[T] {
+	return &SilentlyQuestion[T]{
 		question: q,
 	}
 }
 
 // SilentlyQuestion is a question that mutes the narration produced while the
 // wrapped question is answered.
-type SilentlyQuestion struct {
-	question screenplay.Question
+type SilentlyQuestion[T any] struct {
+	question screenplay.Question[T]
 }
 
 // String describes the question without describing the wrapped question, so
 // that a value the wrapped question carries is never narrated.
-func (q *SilentlyQuestion) String() string {
+func (q *SilentlyQuestion[T]) String() string {
 	return "a secret"
 }
 
 // KeepsItsAnswerSecret marks the question as one whose answer must not be
 // narrated. The actor checks for this method before revealing an answer.
-func (q *SilentlyQuestion) KeepsItsAnswerSecret() {}
+func (q *SilentlyQuestion[T]) KeepsItsAnswerSecret() {}
 
 // AnsweredBy answers the wrapped question through a muted view of the actor, so
 // the narration it would produce is dropped. The view leaves the actor itself
 // untouched, so a Silently running in one concurrent branch never mutes
 // another. When the actor's narrator cannot be muted (see
 // screenplay.WithForceAllNarration), the steps narrate as usual.
-func (q *SilentlyQuestion) AnsweredBy(actor *screenplay.Actor) (any, error) {
+func (q *SilentlyQuestion[T]) AnsweredBy(actor *screenplay.Actor) (T, error) {
 	return q.question.AnsweredBy(actor.Muted())
 }
 
 // SilentlyQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*SilentlyQuestion)(nil)
+var _ screenplay.Question[any] = (*SilentlyQuestion[any])(nil)

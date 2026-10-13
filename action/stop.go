@@ -23,7 +23,8 @@ func Stop() *StopAction {
 
 // StopAction is an action to make an actor stop until a condition is met.
 type StopAction struct {
-	question   screenplay.Question
+	condition  screenplay.Performable // sees that the answer matches the resolution; nil when waiting for an input
+	question   fmt.Stringer
 	resolution screenplay.Resolution
 	reader     io.Reader
 }
@@ -36,8 +37,9 @@ func (a *StopAction) UntilAnInputIsProvidedBy(reader io.Reader) *StopAction {
 }
 
 // UntilThe specifies a condition to wait for.
-func (a *StopAction) UntilThe(question screenplay.Question, resolution screenplay.Resolution) *StopAction {
+func (a *StopAction) UntilThe[T any](question screenplay.Question[T], resolution screenplay.Resolution) *StopAction {
 	return &StopAction{
+		condition:  see.The(question).Is(resolution),
 		question:   question,
 		resolution: resolution,
 	}
@@ -45,7 +47,7 @@ func (a *StopAction) UntilThe(question screenplay.Question, resolution screenpla
 
 // String describes the action.
 func (a *StopAction) String() string {
-	if a.question == nil || a.resolution == nil {
+	if a.condition == nil {
 		return "stop until the 'enter' key is pressed"
 	}
 	return fmt.Sprintf("stop until the %s is %s", a.question, a.resolution)
@@ -53,7 +55,7 @@ func (a *StopAction) String() string {
 
 // PerformAs performs the task or the action as the provided actor.
 func (a *StopAction) PerformAs(actor *screenplay.Actor) error {
-	if a.question == nil || a.resolution == nil {
+	if a.condition == nil {
 		slog.Default().
 			InfoContext(context.Background(), "the actor stops, waiting for your go\n(press enter to continue)\n")
 
@@ -63,7 +65,7 @@ func (a *StopAction) PerformAs(actor *screenplay.Actor) error {
 		}
 		return nil
 	}
-	if err := actor.AttemptsTo(Eventually(see.The(a.question).Is(a.resolution))); err != nil {
+	if err := actor.AttemptsTo(Eventually(a.condition)); err != nil {
 		return fmt.Errorf("%s stopped for %s, but %s was never %s",
 			actor.Name(), actor.Timeout(), a.question.String(), a.resolution.String())
 	}

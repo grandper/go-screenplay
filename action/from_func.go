@@ -2,8 +2,10 @@ package action
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 
+	"github.com/grandper/go-screenplay/v2/internal/reflected"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
@@ -45,15 +47,20 @@ var (
 	ErrTaskFuncMustReturnOne  = errors.New("taskFunc must return one value (Performable)")
 	ErrTaskFuncMustReturnTask = errors.New("taskFunc must return a Performable")
 	ErrAnswerNotAssignable    = errors.New("cannot assign or convert answer to expected type")
+	ErrNotAQuestion           = errors.New("every question must be a screenplay.Question")
 )
 
 // FromFuncAndQuestions creates a performable from a description, a function and
 // questions. When performed, the answers to the questions are asked to the actor,
 // converted to the parameters of the function, and the returned task is performed.
+//
+// The questions may have different answer types, so they are received as plain
+// values and checked when the action is performed: a value that is not a
+// screenplay.Question fails with ErrNotAQuestion.
 func FromFuncAndQuestions(
 	description string,
 	taskFunc any,
-	questions ...screenplay.Question,
+	questions ...any,
 ) screenplay.Performable {
 	return &funcWithQuestionsPerformable{
 		description: description,
@@ -65,7 +72,7 @@ func FromFuncAndQuestions(
 type funcWithQuestionsPerformable struct {
 	description string
 	taskFunc    any
-	questions   []screenplay.Question
+	questions   []any
 }
 
 // String describes the action.
@@ -74,7 +81,7 @@ func (p *funcWithQuestionsPerformable) String() string {
 }
 
 // PerformAs performs the task or the action as the provided actor.
-func (p *funcWithQuestionsPerformable) PerformAs(actor *screenplay.Actor) error {
+func (p *funcWithQuestionsPerformable) PerformAs(actor *screenplay.Actor) error { //nolint:gocognit
 	funcValue := reflect.ValueOf(p.taskFunc)
 	funcType := funcValue.Type()
 	if funcType.Kind() != reflect.Func {
@@ -92,18 +99,25 @@ func (p *funcWithQuestionsPerformable) PerformAs(actor *screenplay.Actor) error 
 	if funcType.NumOut() != 1 {
 		return ErrTaskFuncMustReturnOne
 	}
-	taskType := reflect.TypeOf((*screenplay.Performable)(nil)).Elem()
+	taskType := reflect.TypeFor[screenplay.Performable]()
 	if !funcType.Out(0).Implements(taskType) {
 		return ErrTaskFuncMustReturnTask
 	}
 	args := []reflect.Value{reflect.ValueOf(actor)}
-	for i, q := range p.questions {
+	for i, value := range p.questions {
+		q, isAQuestion := reflected.QuestionOf(value, funcType.In(0))
+		if !isAQuestion {
+			return fmt.Errorf("%w: got a %T at position %d", ErrNotAQuestion, value, i)
+		}
 		answer, err := q.AnsweredBy(actor)
 		if err != nil {
 			return err
 		}
 		expectedType := funcType.In(i + 1)
 		answerValue := reflect.ValueOf(answer)
+		if !answerValue.IsValid() {
+			return ErrAnswerNotAssignable
+		}
 		if !answerValue.Type().AssignableTo(expectedType) {
 			if answerValue.Type().ConvertibleTo(expectedType) {
 				answerValue = answerValue.Convert(expectedType)

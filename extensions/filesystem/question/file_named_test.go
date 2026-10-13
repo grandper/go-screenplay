@@ -30,10 +30,8 @@ func TestFileNamedQuestion(t *testing.T) {
 			assert.NoError(t, os.Remove(filename))
 		}()
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
-		f, err := question.FileNamed(filename).AnsweredBy(theActor)
+		file, err := question.FileNamed(filename).AnsweredBy(theActor)
 		require.NoError(t, err)
-		file, ok := f.(*question.File)
-		assert.True(t, ok)
 		assert.Equal(t, path.Base(filename), file.Name())
 		assert.Equal(t, path.Dir(filename), file.Dir())
 		assert.True(t, file.Exists())
@@ -41,10 +39,8 @@ func TestFileNamedQuestion(t *testing.T) {
 
 	t.Run("returns information for non-existing file", func(t *testing.T) {
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
-		f, err := question.FileNamed("foo.bar").AnsweredBy(theActor)
+		file, err := question.FileNamed("foo.bar").AnsweredBy(theActor)
 		require.NoError(t, err)
-		file, ok := f.(*question.File)
-		assert.True(t, ok)
 		assert.Equal(t, "foo.bar", file.Name())
 		assert.Equal(t, ".", file.Dir())
 		assert.False(t, file.Exists())
@@ -53,5 +49,9 @@ func TestFileNamedQuestion(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		theFileNamedFooBar := question.FileNamed("foo.bar")
 		assert.Equal(t, "file named 'foo.bar'", theFileNamedFooBar.String())
+	})
+
+	t.Run("implements the question interface", func(t *testing.T) {
+		assert.Implements(t, (*screenplay.Question[*question.File])(nil), question.FileNamed("foobar"))
 	})
 }

@@ -13,7 +13,10 @@ import (
 func TestTask(t *testing.T) {
 	adam := screenplay.ActorNamed("Adam")
 	formField := fixture.NewFakeQuestion("form field", "hello world")
-	missingFormField := fixture.NewFailingFakeQuestion("form field", errors.New("failed to get the field content"))
+	missingFormField := fixture.NewFailingFakeQuestion[string](
+		"form field",
+		errors.New("failed to get the field content"),
+	)
 
 	t.Run("can be created", func(t *testing.T) {
 		t.Run("with a description", func(t *testing.T) {

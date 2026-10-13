@@ -112,7 +112,8 @@ err := anActor.Should(see.The(FileNamed("foobar.txt")).IsNot(Exists()))
 ```
 
 ### The content of a file
-`ContentOfTheFileNamed` answers with the file's content as a string:
+`ContentOfTheFileNamed` answers with the file's content as a `[]byte`:
 ```go
-err := anActor.Should(see.The(ContentOfTheFileNamed("foobar.txt")).Is(equal.To("Hello World")))
+err := anActor.Should(see.The(ContentOfTheFileNamed("foobar.txt")).Is(equal.To([]byte("Hello World"))))
+content, err := anActor.AsksFor(ContentOfTheFileNamed("foobar.txt")) // content is a []byte
 ```

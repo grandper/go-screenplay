@@ -17,10 +17,8 @@ func TestResponses(t *testing.T) {
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
 		require.NoError(t, theActor.AttemptsTo(action.RunTheCommand("echo", "Hello World")))
 		require.NoError(t, theActor.AttemptsTo(action.RunTheCommand("echo", "Goodbye World")))
-		value, err := question.Responses().AnsweredBy(theActor)
+		responses, err := question.Responses().AnsweredBy(theActor)
 		require.NoError(t, err)
-		responses, ok := value.([]*ability.Result)
-		require.True(t, ok)
 		require.Len(t, responses, 2)
 		assert.Equal(t, []byte("Hello World\n"), responses[0].StdOut())
 		assert.Equal(t, []byte("Goodbye World\n"), responses[1].StdOut())
@@ -44,5 +42,9 @@ func TestResponses(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		q := question.Responses()
 		assert.Equal(t, "responses", q.String())
+	})
+
+	t.Run("implements the question interface", func(t *testing.T) {
+		assert.Implements(t, (*screenplay.Question[[]*ability.Result])(nil), question.Responses())
 	})
 }

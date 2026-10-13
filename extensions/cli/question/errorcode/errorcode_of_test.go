@@ -27,17 +27,17 @@ func TestErrorCodeOfQuestion(t *testing.T) {
 		assert.Equal(t, 0, answer)
 	})
 
-	t.Run("fails when the answer is not a result", func(t *testing.T) {
-		notAResult := fixture.NewFakeQuestion("not a result", "hello")
+	t.Run("fails when the answer is a nil result", func(t *testing.T) {
+		nilResult := fixture.NewFakeQuestion[*ability.Result]("nil result", nil)
 
-		answer, err := errorcode.Of(notAResult).AnsweredBy(screenplay.ActorNamed("Adam"))
+		answer, err := errorcode.Of(nilResult).AnsweredBy(screenplay.ActorNamed("Adam"))
 
-		require.ErrorIs(t, err, errorcode.ErrAnswerIsNotAResult)
-		assert.Nil(t, answer)
+		require.ErrorIs(t, err, errorcode.ErrAnswerIsNil)
+		assert.Zero(t, answer)
 	})
 
 	t.Run("fails when the wrapped question fails", func(t *testing.T) {
-		failingQuestion := fixture.NewFailingFakeQuestion(
+		failingQuestion := fixture.NewFailingFakeQuestion[*ability.Result](
 			"failing question",
 			errors.New("failed to get the answer"),
 		)
@@ -45,11 +45,15 @@ func TestErrorCodeOfQuestion(t *testing.T) {
 		answer, err := errorcode.Of(failingQuestion).AnsweredBy(screenplay.ActorNamed("Adam"))
 
 		require.Error(t, err)
-		assert.Nil(t, answer)
+		assert.Zero(t, answer)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		q := errorcode.Of(question.Responses())
-		assert.Equal(t, "error code of responses", q.String())
+		q := errorcode.Of(last.Of(question.Responses()))
+		assert.Equal(t, "error code of last of responses", q.String())
+	})
+
+	t.Run("implements the question interface", func(t *testing.T) {
+		assert.Implements(t, (*screenplay.Question[int])(nil), errorcode.Of(last.Of(question.Responses())))
 	})
 }

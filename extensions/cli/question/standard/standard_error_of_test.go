@@ -27,17 +27,17 @@ func TestErrorOfQuestion(t *testing.T) {
 		assert.Equal(t, []byte(""), answer)
 	})
 
-	t.Run("fails when the answer is not a result", func(t *testing.T) {
-		notAResult := fixture.NewFakeQuestion("not a result", "hello")
+	t.Run("fails when the answer is a nil result", func(t *testing.T) {
+		nilResult := fixture.NewFakeQuestion[*ability.Result]("nil result", nil)
 
-		answer, err := standard.ErrorOf(notAResult).AnsweredBy(screenplay.ActorNamed("Adam"))
+		answer, err := standard.ErrorOf(nilResult).AnsweredBy(screenplay.ActorNamed("Adam"))
 
-		require.ErrorIs(t, err, standard.ErrAnswerIsNotAResult)
+		require.ErrorIs(t, err, standard.ErrAnswerIsNil)
 		assert.Nil(t, answer)
 	})
 
 	t.Run("fails when the wrapped question fails", func(t *testing.T) {
-		failingQuestion := fixture.NewFailingFakeQuestion(
+		failingQuestion := fixture.NewFailingFakeQuestion[*ability.Result](
 			"failing question",
 			errors.New("failed to get the answer"),
 		)
@@ -49,7 +49,11 @@ func TestErrorOfQuestion(t *testing.T) {
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		q := standard.ErrorOf(question.Responses())
-		assert.Equal(t, "standard error of responses", q.String())
+		q := standard.ErrorOf(last.Of(question.Responses()))
+		assert.Equal(t, "standard error of last of responses", q.String())
+	})
+
+	t.Run("implements the question interface", func(t *testing.T) {
+		assert.Implements(t, (*screenplay.Question[[]byte])(nil), standard.ErrorOf(last.Of(question.Responses())))
 	})
 }

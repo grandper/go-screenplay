@@ -6,7 +6,7 @@ import (
 )
 
 // Responses asks about all the HTTP responses received by the actor.
-func Responses() screenplay.Question {
+func Responses() screenplay.Question[[]*ability.HTTPResponse] {
 	return &ResponsesQuestion{}
 }
 
@@ -19,7 +19,7 @@ func (q *ResponsesQuestion) String() string {
 }
 
 // AnsweredBy returns the answer that an actor provided to the question.
-func (q *ResponsesQuestion) AnsweredBy(theActor *screenplay.Actor) (any, error) {
+func (q *ResponsesQuestion) AnsweredBy(theActor *screenplay.Actor) ([]*ability.HTTPResponse, error) {
 	makeHTTPRequests, err := screenplay.UseAbilityTo[*ability.MakeHTTPRequestsAbility]().Of(theActor)
 	if err != nil {
 		return nil, err
@@ -28,4 +28,4 @@ func (q *ResponsesQuestion) AnsweredBy(theActor *screenplay.Actor) (any, error) 
 }
 
 // ResponsesQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*ResponsesQuestion)(nil)
+var _ screenplay.Question[[]*ability.HTTPResponse] = (*ResponsesQuestion)(nil)

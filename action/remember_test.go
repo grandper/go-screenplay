@@ -15,8 +15,8 @@ import (
 func TestRememberAction(t *testing.T) {
 	adam := screenplay.ActorNamed("Adam")
 	statusCode := fixture.NewFakeQuestion("status code", 200)
-	missingStatusCode := fixture.NewFailingFakeQuestion("status code", errors.New("failed to get the status code"))
-	optionalData := fixture.NewFakeQuestion("optional data", nil)
+	missingStatusCode := fixture.NewFailingFakeQuestion[int]("status code", errors.New("failed to get the status code"))
+	optionalData := fixture.NewFakeQuestion[any]("optional data", nil)
 
 	t.Run("remembers the answer to the question under the given key", func(t *testing.T) {
 		require.NoError(t, adam.AttemptsTo(action.Remember(statusCode).As("statusCode")))

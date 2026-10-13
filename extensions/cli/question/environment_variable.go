@@ -27,14 +27,14 @@ type EnvironmentVariableQuestion struct {
 }
 
 // AnsweredBy returns the answer that an actor provided to the question.
-func (evq *EnvironmentVariableQuestion) AnsweredBy(theActor *screenplay.Actor) (any, error) {
+func (evq *EnvironmentVariableQuestion) AnsweredBy(theActor *screenplay.Actor) (string, error) {
 	_, err := screenplay.UseAbilityTo[*ability.RunCLICommandsAbility]().Of(theActor)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	value, exist := os.LookupEnv(evq.environmentVariableName)
 	if !exist {
-		return nil, ErrEnvironmentVariableNotFound
+		return "", ErrEnvironmentVariableNotFound
 	}
 	return value, nil
 }
@@ -45,4 +45,4 @@ func (evq *EnvironmentVariableQuestion) String() string {
 }
 
 // EnvironmentVariableQuestion implements the screenplay.Question interface.
-var _ screenplay.Question = (*EnvironmentVariableQuestion)(nil)
+var _ screenplay.Question[string] = (*EnvironmentVariableQuestion)(nil)

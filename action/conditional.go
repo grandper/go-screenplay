@@ -52,8 +52,8 @@ func (a *ConditionalAction) Unless(cond bool) *ConditionalAction {
 }
 
 // IfThe guards the action behind a question and a resolution.
-func (a *ConditionalAction) IfThe(
-	question screenplay.Question,
+func (a *ConditionalAction) IfThe[T any](
+	question screenplay.Question[T],
 	resolution screenplay.Resolution,
 ) *ConditionalAction {
 	a.condition = questionCondition(question, resolution)
@@ -63,7 +63,7 @@ func (a *ConditionalAction) IfThe(
 
 // questionCondition builds a condition that answers a question and matches its answer
 // against a resolution. It is shared by IfThe (conditional) and WhenThe (choice).
-func questionCondition(question screenplay.Question, resolution screenplay.Resolution) condition {
+func questionCondition[T any](question screenplay.Question[T], resolution screenplay.Resolution) condition {
 	return condition{
 		describe: fmt.Sprintf("the %s is %s", question, resolution),
 		holds: func(theActor *screenplay.Actor) (bool, error) {
@@ -85,16 +85,16 @@ func questionCondition(question screenplay.Question, resolution screenplay.Resol
 }
 
 // WhenThe guards the action behind a question and a resolution.
-func (a *ConditionalAction) WhenThe(
-	question screenplay.Question,
+func (a *ConditionalAction) WhenThe[T any](
+	question screenplay.Question[T],
 	resolution screenplay.Resolution,
 ) *ConditionalAction {
 	return a.IfThe(question, resolution)
 }
 
 // UnlessThe guards the action behind the negation of a question/resolution condition.
-func (a *ConditionalAction) UnlessThe(
-	question screenplay.Question,
+func (a *ConditionalAction) UnlessThe[T any](
+	question screenplay.Question[T],
 	resolution screenplay.Resolution,
 ) *ConditionalAction {
 	a.IfThe(question, resolution)
