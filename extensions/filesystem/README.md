@@ -13,10 +13,10 @@ The symbols shown below live in the extension's sub-packages:
 | `ability` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/ability` | `UseTheFileSystem` |
 | `action` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action` | `Create`, `Remove`, `AppendTheText`/`AppendTheBytes`/`AppendTheContent`, `OverwriteTo`, `ChangeDirectoryTo` |
 | `question` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/question` | `FileNamed`, `DirectoryNamed`, `ContentOfTheFileNamed` |
-| `resolution` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/resolution` | `Exists` |
+| `resolution` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/resolution` | `Exist` |
 
 Assertions are written with the core screenplay packages (`action/see`,
-`resolution/equal`, ...) alongside this extension's `resolution.Exists`. For readability
+`resolution/be`, ...) alongside this extension's `resolution.Exist`. For readability
 the examples below drop the package qualifiers on the extension constructors; import the
 packages above and qualify them as `action.Create()`, `ability.UseTheFileSystem()`, and
 so on (note that the extension's `action`/`question`/`resolution` packages share their
@@ -99,21 +99,22 @@ err := anActor.AttemptsTo(ChangeDirectoryTo("MyDocuments"))
 ## Questions and resolutions
 
 ### Whether a file or directory exists
-`FileNamed` and `DirectoryNamed` answer with a value you assert against with this
-extension's `Exists` resolution:
+`FileNamed` and `DirectoryNamed` answer with a `*question.File` and a
+`*question.Directory` you assert against with this extension's `Exist` resolution.
+Go cannot infer which of the two a resolution is for, so the type is given explicitly:
 ```go
-err := anActor.Should(see.The(FileNamed("foobar.txt")).Is(Exists()))
-err := anActor.Should(see.The(DirectoryNamed("foobar")).Is(Exists()))
+err := anActor.Should(see.The(FileNamed("foobar.txt")).Should(Exist[*question.File]()))
+err := anActor.Should(see.The(DirectoryNamed("foobar")).Should(Exist[*question.Directory]()))
 ```
 Because `see.The` also exposes negated verbs, you can assert the opposite with the same
 resolution:
 ```go
-err := anActor.Should(see.The(FileNamed("foobar.txt")).IsNot(Exists()))
+err := anActor.Should(see.The(FileNamed("foobar.txt")).ShouldNot(Exist[*question.File]()))
 ```
 
 ### The content of a file
 `ContentOfTheFileNamed` answers with the file's content as a `[]byte`:
 ```go
-err := anActor.Should(see.The(ContentOfTheFileNamed("foobar.txt")).Is(equal.To([]byte("Hello World"))))
+err := anActor.Should(see.The(ContentOfTheFileNamed("foobar.txt")).Should(be.DeepEqualTo([]byte("Hello World"))))
 content, err := anActor.AsksFor(ContentOfTheFileNamed("foobar.txt")) // content is a []byte
 ```

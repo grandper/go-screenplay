@@ -12,16 +12,19 @@ import (
 
 	"github.com/grandper/go-screenplay/v2/action"
 	"github.com/grandper/go-screenplay/v2/fixture"
-	"github.com/grandper/go-screenplay/v2/resolution/equal"
-	"github.com/grandper/go-screenplay/v2/resolution/testdata"
+	"github.com/grandper/go-screenplay/v2/resolution/be"
+	"github.com/grandper/go-screenplay/v2/resolution/match"
 	"github.com/grandper/go-screenplay/v2/screenplay"
+	"github.com/grandper/go-screenplay/v2/term"
 )
 
 func TestStopAction(t *testing.T) {
 	adam := screenplay.ActorNamed("Adam")
 	formField := fixture.NewFakeQuestion("form field", "")
-	failingFormField := fixture.NewFailingFakeQuestion[string]("form field", errors.New("failed to find the form field"))
-	isEqualFailed := testdata.NewFailingResolution("is equal", errors.New("resolution failed"))
+	failingFormField := fixture.NewFailingFakeQuestion[string](
+		"form field",
+		errors.New("failed to find the form field"),
+	)
 
 	t.Run("should stop until the actor press enter", func(t *testing.T) {
 		r, w, err := os.Pipe()
@@ -48,29 +51,42 @@ func TestStopAction(t *testing.T) {
 			formFieldWillChange.AnswerWith("hello world")
 		}()
 
-		require.NoError(t, adam.AttemptsTo(action.Stop().UntilThe(formFieldWillChange, equal.To("hello world"))))
+		require.NoError(
+			t,
+			adam.AttemptsTo(action.Stop().UntilThe(formFieldWillChange).HappensTo(be.EqualTo("hello world"))),
+		)
 	})
 
 	t.Run("fails if the attempt continuously failed", func(t *testing.T) {
-		err := adam.AttemptsTo(action.Stop().UntilThe(formField, equal.To("hello world")))
+		err := adam.AttemptsTo(action.Stop().UntilThe(formField).HappensTo(be.EqualTo("hello world")))
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), fmt.Sprintf("stopped for %s,", screenplay.DefaultTimeout))
+		require.EqualError(t, err, fmt.Sprintf(
+			`Adam stopped for %s without seeing that the form field happens to be equal to "hello world": got ""`,
+			screenplay.DefaultTimeout,
+		))
 	})
 
 	t.Run("fails when the question fails", func(t *testing.T) {
-		require.Error(t, adam.AttemptsTo(action.Stop().UntilThe(failingFormField, equal.To("hello world"))))
+		require.Error(t, adam.AttemptsTo(action.Stop().UntilThe(failingFormField).HappensTo(be.EqualTo("hello world"))))
 	})
 
-	t.Run("fails when the resolution fails", func(t *testing.T) {
-		require.Error(t, adam.AttemptsTo(action.Stop().UntilThe(formField, isEqualFailed)))
+	t.Run("fails without waiting when the condition is built wrongly", func(t *testing.T) {
+		started := time.Now()
+
+		require.ErrorIs(t, adam.AttemptsTo(action.Stop().UntilThe(formField).HappensTo()), term.ErrInvalidTerm)
+		require.ErrorIs(t,
+			adam.AttemptsTo(action.Stop().UntilThe(formField).DoesNotHappenTo(match.PatternString("hello("))),
+			screenplay.ErrInvalidResolution,
+		)
+		assert.Less(t, time.Since(started), screenplay.DefaultTimeout)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		action1 := action.Stop()
 		assert.Equal(t, "stop until the 'enter' key is pressed", action1.String())
 
-		action2 := action.Stop().UntilThe(formField, equal.To("finished"))
-		assert.Equal(t, "stop until the form field is equal to finished", action2.String())
+		action2 := action.Stop().UntilThe(formField).HappensTo(be.EqualTo("finished"))
+		assert.Equal(t, `stop until the form field happens to be equal to "finished"`, action2.String())
 	})
 
 	t.Run("fails when the reader is closed", func(t *testing.T) {

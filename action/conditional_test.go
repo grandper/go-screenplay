@@ -9,8 +9,9 @@ import (
 
 	"github.com/grandper/go-screenplay/v2/action"
 	"github.com/grandper/go-screenplay/v2/fixture"
-	"github.com/grandper/go-screenplay/v2/resolution"
+	"github.com/grandper/go-screenplay/v2/resolution/be"
 	"github.com/grandper/go-screenplay/v2/screenplay"
+	"github.com/grandper/go-screenplay/v2/term"
 )
 
 func TestConditionalAction(t *testing.T) {
@@ -37,14 +38,6 @@ func TestConditionalAction(t *testing.T) {
 		"do the alternative",
 		errors.New("failed to do the alternative"),
 	)
-
-	isEqualTo := func(expected any) screenplay.Resolution {
-		return resolution.FromFunc("equal to the expected value", func() screenplay.Matcher {
-			return func(obj any) (bool, error) {
-				return obj == expected, nil
-			}
-		})
-	}
 
 	t.Run("performs the task when the boolean condition holds", func(t *testing.T) {
 		reset()
@@ -83,7 +76,7 @@ func TestConditionalAction(t *testing.T) {
 	t.Run("performs the task when the question matches the resolution", func(t *testing.T) {
 		reset()
 		question := fixture.NewFakeQuestion("the status code", 200)
-		require.NoError(t, adam.AttemptsTo(action.Conditionally(doTask).IfThe(question, isEqualTo(200))))
+		require.NoError(t, adam.AttemptsTo(action.Conditionally(doTask).IfThe(question).HappensTo(be.EqualTo(200))))
 		assert.Equal(t, []string{"do the task"}, record)
 	})
 
@@ -92,7 +85,9 @@ func TestConditionalAction(t *testing.T) {
 		question := fixture.NewFakeQuestion("the status code", 500)
 		require.NoError(
 			t,
-			adam.AttemptsTo(action.Conditionally(doTask).IfThe(question, isEqualTo(200)).Otherwise(doTheAlternative)),
+			adam.AttemptsTo(
+				action.Conditionally(doTask).IfThe(question).HappensTo(be.EqualTo(200)).Otherwise(doTheAlternative),
+			),
 		)
 		assert.Equal(t, []string{"do the alternative"}, record)
 	})
@@ -102,24 +97,8 @@ func TestConditionalAction(t *testing.T) {
 		question := fixture.NewFailingFakeQuestion[int]("the status code", assert.AnError)
 		require.ErrorIs(
 			t,
-			adam.AttemptsTo(action.Conditionally(doTask).IfThe(question, isEqualTo(200)).Otherwise(doTheAlternative)),
-			assert.AnError,
-		)
-		assert.Equal(t, []string{}, record)
-	})
-
-	t.Run("returns the error when the resolution matcher fails", func(t *testing.T) {
-		reset()
-		question := fixture.NewFakeQuestion("the status code", 200)
-		failingResolution := resolution.FromFunc("valid", func() screenplay.Matcher {
-			return func(_ any) (bool, error) {
-				return false, assert.AnError
-			}
-		})
-		require.ErrorIs(
-			t,
 			adam.AttemptsTo(
-				action.Conditionally(doTask).IfThe(question, failingResolution).Otherwise(doTheAlternative),
+				action.Conditionally(doTask).IfThe(question).HappensTo(be.EqualTo(200)).Otherwise(doTheAlternative),
 			),
 			assert.AnError,
 		)
@@ -129,7 +108,7 @@ func TestConditionalAction(t *testing.T) {
 	t.Run("negates the question/resolution condition with UnlessThe", func(t *testing.T) {
 		reset()
 		question := fixture.NewFakeQuestion("the status code", 500)
-		require.NoError(t, adam.AttemptsTo(action.Conditionally(doTask).UnlessThe(question, isEqualTo(200))))
+		require.NoError(t, adam.AttemptsTo(action.Conditionally(doTask).UnlessThe(question).HappensTo(be.EqualTo(200))))
 		assert.Equal(t, []string{"do the task"}, record)
 
 		reset()
@@ -137,10 +116,35 @@ func TestConditionalAction(t *testing.T) {
 		require.NoError(
 			t,
 			adam.AttemptsTo(
-				action.Conditionally(doTask).UnlessThe(matching, isEqualTo(200)).Otherwise(doTheAlternative),
+				action.Conditionally(doTask).UnlessThe(matching).HappensTo(be.EqualTo(200)).Otherwise(doTheAlternative),
 			),
 		)
 		assert.Equal(t, []string{"do the alternative"}, record)
+	})
+
+	t.Run("fails when the condition is built wrongly, whatever its polarity", func(t *testing.T) {
+		question := fixture.NewFakeQuestion("the status code", 200)
+		broken := be.Between(300, 200)
+
+		for _, conditional := range []screenplay.Performable{
+			action.Conditionally(doTask).IfThe(question).HappensTo().Otherwise(doTheAlternative),
+			action.Conditionally(doTask).UnlessThe(question).HappensTo().Otherwise(doTheAlternative),
+			action.Conditionally(doTask).IfThe(question).DoesNotHappenTo(nil).Otherwise(doTheAlternative),
+		} {
+			reset()
+			require.ErrorIs(t, adam.AttemptsTo(conditional), term.ErrInvalidTerm)
+			assert.Equal(t, []string{}, record)
+		}
+
+		for _, conditional := range []screenplay.Performable{
+			action.Conditionally(doTask).IfThe(question).HappensTo(broken).Otherwise(doTheAlternative),
+			action.Conditionally(doTask).IfThe(question).DoesNotHappenTo(broken).Otherwise(doTheAlternative),
+			action.Conditionally(doTask).UnlessThe(question).HappensTo(broken).Otherwise(doTheAlternative),
+		} {
+			reset()
+			require.ErrorIs(t, adam.AttemptsTo(conditional), screenplay.ErrInvalidResolution)
+			assert.Equal(t, []string{}, record)
+		}
 	})
 
 	t.Run("returns the error from the performed task", func(t *testing.T) {
@@ -159,17 +163,34 @@ func TestConditionalAction(t *testing.T) {
 		question := fixture.NewFakeQuestion("status code", 200)
 
 		booleanAction := action.Conditionally(doTask).If(true)
-		assert.Equal(t, "do the task if the condition holds", booleanAction.String())
+		assert.Equal(t, "conditionally do the task if the condition holds", booleanAction.String())
 
-		questionAction := action.Conditionally(doTask).IfThe(question, isEqualTo(200)).Otherwise(doTheAlternative)
+		questionAction := action.Conditionally(doTask).
+			IfThe(question).
+			HappensTo(be.EqualTo(200)).
+			Otherwise(doTheAlternative)
 		assert.Equal(
 			t,
-			"do the task if the status code is equal to the expected value, otherwise do the alternative",
+			"conditionally do the task if the status code happens to be equal to 200, otherwise do the alternative",
 			questionAction.String(),
 		)
 
-		negatedAction := action.Conditionally(doTask).UnlessThe(question, isEqualTo(200))
-		assert.Equal(t, "do the task if the status code is not equal to the expected value", negatedAction.String())
+		negatedAction := action.Conditionally(doTask).UnlessThe(question).HappensTo(be.EqualTo(200))
+
+		withAnotherVerb := action.Conditionally(doTask).
+			IfThe(question).
+			DoesNotHappenTo(be.AtLeast(400), be.LessThan(200))
+		assert.Equal(
+			t,
+			"conditionally do the task if the status code does not happen to be at least 400, nor be less than 200",
+			withAnotherVerb.String(),
+		)
+
+		assert.Equal(
+			t,
+			"conditionally do the task unless the status code happens to be equal to 200",
+			negatedAction.String(),
+		)
 	})
 
 	t.Run("support alternative wordings", func(t *testing.T) {
@@ -182,8 +203,8 @@ func TestConditionalAction(t *testing.T) {
 		)
 		assert.Equal(
 			t,
-			action.Conditionally(doTask).IfThe(question, isEqualTo(200)).String(),
-			action.Conditionally(doTask).WhenThe(question, isEqualTo(200)).String(),
+			action.Conditionally(doTask).IfThe(question).HappensTo(be.EqualTo(200)).String(),
+			action.Conditionally(doTask).WhenThe(question).HappensTo(be.EqualTo(200)).String(),
 		)
 
 		reset()

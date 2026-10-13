@@ -13,6 +13,8 @@ First, let's give credits, where credits is due. This package takes some inspira
 - Implementation of the *Screenplay* Pattern in Golang.
 - Utilities to use *Given-When-Then* instruction in tests.
 - Natural-language-enabling syntactic sugar
+- Questions and resolutions typed with generics: an assertion that cannot hold does not compile.
+- Assertions that read as English sentences, and that report failures in the same words.
 
 ## Installation
 
@@ -70,7 +72,7 @@ When using the Screenplay Pattern, the test code is usually organized as follows
 In this section we go into more details about the different pieces of the Screenplay Pattern.
 
 ### Actor
-The actor represents a user of your application. It is the glue to acts on actions, questions, and Resolution.
+The actor represents a user of your application. It is the glue that acts on actions, questions, and resolutions.
 An actor is typically named to give some context about his role. This is also very useful when multiple actors
 are expected to interact with the application for a given scenario to differentiate them.
 
@@ -320,28 +322,41 @@ statusCode, err := theActor.AsksFor(StatusCode()) // StatusCode() is a Question[
 A question that is only known at runtime, or that legitimately answers with values of
 different types, is simply a `Question[any]`.
 
-The resolution is a struct that implements the following interface
+The resolution is a struct that implements the following generic interface, where `T` is
+the type of the values it inspects:
 ```go
-type Matcher func(obj any) (bool, error)
-
-type Resolution interface {
-	Resolve() Matcher
+type Resolution[T any] interface {
+	Inspect(value T) error
 	String() string
 }
 ```
-As we can see here the resolution acts as a factory to instantiate a `Matcher`.
-`Matcher` receives any type of objects and return `true` if that object
-fulfills the expectation(s).
+`Inspect` receives a value of type `T` and returns `nil` if that value fulfills the
+expectation, and an error explaining why if it does not. `String` describes the expectation.
+It is written to follow the word "should": `be.EqualTo(200)` describes itself as
+`be equal to 200`.
 
-As mentioned before questions and resolutions works together: the actor asks a question to
-retrieve an answer (i.e., a value of a given type) which is then asserted using the resolution.
+As mentioned before questions and resolutions work together: the actor asks a question to
+retrieve an answer (i.e., a value of a given type) which is then inspected using the resolution.
+The two are joined by a verb such as `Should` or `ShouldNot`, and their types must agree —
+`see.The(question)` accepts a `Resolution[T]` when the question is a `Question[T]` — so pairing
+a question with a resolution that cannot inspect its answer is a compile-time error rather
+than a failed test:
+```go
+see.The(StatusCode()).Should(be.EqualTo(200))            // Question[int] with Resolution[int]
+see.The(StatusCode()).Should(contain.Substring("OK"))    // does not compile: Resolution[string]
+```
 
 Note that the resolution provides both which assertion is performed and the expected value.
 For example, if we have a question `TitleOfThePage` that returns the title of an HTML page,
 and a resolution that checks that the value is equal to "Some great title", then we can use
 the action `see.The` to perform our test.
 ```go
-err := theActor.Should(see.The(Text.OfThe(TitleOfThePage)).Is(equal.To("Some great title")))
+err := theActor.Should(see.The(Text.OfThe(TitleOfThePage)).Should(be.EqualTo("Some great title")))
+```
+This reads as *"the actor should see the text of the title of the page should be equal to
+Some great title"*, and the same sentence is what the actor narrates and what a failure reports:
+```
+Adam failed to see that the title of the page should be equal to "Some great title": got "Some title"
 ```
 
 ## Usage
@@ -357,8 +372,8 @@ err := theActor.Will(Stop())
 ```
 You can also make the execution stop until some resolution is valid:
 ```go
-err := theActor.Will(Stop().UntilThe(HomePage, contain.TheText("Hello World!")))
-err := theActor.Will(Stop().UntilThe(CashAccount.Balance(), equal.To(2000)))
+err := theActor.Will(Stop().UntilThe(HomePage).HappensTo(contain.Substring("Hello World!")))
+err := theActor.Will(Stop().UntilThe(CashAccount.Balance()).HappensTo(be.EqualTo(2000)))
 ```
 
 You may also want to pause the execution for a given number of milliseconds or seconds:
@@ -370,7 +385,7 @@ However, if you need to wait until something happens, you may want to use `Stop`
 
 Finally, if you expect an action to fail repeatedly until finally it succeeds, you should use `Eventually`.
 ```go
-err := adam.Should(Eventually(see.The(Text.OfThe(PageTitle)).Does(ContainsTheText("Hello World!"))))
+err := adam.Should(Eventually(see.The(Text.OfThe(PageTitle)).Should(contain.Substring("Hello World!"))))
 err := adam.AttemptsTo(Eventually(Click.OnThe(SaveButton)).TryingEvery(100).Milliseconds())
 err := adam.WasAbleTo(Eventually(CancelTheOrder).TryingFor(5).Seconds().PollingEvery(500).Milliseconds())
 ```
@@ -410,13 +425,14 @@ hierarchical narrative of what is happening — an idea borrowed from
 Wanda attempts to request the list of birds
     Wanda attempts to set the header 'Accept' to 'application/json'
     Wanda attempts to send a GET request to /birds
+Wanda should see that the status code should be equal to 200
 Wanda asks for the status code of the last response
     => 200
 ```
 Each line is the name of the actor, the words of the method you called (`AttemptsTo`,
 `WasAbleTo`, `Should`, ...), and the description of the action. An action therefore
 describes itself in the infinitive, so that it reads after any of them: "send a GET request
-to /birds", "see if the status code is equal to 200".
+to /birds", "see that the status code should be equal to 200".
 
 Narration is **backend independent**: the library does not force a logging
 library on you. It exposes a small `screenplay.Adapter` interface and ships two
@@ -566,7 +582,7 @@ not a `T`. Because it is a question, the remembered value can be checked with `s
 waited for with `Eventually`, asked for with a typed answer, or passed anywhere a question
 is expected:
 ```go
-err := theActor.Should(see.The(question.Recalled[int]("statusCode")).Is(equal.To(200)))
+err := theActor.Should(see.The(question.Recalled[int]("statusCode")).Should(be.EqualTo(200)))
 statusCode, err := theActor.AsksFor(question.Recalled[int]("statusCode"))
 ```
 
@@ -689,51 +705,55 @@ theActor.AttemptsTo(
 		Otherwise(GuessTheContentType()),
 )
 ```
-The condition can be either a **boolean expression** (`If`, or its alias `When`) or a
-**question and a resolution** (`IfThe`, or its alias `WhenThe`) — the screenplay-native
-condition also used by `see.The`:
+The condition can be either a **boolean expression** (`If`, or its alias `When`) or
+**what the answer to a question happens to be** (`IfThe`, or its alias `WhenThe`) — the
+screenplay-native condition, closed by a verb and one or more resolutions:
 ```go
 theActor.AttemptsTo(
-	Conditionally(AddHeader("content-type", "application/json")).
-		IfThe(HostName, KnownBy(theActor)).
-		Otherwise(GuessTheContentType()),
+	Conditionally(RetryTheRequest()).
+		IfThe(StatusCode).HappensTo(be.AtLeast(500)).
+		Otherwise(ReadTheResponse()),
 )
 ```
+This reads as *"conditionally retry the request if the status code happens to be at least
+500, otherwise read the response"*, which is also what the actor narrates. See
+[The verbs of a condition](#the-verbs-of-a-condition) for the full list.
 Both forms have a negation, `Unless` and `UnlessThe`:
 ```go
 theActor.AttemptsTo(Conditionally(Log(TheLastResponse)).Unless(response.IsOK()))
-theActor.AttemptsTo(Conditionally(Retry()).UnlessThe(StatusCode, equal.To(200)))
+theActor.AttemptsTo(Conditionally(LogTheResponse()).UnlessThe(StatusCode).HappensTo(be.EqualTo(200)))
 ```
 The `Otherwise` branch is optional. When it is omitted and the condition does not hold,
 the actor does nothing and no error is returned. A boolean condition is evaluated
-eagerly (where it is written); use the question/resolution form when the condition must
+eagerly (where it is written); use the question form when the condition must
 be evaluated at the moment the action is performed.
 
 #### Choosing one action out of many
 `Choose` is the multi-way generalization of `Conditionally`: it performs the first branch
 whose condition holds. Each branch is a `To(action)` closed by its condition — `When` for
-a boolean, `WhenThe` for a question and a resolution (the multi-way `If`/`IfThe`) — and
-the fallback is a `To(action)` closed by `Otherwise()`:
+a boolean, `WhenThe` for what the answer to a question happens to be (the multi-way
+`If`/`IfThe`) — and the fallback is a `To(action)` closed by `Otherwise()`:
 ```go
 theActor.AttemptsTo(
 	Choose().
-		To(Log("success")).WhenThe(StatusCode, equal.To(200)).
-		To(FollowTheRedirect()).WhenThe(StatusCode, equal.To(404)).
+		To(Log("success")).WhenThe(StatusCode).HappensTo(be.EqualTo(200)).
+		To(FollowTheRedirect()).WhenThe(StatusCode).HappensTo(be.EqualTo(404)).
 		To(RetryTheRequest()).When(retriesLeft > 0).
 		To(AbortTheRequest()).Otherwise(),
 )
 ```
-This reads as *"choose to log success when the status code is equal to 200, to follow the
-redirect when it is equal to 404, to retry the request when …, or to abort the request
-otherwise"*. Only the first matching branch runs; there is no fall-through.
+This reads as *"choose to log success when the status code happens to be equal to 200, to
+follow the redirect when the status code happens to be equal to 404, to retry the request
+when …, or to abort the request otherwise"*. Only the first matching branch runs; there is no fall-through.
 
 When every branch switches on the **same** value, `ChooseBasedOnThe` names the question
-once and answers it a single time, taking a bare resolution per branch:
+once and answers it a single time. Each branch is then closed by `WhenIt()` and a verb:
 ```go
 theActor.AttemptsTo(
 	ChooseBasedOnThe(StatusCode).
-		To(Log("success")).When(equal.To(200)).
-		To(FollowTheRedirect()).When(equal.To(404)).
+		To(Log("success")).WhenIt().HappensTo(be.EqualTo(200)).
+		To(FollowTheRedirect()).WhenIt().HappensToBeAnyOf(be.EqualTo(301), be.EqualTo(302)).
+		To(RetryTheRequest()).WhenIt().HappensTo(be.AtLeast(500)).
 		To(AbortTheRequest()).Otherwise(),
 )
 ```
@@ -745,67 +765,186 @@ branch's question is never asked.
 #### Observing things
 The simplest way to ask a question is to use the action `see`.
 ```go
-err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(start.With("Hello")))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Should(start.With("Hello")))
 ```
+A verb takes one or more resolutions, so you can check several things about the same
+question in one sentence:
+```go
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Should(
+			start.With("Hello"),
+			end.With("World!")))
+```
+
+It is possible to check several questions at once, even when they answer with different
+types. Each check is a *term*, built with `term.That` and closed by a verb, and the actor
+sees whether all, at least one, or none of the terms are met:
+```go
+err := theActor.Should(see.AllOfTheseMet(
+			term.That(profilWidget).Should(contain.Substring("Adam")),
+			term.That(StatusCode()).Should(be.EqualTo(200))))
+err := theActor.Should(see.AtLeastOneOfTheseMet(
+			term.That(profilWidget).Should(contain.Substring("Adam")),
+			term.That(loginForm).Should(contain.Substring("Login"))))
+err := theActor.Should(see.NoneOfTheseMet(
+			term.That(profilWidget).Should(contain.Substring("error")),
+			term.That(StatusCode()).Should(be.EqualTo(500))))
+```
+A term captures the answer type of its question when it is built, so a resolution of
+another type does not compile, and no type assertion is needed anywhere:
+```go
+term.That(StatusCode()).Should(contain.Substring("OK")) // does not compile: Resolution[string]
+```
+`see.AllOfTheseMet` checks the terms in order and stops at the first one that is not met.
+`see.AtLeastOneOfTheseMet` stops at the first one that is met. `see.NoneOfTheseMet` fails
+when a question cannot be answered, because a term that could not be checked is not known
+to be unmet.
+
+When the questions share the same answer type and the same expectation, you can check that
+all, any, or none of them satisfy it without repeating yourself:
+```go
+err := theActor.Should(see.ThatAllOfThe(profilWidget, loginForm).Should(contain.Substring("Adam")))
+err := theActor.Should(see.ThatAnyOfThe(profilWidget, loginForm).Should(contain.Substring("Adam")))
+err := theActor.Should(see.ThatNoneOfThe(profilWidget, loginForm).Should(contain.Substring("Adam")))
+```
+The questions handed to `ThatAllOfThe`, `ThatAnyOfThe`, and `ThatNoneOfThe` must share
+the same answer type (here, both widgets answer with a `string`).
+
+#### Choosing the verb, and negating
+`see.The(question)` returns a builder on which you pick the verb that makes the assertion
+read as plain English. The verb sets the narration and the polarity, and each family of
+resolutions is written to read after one of them:
+
+| Verb | Reads | Takes | Holds when |
+| --- | --- | --- | --- |
+| `Should` | should … | `be`, `contain`, `match`, `start`, `end` | every resolution holds |
+| `ShouldBe` | should be … | complements such as "a valid order id" | every resolution holds |
+| `ShouldHave` | should have … | `length` | every resolution holds |
+| `ShouldNot` | should not … | same as `Should` | no resolution holds |
+| `ShouldNotBe` | should not be … | same as `ShouldBe` | no resolution holds |
+| `ShouldNotHave` | should not have … | same as `ShouldHave` | no resolution holds |
+| `ShouldAnyOf` | should be any of: … | `be` | at least one resolution holds |
+
+```go
+err := theActor.Should(see.The(PageTitle).Should(be.EqualTo("Welcome")))
+err := theActor.Should(see.The(TheResponse).ShouldNot(contain.Substring("error")))
+err := theActor.Should(see.The(TheItems).ShouldHave(length.AtLeast[[]Item](1)))
+err := theActor.Should(see.The(StatusCode()).ShouldAnyOf(be.EqualTo(200), be.EqualTo(201)))
+```
+The negated verbs simply invert the resolution's outcome, so the same resolution is used
+for both the positive and the negative assertion — there are no separate "not" resolutions.
+An assertion still fails, whatever its verb, when the question itself cannot be answered.
+
+The same verbs close the terms built with `term.That`.
+
+#### The verbs of a condition
+"Should" states an expectation, so it does not read well in a condition, which states a
+fact: nobody says "if the status code should be at least 500". The sentences that state a
+fact — `Conditionally(...).IfThe`, `WhenThe` and `UnlessThe`, `Choose().WhenThe`,
+`ChooseBasedOnThe(...).WhenIt`, and `Stop().UntilThe` — are closed by the "happens to"
+verbs. They take the same resolutions as the "should" verbs, and each has a singular and a
+plural form so that the sentence agrees with its subject:
+
+| Singular | Plural | Holds when |
+| --- | --- | --- |
+| `HappensTo` | `HappenTo` | every resolution holds |
+| `HappensToBe` | `HappenToBe` | every resolution holds |
+| `HappensToHave` | `HappenToHave` | every resolution holds |
+| `DoesNotHappenTo` | `DoNotHappenTo` | no resolution holds |
+| `DoesNotHappenToBe` | `DoNotHappenToBe` | no resolution holds |
+| `DoesNotHappenToHave` | `DoNotHappenToHave` | no resolution holds |
+| `HappensToBeAnyOf` | `HappenToBeAnyOf` | at least one resolution holds |
+
+```go
+theActor.AttemptsTo(Conditionally(RetryTheRequest()).IfThe(StatusCode).HappensTo(be.AtLeast(500)))
+theActor.AttemptsTo(Conditionally(AskForANewPassword()).IfThe(Password).DoesNotHappenToHave(length.AtLeast[string](12)))
+theActor.AttemptsTo(Stop().UntilThe(Logs).HappenTo(contain.Substring("ready")))
+```
+These read *"if the status code happens to be at least 500"*, *"if the password does not
+happen to have length at least 12"* and *"stop until the logs happen to contain substring
+ready"*. `ChooseBasedOnThe(...).WhenIt()` only offers the singular forms, because its
+subject is "it".
 
 #### Checking texts
 You can check if a text starts with, ends with, or contains a string:
 ```go
-err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(start.With("Hello")))
-err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(end.With("World!")))
-err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(contain.TheText("lo Wor")))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Should(start.With("Hello")))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Should(end.With("World!")))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Should(contain.Substring("lo Wor")))
 ```
 
 You can check if a slice of bytes contains another slice of bytes:
 ```go
-err := theActor.Should(see.The(BytesOfThe(LastResponse)).Does(contain.TheBytes([]byte("lo Wor"))))
+err := theActor.Should(see.The(BytesOfThe(LastResponse)).Should(contain.TheBytes([]byte("lo Wor"))))
 ```
 
 You can match a text exactly:
 ```go
-err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(read.Exactly("Hello World!")))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Should(be.EqualTo("Hello World!")))
 ```
 
 You can use regex to match a text:
 ```go
-err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(match.TheRegexString(`^Hello \w+`)))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Should(match.PatternString(`^Hello \w+`)))
 pattern := regexp.MustCompile(`^Hello \w+`)
-err := theActor.Should(see.The(Text.OfThe(PageTitle)).Does(match.TheRegex(pattern))
+err := theActor.Should(see.The(Text.OfThe(PageTitle)).Should(match.Pattern(pattern)))
 ```
 
 #### Checking numbers
 You can assess the value of numbers as follows:
 ```go
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(equal.To(0)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(less.Than(1)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(less.ThanOrEqualTo(1)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(greater.Than(1)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(greater.ThanOrEqualTo(1)))
-delta := 25
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(at.Most(delta).AwayFrom(101)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Is(in.Range(1, 5)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.EqualTo(0)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.LessThan(1)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.AtMost(1)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.GreaterThan(1)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.AtLeast(1)))
+tolerance := 25.0
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.CloseTo(101, tolerance)))
+err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.Between(1, 5)))
 ```
+`be.EqualTo` is exact on the type: a question answering with an `int64` needs
+`be.EqualTo(int64(200))`. Use `be.Zero[T]()` to check that a value equals its zero value
+(a `false` boolean, the number zero, an empty string, ...), and `be.True()` and `be.False()`
+for a question answering with a boolean.
 
 #### Checking collections
 There are a couple of collection types in Golang such as slices and maps.
 
+The resolutions that inspect a collection are typed by its elements, so the compiler knows
+which questions they pair with and nothing is checked by reflection at run time.
+
 There exists a couple of resolutions to check slices:
 ```go
-err := theActor.Should(see.The(List.OfAll(items.InThe(TodoList))).Is(empty.Collection()))
-err := theActor.Should(see.The(items.InThe(TodoList)).Does(contain.TheItem("Add tests for the Go package")))
-err := theActor.Should(see.The(items.InThe(TodoList)).Has(length.Of(5)))
-err := theActor.Should(see.The(Text.OfAll(items.InThe(TodoList))).Does(contain.TheItem("by the end of the year")))
+err := theActor.Should(see.The(items.InThe(TodoList)).Should(contain.Element("Add tests for the Go package")))
+err := theActor.Should(see.The(items.InThe(TodoList)).Should(be.DeepEqualTo([]string{"Write code", "Add tests"})))
+err := theActor.Should(see.The(items.InThe(TodoList)).Should(be.Empty[[]string]()))
+err := theActor.Should(see.The(items.InThe(TodoList)).ShouldHave(length.Exactly[[]string](5)))
+err := theActor.Should(see.The(items.InThe(TodoList)).ShouldHave(length.Between[[]string](1, 5)))
+err := theActor.Should(see.The(Text.OfAll(items.InThe(TodoList))).Should(contain.TheItemMatching(pattern)))
 ```
-Use `empty.Collection()` to check that a channel, map, slice, array or string holds no element, and
-`empty.Value()` to check that a value equals its zero value (a `false` boolean, the number zero, a
-struct whose fields are all zero, ...).
+`contain.Element("...")` is a resolution on a `[]string`: the type of the slice is inferred
+from the element. Use `be.DeepEqualTo` to compare slices, maps and the structs holding them,
+which Go cannot compare with `==`. The `length` package also provides `length.AtLeast` and
+`length.AtMost`, and works on channels, maps, slices, arrays and strings.
 
 Here are a couple of options to test maps:
 ```go
-err := theActor.Should(see.The(HeadersOf(TheLastResponse)).Does(contain.TheValue("application/json")))
-err := theActor.Should(see.The(HeadersOf(TheLastResponse)).Does(contain.TheKey("Content-Type")))
-err := theActor.Should(see.The(HeadersOf(TheLastResponse)).Does(contain.TheEntry("Content-Type", "application/json")))
+err := theActor.Should(see.The(HeadersOf(TheLastResponse)).Should(contain.Key[string, string]("Content-Type")))
+err := theActor.Should(see.The(HeadersOf(TheLastResponse)).Should(contain.Value[string, string]("application/json")))
+err := theActor.Should(see.The(HeadersOf(TheLastResponse)).Should(
+			contain.Entries(map[string]string{"Content-Type": "application/json"})))
 ```
+Go only infers type arguments from the arguments of a call, never from the question a
+resolution is later paired with. A resolution that does not receive a value of every type
+it needs therefore takes its types explicitly: `contain.Key[string, string]("Content-Type")`
+names the key and value types of the map, and `length.Exactly[[]string](5)` and
+`be.Empty[[]string]()` name the type of the collection. The other resolutions need no type
+argument: `be.EqualTo`, `be.GreaterThan`, `be.Between`, `contain.Element` and
+`contain.Entries` take their type from the value they are built with, and
+`contain.Substring`, `start.With`, `end.With`, and `match.Pattern` inspect a `string`
+(`contain.TheBytes` a `[]byte`).
+
+A named slice type such as `type Names []string` is a different type from `[]string`, so a
+question that should pair with these resolutions answers with a plain slice or map.
 
 When a question answers with a slice, you may want to assert against a single element of it
 rather than the whole collection. The `first` and `last` questions wrap a question answering
@@ -813,8 +952,8 @@ with a slice and answer with, respectively, its first and last element — typed
 element of the slice, so `last.Of(Responses())` answers with a `*HTTPResponse` when
 `Responses()` answers with a `[]*HTTPResponse`:
 ```go
-err := theActor.Should(see.The(first.Of(items.InThe(TodoList))).Does(read.Exactly("Add tests for the Go package")))
-err := theActor.Should(see.The(last.Of(items.InThe(TodoList))).Does(read.Exactly("by the end of the year")))
+err := theActor.Should(see.The(first.Of(items.InThe(TodoList))).Should(be.EqualTo("Add tests for the Go package")))
+err := theActor.Should(see.The(last.Of(items.InThe(TodoList))).Should(be.EqualTo("by the end of the year")))
 ```
 Wrapping a question that does not answer with a slice is a compile-time error. Both fail
 with `ErrAnswerIsEmpty` if the wrapped question answers with an empty slice.
@@ -825,9 +964,9 @@ with, respectively, the `Body`, `Data`, and `Header` field of the struct it retu
 express "a struct with a `Body` field" as a constraint, so the type of the field is given as the
 first type argument while the type of the wrapped question is inferred:
 ```go
-err := theActor.Should(see.The(body.Of[string](TheLastResponse)).Is(equal.To("created")))
-err := theActor.Should(see.The(data.Of[string](last.Of(NATSMessages))).Is(equal.To("payload")))
-err := theActor.Should(see.The(header.Of[string](last.Of(HTTPResponses))).Is(equal.To("application/json")))
+err := theActor.Should(see.The(body.Of[string](TheLastResponse)).Should(be.EqualTo("created")))
+err := theActor.Should(see.The(data.Of[string](last.Of(NATSMessages))).Should(be.EqualTo("payload")))
+err := theActor.Should(see.The(header.Of[string](last.Of(HTTPResponses))).Should(be.EqualTo("application/json")))
 body, err := theActor.AsksFor(body.Of[string](TheLastResponse)) // body is a string
 ```
 Use `body.Of[any](...)` when the field may be of any type. They fail with `ErrAnswerIsNotAStruct`
@@ -839,56 +978,104 @@ When a question answers with a slice or a map, you may want to assert against th
 elements it contains. The `number` question wraps another question and answers with the count
 of elements in the slice or map it returns:
 ```go
-err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Is(equal.To(2)))
+err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Should(be.EqualTo(2)))
 ```
 It answers with an `int` and fails with `ErrAnswerIsNotACollection` if the wrapped question does
 not answer with a slice or a map.
 
-#### Choosing the verb, and negating
-`see.The(question)` returns a builder on which you pick the verb — and its negation — that
-makes the assertion read as plain English. Every verb has a positive and a negated method:
-`Is`/`IsNot`, `Are`/`AreNot`, `Does`/`DoesNot`, `Do`/`DoNot`, `Has`/`HasNot`, `Have`/`HaveNot`,
-`Had`/`HadNot`, `Was`/`WasNot`, `Were`/`WereNot`.
+#### Mistakes in a test never panic
+A sentence or a resolution can be written wrongly: a verb without a resolution, a pattern
+that does not compile, a lower bound greater than the upper one. The library never panics
+on such a mistake. Building always succeeds, and the mistake is reported as an error when
+the actor performs the action, so it fails the test like any other failure and points at
+what is wrong:
 ```go
-err := theActor.Should(see.The(PageTitle).Is(Visible()))
-err := theActor.Should(see.The(PageTitle).IsNot(Visible()))
-err := theActor.Should(see.The(TheResponse).DoesNot(contain.TheText("error")))
-err := theActor.Should(see.The(TheItems).AreNot(empty.Collection()))
+err := theActor.Should(see.The(OrderID()).Should(match.PatternString("A-(")))
+// invalid resolution "match pattern `A-(`": error parsing regexp: missing closing ): `A-(`
+
+err := theActor.Should(see.The(StatusCode()).Should())
+// invalid term: Should needs at least one resolution
 ```
-The negated methods simply invert the resolution's outcome, so the same resolution is used
-for both the positive and the negative assertion — there are no separate "not" resolutions.
+Two errors tell a mistake in the test apart from an expectation that is not met. You can
+check for them with `errors.Is`:
+
+| Error | Reported when |
+| --- | --- |
+| `screenplay.ErrInvalidResolution` | a resolution was built wrongly: `match.PatternString("A-(")`, `match.Pattern(nil)`, `be.Between(10, 1)`, `be.CloseTo(3.0, -0.1)`, `be.Empty[int]()`, `length.Exactly[int](1)`, `length.Exactly[string](-1)`, `resolution.FromFunc[int]("...", nil)` |
+| `term.ErrInvalidTerm` | a sentence was built wrongly: a verb without a resolution, a `nil` resolution, a `nil` question, or a `nil` term |
+
+A mistake fails the action **whatever the verb**. This matters for the negative verbs: an
+error returned by a resolution normally means "not satisfied", which `ShouldNot` turns into
+a success. A resolution that was built wrongly checked nothing, so it must not pass:
+```go
+broken := match.PatternString("A-(")
+
+err := theActor.Should(see.The(OrderID()).Should(broken))    // fails: invalid resolution
+err := theActor.Should(see.The(OrderID()).ShouldNot(broken)) // fails too: nothing was checked
+```
+The same holds everywhere a question meets a resolution. `see.AllOfTheseMet`,
+`see.AtLeastOneOfTheseMet` and `see.NoneOfTheseMet` report a wrongly built term before
+judging any of them, `Conditionally` and `Choose` perform no branch, and `Stop().UntilThe`
+fails at once rather than waiting for its timeout.
+
+A resolution of your own reports that it was built wrongly the same way: its `Inspect`
+returns an error wrapping `screenplay.ErrInvalidResolution`. Any other error means that the
+value does not satisfy the resolution:
+```go
+func Matching(pattern string) screenplay.Resolution[string] {
+	compiled, compileErr := regexp.Compile(pattern)
+
+	return resolution.FromFunc("match pattern "+pattern, func(text string) error {
+		if compileErr != nil {
+			return fmt.Errorf("%w: %w", screenplay.ErrInvalidResolution, compileErr) // a mistake: every verb fails
+		}
+
+		if !compiled.MatchString(text) {
+			return fmt.Errorf("got %q", text) // not satisfied: ShouldNot passes
+		}
+
+		return nil
+	})
+}
+```
 
 #### Creating an Anonymous Resolution
 It happens sometimes that we need a one-off resolution without creating a dedicated struct.
 We usually do this for simple or ad-hoc assertions that are not worth extracting into a reusable type.
 
-For example, we may want to assert that a value satisfies a custom condition inline:
+For example, we may want to assert that a value satisfies a custom condition inline. Use
+`resolution.FromFunc` with a description and a function that has the signature of `Inspect`:
+it returns `nil` when the value satisfies the resolution, and an error explaining why when it
+does not. The type the resolution inspects is inferred from the function:
 ```go
-isPositive := resolution.FromFunc("is positive", func() screenplay.Matcher {
-	return func(obj any) (bool, error) {
-		n, ok := obj.(int)
-		if !ok {
-			return false, fmt.Errorf("expected an int, got %T", obj)
-		}
-		return n > 0, nil
+positive := resolution.FromFunc("be positive", func(n int) error {
+	if n <= 0 {
+		return fmt.Errorf("got %d", n)
 	}
+
+	return nil
 })
 ```
 You can also wrap the call in a function to add parameters:
 ```go
-func EqualTo(expected any) screenplay.Resolution {
-	return resolution.FromFunc(fmt.Sprintf("is equal to %v", expected), func() screenplay.Matcher {
-		return func(obj any) (bool, error) {
-			return obj == expected, nil
+func DivisibleBy(divisor int) screenplay.Resolution[int] {
+	return resolution.FromFunc(fmt.Sprintf("be divisible by %d", divisor), func(value int) error {
+		if value%divisor != 0 {
+			return fmt.Errorf("got %d", value)
 		}
+
+		return nil
 	})
 }
 ```
+Write the description so that it reads after the verb you intend to use: `"be positive"`
+after `Should`, `"a valid order id"` after `ShouldBe`, `"three retries left"` after
+`ShouldHave`.
 
-Anonymous resolutions implement the `Resolution` interface just like any other resolution so that an actor
+Anonymous resolutions implement the `Resolution[T]` interface just like any other resolution so that an actor
 can use them the same way:
 ```go
-err := theActor.Should(see.The(CashAccount.Balance()).Is(EqualTo(2000)))
+err := theActor.Should(see.The(CashAccount.Balance()).Should(DivisibleBy(100)))
 ```
 
 #### Working with contexts
@@ -962,9 +1149,9 @@ Here's an example:
 The library provide some functions to reproduce the Gherkin flow in your test:
 ```go
 adam := screenplay.ActorNamed("Adam")
-screenplay.Given(adam).WasAbleTo(see.The(AccountBalance).Is(equal.To(2)))
+screenplay.Given(adam).WasAbleTo(see.The(AccountBalance).Should(be.EqualTo(2)))
 screenplay.When(adam).AttemptsTo(Deposit(100).Dollars())
-screenplay.Then(adam).Should(see.The(AccountBalance).Is(equal.To(102)))
+screenplay.Then(adam).Should(see.The(AccountBalance).Should(be.EqualTo(102)))
 ```
 
 ### Creating your own Performable/Task/Action
@@ -1037,6 +1224,33 @@ for an action that holds a question: make it generic over the answer type, as
 `Remember`, `Log`, and `ChooseBasedOnThe` are, or let a generic function or method capture
 the typed question, as `see.The`, `Conditionally(...).IfThe`, `Choose().WhenThe`, and
 `Stop().UntilThe` do.
+
+### Creating your own Resolution
+The quickest way to create a resolution is `resolution.FromFunc` (see
+[Creating an Anonymous Resolution](#creating-an-anonymous-resolution)). When you write a
+resolution as a struct, declare the type it inspects in its `Inspect` method and let the
+compiler check it implements the interface:
+```go
+type EndingWithResolution struct {
+	suffix string
+}
+
+func (r *EndingWithResolution) Inspect(text string) error {
+	if !strings.HasSuffix(text, r.suffix) {
+		return fmt.Errorf("got %q", text)
+	}
+
+	return nil
+}
+
+func (r *EndingWithResolution) String() string { return fmt.Sprintf("end with %q", r.suffix) }
+
+var _ screenplay.Resolution[string] = (*EndingWithResolution)(nil)
+```
+An error returned by `Inspect` means that the value does not satisfy the resolution, which
+is what lets `ShouldNot` simply invert the outcome. See
+[Mistakes in a test never panic](#mistakes-in-a-test-never-panic) for the one exception: a
+resolution that was built wrongly.
 
 ### Reusable builders (the `timing` package)
 The `timing` package holds small, dependency-free building blocks you can reuse
@@ -1152,7 +1366,7 @@ err := anActor.AttemptsTo(
 	action.AddHeader("Accept", "application/json"),
 	action.SendGetRequest().To("https://api.example.com/birds"),
 )
-err = anActor.Should(see.The(status.CodeOf(last.Of(question.Responses()))).Is(equal.To(200)))
+err = anActor.Should(see.The(status.CodeOf(last.Of(question.Responses()))).Should(be.EqualTo(200)))
 ```
 Highlights: `SendHTTPRequest`/`SendGetRequest`/`SendPostRequest`/… with `.To`,
 `.WithBody`, `.WithAuth`/`.WithCredential` and `.Secretly`; the `AddHeader`,
@@ -1166,7 +1380,7 @@ run commands, type input, and assert on the result:
 anActor := screenplay.ActorNamed("Boby").WhoCan(ability.RunCLICommands())
 
 err := anActor.AttemptsTo(action.RunTheCommand("echo", "Hello World"))
-err = anActor.Should(see.The(standard.OutputOf(last.Of(question.Responses()))).Does(contain.TheText("Hello World")))
+err = anActor.Should(see.The(standard.OutputOf(last.Of(question.Responses()))).Should(contain.TheBytes([]byte("Hello World"))))
 ```
 Highlights: the `RunTheCommand` action (with `.InTheWorkingDirectory` and
 `.Interactively`), the `Type` action, and the `EnvironmentVariableNamed`,
@@ -1180,11 +1394,11 @@ their existence and content:
 anActor := screenplay.ActorNamed("Boby").WhoCan(ability.UseTheFileSystem())
 
 err := anActor.AttemptsTo(action.Create().TheFile("notes.txt").ContainingTheText("Hello World"))
-err = anActor.Should(see.The(question.ContentOfTheFileNamed("notes.txt")).Is(equal.To("Hello World")))
+err = anActor.Should(see.The(question.ContentOfTheFileNamed("notes.txt")).Should(be.DeepEqualTo([]byte("Hello World"))))
 ```
 Highlights: the `Create`, `Remove`, `AppendTheText`/`AppendTheBytes`/`AppendTheContent`,
 `OverwriteTo`, and `ChangeDirectoryTo` actions; the `FileNamed`, `DirectoryNamed`,
-and `ContentOfTheFileNamed` questions; and the `Exists` resolution.
+and `ContentOfTheFileNamed` questions; and the `Exist` resolution.
 
 ## License
 Licensed under MIT License.

@@ -10,29 +10,30 @@ import (
 	"github.com/grandper/go-screenplay/v2/resolution/testdata"
 )
 
-func TestExistsResolution(t *testing.T) {
-	matcher := resolution.Exists()
+func TestExistResolution(t *testing.T) {
+	fileMatcher := resolution.Exist[*question.File]()
+	directoryMatcher := resolution.Exist[*question.Directory]()
 	existingFile := question.CreateFakeExistingFile("existing_file.txt")
 	missingFile := question.CreateFakeMissingFile("missing_file.txt")
 	existingDirectory := question.CreateFakeExistingDirectory("existing_directory")
 	missingDirectory := question.CreateFakeMissingDirectory("missing_directory")
 
-	t.Run("should match the suffix", func(t *testing.T) {
-		testdata.AssertMatch(t, matcher, existingFile)
-		testdata.AssertMatch(t, matcher, existingDirectory)
+	t.Run("matches an existing file or directory", func(t *testing.T) {
+		testdata.AssertMatch(t, fileMatcher, existingFile)
+		testdata.AssertMatch(t, directoryMatcher, existingDirectory)
 	})
 
-	t.Run("fails when the suffix doesn't match", func(t *testing.T) {
-		testdata.AssertNoMatch(t, matcher, missingFile)
-		testdata.AssertNoMatch(t, matcher, missingDirectory)
-		testdata.AssertNoMatch(t, matcher, nil)
+	t.Run("does not match a missing file or directory", func(t *testing.T) {
+		testdata.AssertNoMatch(t, fileMatcher, missingFile)
+		testdata.AssertNoMatch(t, directoryMatcher, missingDirectory)
 	})
 
-	t.Run("returns an error when the value is of the wrong type", func(t *testing.T) {
-		testdata.AssertMatcherFails(t, matcher, 2)
+	t.Run("does not match a nil file or directory", func(t *testing.T) {
+		testdata.AssertNoMatch(t, fileMatcher, nil)
+		testdata.AssertNoMatch(t, directoryMatcher, nil)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		assert.Equal(t, "exists", matcher.String())
+		assert.Equal(t, "exist", fileMatcher.String())
 	})
 }

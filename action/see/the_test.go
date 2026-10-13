@@ -9,9 +9,13 @@ import (
 
 	"github.com/grandper/go-screenplay/v2/action/see"
 	"github.com/grandper/go-screenplay/v2/fixture"
-	"github.com/grandper/go-screenplay/v2/resolution/equal"
+	"github.com/grandper/go-screenplay/v2/resolution/be"
+	"github.com/grandper/go-screenplay/v2/resolution/contain"
+	"github.com/grandper/go-screenplay/v2/resolution/length"
+	"github.com/grandper/go-screenplay/v2/resolution/match"
 	"github.com/grandper/go-screenplay/v2/resolution/testdata"
 	"github.com/grandper/go-screenplay/v2/screenplay"
+	"github.com/grandper/go-screenplay/v2/term"
 )
 
 func TestSeeTheAction(t *testing.T) {
@@ -19,91 +23,128 @@ func TestSeeTheAction(t *testing.T) {
 
 	adam := screenplay.ActorNamed("Adam")
 	formField := fixture.NewFakeQuestion("form field", "hello world")
-	missingFormField := fixture.NewFailingFakeQuestion[string]("form field", errors.New("failed to get the field content"))
-	isEqualButFails := testdata.NewFailingResolution(
-		"equal to hello world",
-		errors.New("failed to match the content of the field"),
-	)
+	errNoField := errors.New("failed to get the field content")
+	missingFormField := fixture.NewFailingFakeQuestion[string]("form field", errNoField)
 
 	t.Run("should see something", func(t *testing.T) {
 		t.Parallel()
-		require.NoError(t, adam.AttemptsTo(see.The(formField).Is(equal.To("hello world"))))
+		require.NoError(t, adam.AttemptsTo(see.The(formField).Should(be.EqualTo("hello world"))))
 	})
 
 	t.Run("fails when there is nothing to see", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, adam.AttemptsTo(see.The(formField).Is(equal.To("hello everybody"))))
+
+		err := adam.AttemptsTo(see.The(formField).Should(be.EqualTo("hello everybody")))
+
+		require.EqualError(t, err,
+			`Adam failed to see that the form field should be equal to "hello everybody": got "hello world"`)
 	})
 
-	t.Run("fails when the actor fails to answer the question", func(t *testing.T) {
+	t.Run("fails with the error of the question when the actor fails to answer it", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, adam.AttemptsTo(see.The(missingFormField).Is(equal.To("hello everybody"))))
+		require.ErrorIs(t,
+			adam.AttemptsTo(see.The(missingFormField).Should(be.EqualTo("hello everybody"))),
+			errNoField,
+		)
 	})
 
-	t.Run("fails when the resolution fails", func(t *testing.T) {
+	t.Run("fails a negation when the actor fails to answer the question", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, adam.AttemptsTo(see.The(formField).Is(isEqualButFails)))
+		require.ErrorIs(t,
+			adam.AttemptsTo(see.The(missingFormField).ShouldNot(be.EqualTo("hello everybody"))),
+			errNoField,
+		)
 	})
 
-	t.Run("sees the negation when the resolution does not match", func(t *testing.T) {
+	t.Run("sees the negation when the resolution is not satisfied", func(t *testing.T) {
 		t.Parallel()
-		require.NoError(t, adam.AttemptsTo(see.The(formField).IsNot(equal.To("hello everybody"))))
+		require.NoError(t, adam.AttemptsTo(see.The(formField).ShouldNot(be.EqualTo("hello everybody"))))
 	})
 
-	t.Run("fails the negation when the resolution matches", func(t *testing.T) {
+	t.Run("fails the negation when the resolution is satisfied", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, adam.AttemptsTo(see.The(formField).IsNot(equal.To("hello world"))))
+		require.Error(t, adam.AttemptsTo(see.The(formField).ShouldNot(be.EqualTo("hello world"))))
 	})
 
-	t.Run("propagates the resolution error through a negation", func(t *testing.T) {
+	t.Run("sees several resolutions about the same question", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, adam.AttemptsTo(see.The(formField).IsNot(isEqualButFails)))
+
+		require.NoError(t, adam.AttemptsTo(see.The(formField).Should(
+			contain.Substring("hello"),
+			contain.Substring("world"),
+		)))
+		require.Error(t, adam.AttemptsTo(see.The(formField).Should(
+			contain.Substring("hello"),
+			contain.Substring("everybody"),
+		)))
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		t.Parallel()
 
-		action := see.The(formField).Is(equal.To("hello world"))
-		assert.Equal(t, "see if the form field is equal to hello world", action.String())
+		action := see.The(formField).Should(be.EqualTo("hello world"))
+		assert.Equal(t, `see that the form field should be equal to "hello world"`, action.String())
 
-		negated := see.The(formField).IsNot(equal.To("hello world"))
-		assert.Equal(t, "see if the form field is not equal to hello world", negated.String())
+		negated := see.The(formField).ShouldNot(be.EqualTo("hello world"))
+		assert.Equal(t, `see that the form field should not be equal to "hello world"`, negated.String())
 	})
 
-	t.Run("supports every verb and its negation", func(t *testing.T) {
+	t.Run("supports every verb", func(t *testing.T) {
 		t.Parallel()
 
-		resolution := equal.To("hello world")
+		anything := testdata.NewFakeResolution[string]("anything", true)
+
 		for _, testCase := range []struct {
-			action *see.TheAction[string]
+			action *see.TheAction
 			reads  string
 			passes bool
 		}{
-			{see.The(formField).Is(resolution), "see if the form field is equal to hello world", true},
-			{see.The(formField).IsNot(resolution), "see if the form field is not equal to hello world", false},
-			{see.The(formField).Are(resolution), "see if the form field are equal to hello world", true},
-			{see.The(formField).AreNot(resolution), "see if the form field are not equal to hello world", false},
-			{see.The(formField).Does(resolution), "see if the form field does equal to hello world", true},
-			{see.The(formField).DoesNot(resolution), "see if the form field does not equal to hello world", false},
-			{see.The(formField).Do(resolution), "see if the form field do equal to hello world", true},
-			{see.The(formField).DoNot(resolution), "see if the form field do not equal to hello world", false},
-			{see.The(formField).Has(resolution), "see if the form field has equal to hello world", true},
-			{see.The(formField).HasNot(resolution), "see if the form field has not equal to hello world", false},
-			{see.The(formField).Have(resolution), "see if the form field have equal to hello world", true},
-			{see.The(formField).HaveNot(resolution), "see if the form field have not equal to hello world", false},
-			{see.The(formField).Had(resolution), "see if the form field had equal to hello world", true},
-			{see.The(formField).HadNot(resolution), "see if the form field had not equal to hello world", false},
-			{see.The(formField).Was(resolution), "see if the form field was equal to hello world", true},
-			{see.The(formField).WasNot(resolution), "see if the form field was not equal to hello world", false},
-			{see.The(formField).Were(resolution), "see if the form field were equal to hello world", true},
-			{see.The(formField).WereNot(resolution), "see if the form field were not equal to hello world", false},
+			{see.The(formField).Should(contain.Substring("hello")),
+				`see that the form field should contain substring "hello"`, true},
+			{see.The(formField).ShouldNot(contain.Substring("hello")),
+				`see that the form field should not contain substring "hello"`, false},
+			{see.The(formField).ShouldBe(anything),
+				"see that the form field should be anything", true},
+			{see.The(formField).ShouldNotBe(anything),
+				"see that the form field should not be anything", false},
+			{see.The(formField).ShouldHave(length.Exactly[string](11)),
+				"see that the form field should have length exactly 11", true},
+			{see.The(formField).ShouldNotHave(length.Exactly[string](11)),
+				"see that the form field should not have length exactly 11", false},
+			{see.The(formField).ShouldAnyOf(be.EqualTo("hello"), be.EqualTo("hello world")),
+				`see that the form field should be any of: equal to "hello", equal to "hello world"`, true},
+			{see.The(formField).ShouldAnyOf(be.EqualTo("hello"), be.EqualTo("world")),
+				`see that the form field should be any of: equal to "hello", equal to "world"`, false},
 		} {
 			assert.Equal(t, testCase.reads, testCase.action.String())
+
 			if testCase.passes {
 				require.NoError(t, adam.AttemptsTo(testCase.action))
 			} else {
 				require.Error(t, adam.AttemptsTo(testCase.action))
 			}
 		}
+	})
+
+	t.Run("fails with an invalid term when the sentence is built wrongly", func(t *testing.T) {
+		t.Parallel()
+
+		require.ErrorIs(t, adam.AttemptsTo(see.The[string](nil).Should(be.EqualTo("hello"))), term.ErrInvalidTerm)
+		require.ErrorIs(t, adam.AttemptsTo(see.The(formField).Should()), term.ErrInvalidTerm)
+		require.ErrorIs(t, adam.AttemptsTo(see.The(formField).ShouldNot()), term.ErrInvalidTerm)
+		require.ErrorIs(t, adam.AttemptsTo(see.The(formField).ShouldNot(nil)), term.ErrInvalidTerm)
+		require.EqualError(t, adam.AttemptsTo(see.The(formField).Should()),
+			"invalid term: Should needs at least one resolution")
+	})
+
+	t.Run("fails with an invalid resolution when a resolution is built wrongly, whatever the verb", func(t *testing.T) {
+		t.Parallel()
+
+		broken := match.PatternString("hello(")
+
+		require.ErrorIs(t, adam.AttemptsTo(see.The(formField).Should(broken)), screenplay.ErrInvalidResolution)
+		require.ErrorIs(t, adam.AttemptsTo(see.The(formField).ShouldNot(broken)), screenplay.ErrInvalidResolution)
+		require.ErrorContains(t, adam.AttemptsTo(see.The(formField).ShouldNot(broken)),
+			"invalid resolution \"match pattern `hello(`\": error parsing regexp")
 	})
 }

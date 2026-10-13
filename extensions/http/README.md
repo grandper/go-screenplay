@@ -15,7 +15,7 @@ The symbols shown below live in the extension's sub-packages:
 | `status` | `github.com/grandper/go-screenplay/v2/extensions/http/question/status` | `CodeOf` |
 
 Assertions are written with the core screenplay packages (`action/see`,
-`resolution/equal`, `resolution/contain`, `question/last`, ...). For readability the
+`resolution/be`, `resolution/contain`, `question/last`, ...). For readability the
 examples below drop the package qualifiers on the extension constructors; import the
 packages above and qualify them as `action.SendGetRequest()`, `ability.MakeHTTPRequests()`,
 and so on (note that the extension's `action`/`question` packages share their name with
@@ -95,14 +95,14 @@ After sending one or more requests, `Responses()` answers with every
 Because it answers with a slice, it composes with the core `first`/`last`/`number`
 questions to focus on a single response:
 ```go
-err := anActor.Should(see.The(number.Of(Responses())).Is(equal.To(2)))
+err := anActor.Should(see.The(number.Of(Responses())).Should(be.EqualTo(2)))
 ```
 
 ### The status code
 `status.CodeOf` wraps a question that answers with an `*HTTPResponse` and answers
 with its status code, so you assert on it like any number:
 ```go
-err := anActor.Should(see.The(status.CodeOf(last.Of(Responses()))).Is(equal.To(200)))
+err := anActor.Should(see.The(status.CodeOf(last.Of(Responses()))).Should(be.EqualTo(200)))
 ```
 
 ### Reading a response directly

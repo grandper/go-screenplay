@@ -2,41 +2,40 @@ package resolution
 
 import (
 	"errors"
+	"reflect"
 
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/question"
+	"github.com/grandper/go-screenplay/v2/resolution"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-var (
-	// ErrInvalidObjectType is returned when the object is not a File.
-	ErrInvalidObjectType = errors.New("invalid object type: expect a File")
-)
+// Exist creates a resolution to tell if a file or a directory exists. N is the
+// type of the value answered by the question, *question.File or
+// *question.Directory; Go cannot infer it from the resolution alone, so it is
+// given explicitly:
+//
+//	see.The(FileNamed("notes.txt")).Should(Exist[*question.File]())
+//
+// A nil node does not exist.
+func Exist[N interface{ Exists() bool }]() screenplay.Resolution[N] {
+	return resolution.FromFunc(
+		"exist",
+		func(node N) error {
+			if isNil(node) || !node.Exists() {
+				return errors.New("it does not exist")
+			}
 
-// Exists is a matcher to tell if a file exists.
-func Exists() *ExistsResolution {
-	return &ExistsResolution{}
+			return nil
+		},
+	)
 }
 
-// ExistsResolution is a matcher to tell if a file exists.
-type ExistsResolution struct{}
-
-// Resolve creates a matcher to make an assertion.
-func (r *ExistsResolution) Resolve() screenplay.Matcher {
-	return func(obj any) (bool, error) {
-		switch value := obj.(type) {
-		case *question.File:
-			return value.Exists(), nil
-		case *question.Directory:
-			return value.Exists(), nil
-		case nil:
-			return false, nil
-		default:
-			return false, ErrInvalidObjectType
-		}
+// isNil reports whether a node is a nil pointer (or a nil interface).
+func isNil(node any) bool {
+	if node == nil {
+		return true
 	}
-}
 
-// String describes the resolution's expectation.
-func (r *ExistsResolution) String() string {
-	return "exists"
+	value := reflect.ValueOf(node)
+
+	return value.Kind() == reflect.Pointer && value.IsNil()
 }

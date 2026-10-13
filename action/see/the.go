@@ -1,156 +1,101 @@
 package see
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/grandper/go-screenplay/v2/internal/sentence"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-// The starts an assertion about the answer to a question. The verb (and its negation) is
-// chosen with a method: Is, IsNot, Are, AreNot, Does, DoesNot, Do, DoNot, Has, HasNot,
-// Have, HaveNot, Had, HadNot, Was, WasNot, Were, WereNot.
-func The[T any](question screenplay.Question[T]) *Assertion[T] {
-	return &Assertion[T]{
+// The starts an assertion about the answer to a question. Close it with a verb
+// and one or more resolutions:
+//
+//	see.The(statusCode).Should(be.EqualTo(200))
+//	see.The(logs).ShouldNot(contain.Substring("panic"))
+//	see.The(customers).ShouldHave(length.Exactly[[]string](2))
+//
+// The resolutions share the answer type of the question, so a mismatch does
+// not compile.
+func The[T any](question screenplay.Question[T]) *TheSubject[T] {
+	return &TheSubject[T]{
 		question: question,
 	}
 }
 
-// Assertion picks the verb and polarity of an assertion about a question's answer.
-type Assertion[T any] struct {
+// TheSubject is the question see.The is about, waiting for its verb.
+type TheSubject[T any] struct {
 	question screenplay.Question[T]
 }
 
-// Is asserts that the answer matches the resolution.
-func (a *Assertion[T]) Is(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("is", false, resolution)
+// Should sees that the answer satisfies every resolution. It reads "should ...".
+func (s *TheSubject[T]) Should(resolutions ...screenplay.Resolution[T]) *TheAction {
+	return s.sees(sentence.Should, resolutions)
 }
 
-// IsNot asserts that the answer does not match the resolution.
-func (a *Assertion[T]) IsNot(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("is not", true, resolution)
+// ShouldBe sees that the answer satisfies every resolution. It reads "should be ...".
+func (s *TheSubject[T]) ShouldBe(resolutions ...screenplay.Resolution[T]) *TheAction {
+	return s.sees(sentence.ShouldBe, resolutions)
 }
 
-// Are asserts that the answer matches the resolution.
-func (a *Assertion[T]) Are(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("are", false, resolution)
+// ShouldHave sees that the answer satisfies every resolution. It reads "should have ...".
+func (s *TheSubject[T]) ShouldHave(resolutions ...screenplay.Resolution[T]) *TheAction {
+	return s.sees(sentence.ShouldHave, resolutions)
 }
 
-// AreNot asserts that the answer does not match the resolution.
-func (a *Assertion[T]) AreNot(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("are not", true, resolution)
+// ShouldNot sees that the answer satisfies none of the resolutions. It reads "should not ...".
+func (s *TheSubject[T]) ShouldNot(resolutions ...screenplay.Resolution[T]) *TheAction {
+	return s.sees(sentence.ShouldNot, resolutions)
 }
 
-// Does asserts that the answer matches the resolution.
-func (a *Assertion[T]) Does(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("does", false, resolution)
+// ShouldNotBe sees that the answer satisfies none of the resolutions. It reads "should not be ...".
+func (s *TheSubject[T]) ShouldNotBe(resolutions ...screenplay.Resolution[T]) *TheAction {
+	return s.sees(sentence.ShouldNotBe, resolutions)
 }
 
-// DoesNot asserts that the answer does not match the resolution.
-func (a *Assertion[T]) DoesNot(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("does not", true, resolution)
+// ShouldNotHave sees that the answer satisfies none of the resolutions. It reads "should not have ...".
+func (s *TheSubject[T]) ShouldNotHave(resolutions ...screenplay.Resolution[T]) *TheAction {
+	return s.sees(sentence.ShouldNotHave, resolutions)
 }
 
-// Do asserts that the answer matches the resolution.
-func (a *Assertion[T]) Do(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("do", false, resolution)
+// ShouldAnyOf sees that the answer satisfies at least one resolution. It reads "should be any of: ...".
+func (s *TheSubject[T]) ShouldAnyOf(resolutions ...screenplay.Resolution[T]) *TheAction {
+	return s.sees(sentence.ShouldAnyOf, resolutions)
 }
 
-// DoNot asserts that the answer does not match the resolution.
-func (a *Assertion[T]) DoNot(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("do not", true, resolution)
+// sees creates the action seeing that the answer satisfies the resolutions.
+func (s *TheSubject[T]) sees(verb sentence.Verb, resolutions []screenplay.Resolution[T]) *TheAction {
+	return newTheAction(sentence.NewTerm(s.question, sentence.NewClause(verb, resolutions)))
 }
 
-// Has asserts that the answer matches the resolution.
-func (a *Assertion[T]) Has(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("has", false, resolution)
-}
-
-// HasNot asserts that the answer does not match the resolution.
-func (a *Assertion[T]) HasNot(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("has not", true, resolution)
-}
-
-// Have asserts that the answer matches the resolution.
-func (a *Assertion[T]) Have(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("have", false, resolution)
-}
-
-// HaveNot asserts that the answer does not match the resolution.
-func (a *Assertion[T]) HaveNot(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("have not", true, resolution)
-}
-
-// Had asserts that the answer matches the resolution.
-func (a *Assertion[T]) Had(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("had", false, resolution)
-}
-
-// HadNot asserts that the answer does not match the resolution.
-func (a *Assertion[T]) HadNot(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("had not", true, resolution)
-}
-
-// Was asserts that the answer matches the resolution.
-func (a *Assertion[T]) Was(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("was", false, resolution)
-}
-
-// WasNot asserts that the answer does not match the resolution.
-func (a *Assertion[T]) WasNot(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("was not", true, resolution)
-}
-
-// Were asserts that the answer matches the resolution.
-func (a *Assertion[T]) Were(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("were", false, resolution)
-}
-
-// WereNot asserts that the answer does not match the resolution.
-func (a *Assertion[T]) WereNot(resolution screenplay.Resolution) *TheAction[T] {
-	return a.check("were not", true, resolution)
-}
-
-func (a *Assertion[T]) check(verb string, negated bool, resolution screenplay.Resolution) *TheAction[T] {
-	return &TheAction[T]{
-		question:   a.question,
-		verb:       verb,
-		negated:    negated,
-		resolution: resolution,
+// newTheAction creates the action seeing that a single term is met.
+func newTheAction(t *sentence.Term) *TheAction {
+	return &TheAction{
+		term: t,
 	}
 }
 
-// TheAction sees whether the answer to a question matches the resolution (or, when negated,
-// does not match it).
-type TheAction[T any] struct {
-	question   screenplay.Question[T]
-	verb       string
-	negated    bool
-	resolution screenplay.Resolution
+// TheAction sees whether a term about the answer to a question is met.
+type TheAction struct {
+	term *sentence.Term
 }
 
 // String describes the action.
-func (a *TheAction[T]) String() string {
-	return fmt.Sprintf("see if the %s %s %s", a.question, a.verb, a.resolution)
+func (a *TheAction) String() string {
+	return "see that " + a.term.String()
 }
 
 // PerformAs performs the task or the action as the provided actor.
-func (a *TheAction[T]) PerformAs(actor *screenplay.Actor) error {
-	value, err := a.question.AnsweredBy(actor)
-	if err != nil {
-		return err
+func (a *TheAction) PerformAs(actor *screenplay.Actor) error {
+	err := a.term.MetBy(actor)
+
+	var unmet *sentence.UnmetError
+	if errors.As(err, &unmet) {
+		return fmt.Errorf("%s failed to see that %w", actor.Name(), err)
 	}
 
-	matched, err := a.resolution.Resolve()(value)
-	if err != nil {
-		return fmt.Errorf("an error occurred when %s attempted to see %s: %w", actor.Name(), a.question, err)
-	}
-
-	if matched == a.negated {
-		return fmt.Errorf("%s failed to see that the %s %s %s", actor.Name(), a.question, a.verb, a.resolution)
-	}
-
-	return nil
+	return err
 }
 
 // TheAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = (*TheAction[any])(nil)
+var _ screenplay.Performable = (*TheAction)(nil)

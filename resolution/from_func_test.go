@@ -12,45 +12,32 @@ import (
 )
 
 func TestFromFunc(t *testing.T) {
-	t.Run("can be created", func(t *testing.T) {
-		t.Run("with a description and a successful matcher", func(t *testing.T) {
-			t.Parallel()
+	t.Parallel()
 
-			res := resolution.FromFunc("value is 42", func() screenplay.Matcher {
-				return func(obj any) (bool, error) {
-					return obj == 42, nil
-				}
-			})
+	t.Run("creates a resolution with a description and an inspect function", func(t *testing.T) {
+		t.Parallel()
 
-			assert.Implements(t, (*screenplay.Resolution)(nil), res)
-			assert.Equal(t, "value is 42", res.String())
+		errNotTheAnswer := errors.New("not the answer")
+		theAnswer := resolution.FromFunc("be the answer", func(value int) error {
+			if value != 42 {
+				return errNotTheAnswer
+			}
 
-			matcher := res.Resolve()
-			ok, err := matcher(42)
-			require.NoError(t, err)
-			assert.True(t, ok)
-
-			ok, err = matcher(0)
-			require.NoError(t, err)
-			assert.False(t, ok)
+			return nil
 		})
 
-		t.Run("with a description and a failing matcher", func(t *testing.T) {
-			t.Parallel()
+		assert.Implements(t, (*screenplay.Resolution[int])(nil), theAnswer)
+		assert.Equal(t, "be the answer", theAnswer.String())
+		require.NoError(t, theAnswer.Inspect(42))
+		require.ErrorIs(t, theAnswer.Inspect(0), errNotTheAnswer)
+	})
 
-			expectedErr := errors.New("matcher failed")
-			res := resolution.FromFunc("is valid", func() screenplay.Matcher {
-				return func(_ any) (bool, error) {
-					return false, expectedErr
-				}
-			})
+	t.Run("is an invalid resolution when the inspect function is nil", func(t *testing.T) {
+		t.Parallel()
 
-			assert.Equal(t, "is valid", res.String())
+		broken := resolution.FromFunc[int]("be anything", nil)
 
-			matcher := res.Resolve()
-			ok, err := matcher(nil)
-			require.ErrorIs(t, err, expectedErr)
-			assert.False(t, ok)
-		})
+		assert.Equal(t, "be anything", broken.String())
+		require.ErrorIs(t, broken.Inspect(42), screenplay.ErrInvalidResolution)
 	})
 }

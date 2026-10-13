@@ -16,7 +16,7 @@ The symbols shown below live in the extension's sub-packages:
 | `standard` | `github.com/grandper/go-screenplay/v2/extensions/cli/question/standard` | `OutputOf`, `ErrorOf` |
 
 Assertions are written with the core screenplay packages (`action/see`,
-`resolution/equal`, `resolution/contain`, `resolution/length`, `question/last`, ...).
+`resolution/be`, `resolution/contain`, `resolution/length`, `question/last`, ...).
 For readability the examples below drop the package qualifiers on the extension
 constructors; import the packages above and qualify them as `action.RunTheCommand(...)`,
 `ability.RunCLICommands()`, and so on (note that the extension's `action`/`question`
@@ -73,7 +73,7 @@ err := anActor.AttemptsTo(Type("42").AndPressEnter())
 ### Environment variables
 Ask for the value of an environment variable:
 ```go
-err := anActor.Should(see.The(EnvironmentVariableNamed("PATH")).Is(equal.To("/usr/local/bin:/usr/bin:/bin")))
+err := anActor.Should(see.The(EnvironmentVariableNamed("PATH")).Should(be.EqualTo("/usr/local/bin:/usr/bin:/bin")))
 ```
 
 ### The responses
@@ -82,26 +82,26 @@ commands were run. Because it answers with a slice, it composes with the core
 `first`/`last`/`number` questions, and with the `errorcode` and `standard` questions
 below to extract a specific field from a single response:
 ```go
-err := anActor.Should(see.The(Responses()).Has(length.Of(2)))
+err := anActor.Should(see.The(Responses()).ShouldHave(length.Exactly[[]*ability.Result](2)))
 ```
 
 ### The exit code
 `errorcode.Of` wraps a question that answers with a `*Result` and answers with its
 exit code (`0` means success):
 ```go
-err := anActor.Should(see.The(errorcode.Of(last.Of(Responses()))).Is(equal.To(0)))
+err := anActor.Should(see.The(errorcode.Of(last.Of(Responses()))).Should(be.EqualTo(0)))
 ```
 
 ### The standard output
 `standard.OutputOf` answers with the standard output of a `*Result`:
 ```go
-err := anActor.Should(see.The(standard.OutputOf(last.Of(Responses()))).Does(contain.TheText("Hello World")))
+err := anActor.Should(see.The(standard.OutputOf(last.Of(Responses()))).Should(contain.TheBytes([]byte("Hello World"))))
 ```
 
 ### The standard error
 `standard.ErrorOf` answers with the standard error of a `*Result`:
 ```go
-err := anActor.Should(see.The(standard.ErrorOf(last.Of(Responses()))).Does(contain.TheText("unknown parameter '-x'")))
+err := anActor.Should(see.The(standard.ErrorOf(last.Of(Responses()))).Should(contain.TheBytes([]byte("unknown parameter '-x'"))))
 ```
 
 ## Reading a result directly

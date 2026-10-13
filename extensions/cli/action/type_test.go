@@ -11,7 +11,7 @@ import (
 	"github.com/grandper/go-screenplay/v2/extensions/cli/question"
 	"github.com/grandper/go-screenplay/v2/extensions/cli/question/standard"
 	"github.com/grandper/go-screenplay/v2/question/last"
-	"github.com/grandper/go-screenplay/v2/resolution/equal"
+	"github.com/grandper/go-screenplay/v2/resolution/be"
 
 	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
 
@@ -35,7 +35,7 @@ func TestType(t *testing.T) {
 			require.NoError(t,
 				adam.AttemptsTo(
 					action2.Eventually(see.The(standard.OutputOf(last.Of(question.Responses()))).
-						Is(equal.To([]byte("Alice in Wonderland\n"))))))
+						Should(be.DeepEqualTo([]byte("Alice in Wonderland\n"))))))
 		})
 
 		t.Run("fails when no command is running", func(t *testing.T) {
