@@ -221,4 +221,23 @@ func TestAsynchronouslyAction(t *testing.T) {
 		// The sentence builders add the article once.
 		assert.Equal(t, "remember the asynchronous errors as 'errs'", action.Remember(action.AsynchronousErrors()).As("errs").String())
 	})
+
+	t.Run("collects the errors of asynchronous actions launched at the same time", func(t *testing.T) {
+		// Run with -race: two Asynchronously inside Concurrently create the
+		// collector at the same moment and must share it.
+		adam := screenplay.ActorNamed("Adam")
+		failing := func(name string) screenplay.Performable {
+			return action.FromFunc(name, func(_ *screenplay.Actor) error { return errors.New(name + " failed") })
+		}
+
+		require.NoError(t, adam.AttemptsTo(action.Concurrently(
+			action.Asynchronously(failing("first")),
+			action.Asynchronously(failing("second")),
+			action.Asynchronously(failing("third")),
+		)))
+
+		errs, err := adam.AsksFor(action.AsynchronousErrors())
+		require.NoError(t, err)
+		assert.Len(t, errs, 3)
+	})
 }

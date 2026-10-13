@@ -164,21 +164,38 @@ func (q *AsynchronousErrorsQuestion) String() string {
 var _ screenplay.Question[[]error] = (*AsynchronousErrorsQuestion)(nil)
 
 // asynchronousErrors is a thread-safe collector of the errors produced by the
-// asynchronous actions of an actor.
+// asynchronous actions of an actor. The pending actions are counted under the
+// mutex and awaited through the condition, so that an action may start while
+// another goroutine waits: a sync.WaitGroup forbids Add concurrent with Wait.
 type asynchronousErrors struct {
-	waitGroup sync.WaitGroup
-	mutex     sync.Mutex
-	errs      []error
+	mutex   sync.Mutex
+	settled *sync.Cond // signaled when the pending count drops to zero
+	pending int
+	errs    []error
 }
+
+func newAsynchronousErrors() *asynchronousErrors {
+	collector := &asynchronousErrors{}
+	collector.settled = sync.NewCond(&collector.mutex)
+
+	return collector
+}
+
+// asynchronousErrorsMutex makes the creation of an actor's collector atomic: two
+// Asynchronously launched at the same time on one actor share one collector.
+var asynchronousErrorsMutex sync.Mutex
 
 // asynchronousErrorsOf returns the errors collector stored in the actor's
 // memory, creating and storing a new one when there is none yet.
 func asynchronousErrorsOf(actor *screenplay.Actor) *asynchronousErrors {
+	asynchronousErrorsMutex.Lock()
+	defer asynchronousErrorsMutex.Unlock()
+
 	if collector := actor.Recall[*asynchronousErrors](asynchronousErrorsKey).OrElse(nil); collector != nil {
 		return collector
 	}
 
-	collector := &asynchronousErrors{}
+	collector := newAsynchronousErrors()
 	actor.Remember(asynchronousErrorsKey, collector)
 
 	return collector
@@ -186,12 +203,21 @@ func asynchronousErrorsOf(actor *screenplay.Actor) *asynchronousErrors {
 
 // track registers a new pending asynchronous action.
 func (c *asynchronousErrors) track() {
-	c.waitGroup.Add(1)
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.pending++
 }
 
 // done signals that a pending asynchronous action has completed.
 func (c *asynchronousErrors) done() {
-	c.waitGroup.Done()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.pending--
+	if c.pending == 0 {
+		c.settled.Broadcast()
+	}
 }
 
 // store collects the non-nil errors produced by an asynchronous action.
@@ -221,10 +247,12 @@ func (c *asynchronousErrors) store(err error) {
 // collected waits for every pending asynchronous action to complete and returns
 // a copy of the collected errors.
 func (c *asynchronousErrors) collected() []error {
-	c.waitGroup.Wait()
-
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+
+	for c.pending > 0 {
+		c.settled.Wait()
+	}
 
 	collected := make([]error, len(c.errs))
 	copy(collected, c.errs)
