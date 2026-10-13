@@ -188,6 +188,20 @@ func TestConcurrentlyAction(t *testing.T) {
 		assert.Equal(t, action.Concurrently(doTask1), action.Simultaneously(doTask1))
 	})
 
+	t.Run("ignores nil performables instead of panicking", func(t *testing.T) {
+		recorder := fixture.NewRecorder()
+		adam := narratedActor(recorder)
+
+		require.NoError(t, adam.AttemptsTo(action.Concurrently(fixture.NewFakePerformable("retry", nil), nil)))
+		assert.Contains(t, recorder.Messages(), "Adam attempts to concurrently retry")
+
+		require.NoError(t, adam.AttemptsTo(action.Asynchronously(nil, fixture.NewFakePerformable("retry", nil))))
+		require.NoError(t, adam.AttemptsTo(action.Either(nil, fixture.NewFakePerformable("retry", nil)).Or(nil, fixture.NewFakePerformable("wait", nil))))
+		// A list made only of nil is empty: the mistake fails when performed, without a panic.
+		require.Error(t, adam.AttemptsTo(action.Either(fixture.NewFakePerformable("retry", nil)).Or(nil)))
+		require.NoError(t, adam.AttemptsTo(action.Conditionally(nil, fixture.NewFakePerformable("retry", nil)).Otherwise(nil)))
+	})
+
 	t.Run("narrates each of its performables", func(t *testing.T) {
 		for name, mode := range map[string]func(*action.ConcurrentlyAction) *action.ConcurrentlyAction{
 			"waiting for all":   (*action.ConcurrentlyAction).WaitingForAll,

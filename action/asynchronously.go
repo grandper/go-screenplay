@@ -24,7 +24,7 @@ const asynchronousErrorsKey = "github.com/grandper/go-screenplay/v2/action.async
 // same time can be capped with WithLimit.
 func Asynchronously(performables ...screenplay.Performable) *AsynchronouslyAction {
 	return &AsynchronouslyAction{
-		performables: performables,
+		performables: withoutNil(performables),
 		mode:         waitingForAll,
 		limit:        0,
 	}

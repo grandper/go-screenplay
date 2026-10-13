@@ -62,7 +62,7 @@ func (c condition) negated() condition {
 // Conditionally starts a conditional action for the given performables.
 func Conditionally(performables ...screenplay.Performable) *ConditionalAction {
 	return &ConditionalAction{
-		consequence: performables,
+		consequence: withoutNil(performables),
 		alternative: []screenplay.Performable{},
 		condition:   always(),
 	}
@@ -207,7 +207,7 @@ func (s *ConditionalBuilder[T]) guards(clause sentence.Clause[T]) *ConditionalAc
 
 // Otherwise provides the performables to perform when the condition does not hold.
 func (a *ConditionalAction) Otherwise(performables ...screenplay.Performable) *ConditionalAction {
-	a.alternative = performables
+	a.alternative = withoutNil(performables)
 
 	return a
 }

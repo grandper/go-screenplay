@@ -30,7 +30,7 @@ const (
 // the same time can be capped with WithLimit.
 func Concurrently(performables ...screenplay.Performable) *ConcurrentlyAction {
 	return &ConcurrentlyAction{
-		performables: performables,
+		performables: withoutNil(performables),
 		mode:         waitingForAll,
 		limit:        0,
 	}

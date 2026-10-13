@@ -11,7 +11,7 @@ import (
 // Either executes one of the two provided actions or tasks.
 func Either(performables ...screenplay.Performable) *EitherAction {
 	return &EitherAction{
-		performables:          performables,
+		performables:          withoutNil(performables),
 		alternatePerformables: []screenplay.Performable{},
 	}
 }
@@ -38,6 +38,19 @@ func performablesToString(performables []screenplay.Performable) string {
 	default:
 		return strings.Join(strs, ", ")
 	}
+}
+
+// withoutNil drops the nil items of a list of performables, as Actor.performs
+// does, so that a nil written by mistake in a test never panics.
+func withoutNil(performables []screenplay.Performable) []screenplay.Performable {
+	kept := make([]screenplay.Performable, 0, len(performables))
+	for _, performable := range performables {
+		if performable != nil {
+			kept = append(kept, performable)
+		}
+	}
+
+	return kept
 }
 
 func performablesToStringSlice(performables []screenplay.Performable) []string {
@@ -68,7 +81,7 @@ func (a *EitherAction) PerformAs(theActor *screenplay.Actor) error {
 
 // Or provides an alternative task or action to perform.
 func (a *EitherAction) Or(alternatePerformables ...screenplay.Performable) *EitherAction {
-	a.alternatePerformables = alternatePerformables
+	a.alternatePerformables = withoutNil(alternatePerformables)
 
 	return a
 }
