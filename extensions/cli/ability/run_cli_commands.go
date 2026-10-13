@@ -71,6 +71,7 @@ func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error {
 			exitCode: c.ProcessState.ExitCode(),
 			stdOut:   outBuf.Bytes(),
 			stdErr:   errBuf.Bytes(),
+			err:      err,
 		}
 		a.mutex.Lock()
 		defer a.mutex.Unlock()
@@ -87,7 +88,15 @@ func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error {
 	a.currentCmd = c
 	a.mutex.Unlock()
 
-	err = c.Start()
+	if err = c.Start(); err != nil {
+		// The program never ran: nothing to wait for, nothing to record.
+		_ = stdinPipe.Close()
+		a.mutex.Lock()
+		a.stdin, a.currentCmd = nil, nil
+		a.mutex.Unlock()
+
+		return err
+	}
 
 	go func() {
 		waitErr := c.Wait()
@@ -104,7 +113,7 @@ func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error {
 		a.responses = append(a.responses, result)
 	}()
 
-	return err
+	return nil
 }
 
 // Responses returns the previous responses.

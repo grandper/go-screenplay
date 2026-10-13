@@ -2,6 +2,7 @@ package ability_test
 
 import (
 	"context"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -183,5 +184,27 @@ func TestRunCLICommands(t *testing.T) {
 		}()
 
 		wg.Wait()
+	})
+
+	t.Run("records the error of a command exiting with a non-zero code", func(t *testing.T) {
+		runCLICommands := ability.RunCLICommands()
+		err := runCLICommands.Run(ctx, &ability.Command{Program: "sh", Args: []string{"-c", "exit 3"}})
+		require.Error(t, err)
+
+		responses := runCLICommands.Responses()
+		require.Len(t, responses, 1)
+		assert.Equal(t, 3, responses[0].ExitCode())
+		var exitErr *exec.ExitError
+		require.ErrorAs(t, responses[0].Err(), &exitErr)
+	})
+
+	t.Run("records nothing when an interactive command cannot start", func(t *testing.T) {
+		runCLICommands := ability.RunCLICommands()
+		err := runCLICommands.Run(ctx, &ability.Command{Program: "/nonexistent/program", Interactive: true})
+		require.Error(t, err)
+
+		assert.Empty(t, runCLICommands.Responses())
+		require.ErrorIs(t, runCLICommands.Type("hello"), ability.ErrNoCommandCurrentlyRunning)
+		require.NoError(t, runCLICommands.Forget())
 	})
 }
