@@ -32,6 +32,10 @@ func (p *funcPerformable) String() string {
 
 // PerformAs performs the task or the action as the provided actor.
 func (p *funcPerformable) PerformAs(actor *screenplay.Actor) error {
+	if p.performAS == nil {
+		return errors.New("the function given to FromFunc is nil")
+	}
+
 	return p.performAS(actor)
 }
 

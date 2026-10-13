@@ -1,6 +1,8 @@
 package action
 
 import (
+	"errors"
+
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
@@ -40,6 +42,10 @@ func (a *SilentlyAction) String() string {
 // another. When the actor's narrator cannot be muted (see
 // screenplay.WithForceAllNarration), the steps narrate as usual.
 func (a *SilentlyAction) PerformAs(theActor *screenplay.Actor) error {
+	if a.performable == nil {
+		return errors.New("the performable given to Silently is nil")
+	}
+
 	return a.performable.PerformAs(theActor.Muted())
 }
 

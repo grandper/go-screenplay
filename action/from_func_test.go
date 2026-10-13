@@ -223,4 +223,10 @@ func TestFromFunc(t *testing.T) {
 			require.ErrorIs(t, adam.AttemptsTo(performable), assert.AnError)
 		})
 	})
+
+	t.Run("fails instead of panicking when the function is nil", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		err := adam.AttemptsTo(action.FromFunc("open the home page", nil))
+		require.EqualError(t, err, "the function given to FromFunc is nil")
+	})
 }

@@ -110,6 +110,12 @@ func TestSilentlyQuestion(t *testing.T) {
 			question.Silently(fixture.NewFakeQuestion("the token", "secret")),
 		)
 	})
+
+	t.Run("fails instead of panicking when the question is nil", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		_, err := adam.AsksFor(question.Silently[string](nil))
+		require.EqualError(t, err, "the question given to Silently is nil")
+	})
 }
 
 // narratedActor casts an actor from a production whose narrator records through

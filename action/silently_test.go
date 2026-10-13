@@ -124,6 +124,12 @@ func TestSilentlyAction(t *testing.T) {
 	t.Run("implements the performable interface", func(t *testing.T) {
 		assert.Implements(t, (*screenplay.Performable)(nil), action.Silently(fixture.NewFakePerformable("log in", nil)))
 	})
+
+	t.Run("fails instead of panicking when the performable is nil", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		err := adam.AttemptsTo(action.Silently(nil))
+		require.EqualError(t, err, "the performable given to Silently is nil")
+	})
 }
 
 // narratedActor casts an actor from a production whose narrator records through

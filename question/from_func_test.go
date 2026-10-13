@@ -29,4 +29,10 @@ func TestFromFunc(t *testing.T) {
 	assert.Equal(t, "fail to answer", failToAnswer.String())
 	_, err = failToAnswer.AnsweredBy(adam)
 	require.ErrorIs(t, err, assert.AnError)
+
+	t.Run("fails instead of panicking when the function is nil", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		_, err := adam.AsksFor(question.FromFunc[int]("the number of orders", nil))
+		require.EqualError(t, err, "the function given to FromFunc is nil")
+	})
 }

@@ -1,6 +1,8 @@
 package question
 
 import (
+	"errors"
+
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
@@ -44,6 +46,12 @@ func (q *SilentlyQuestion[T]) KeepsItsAnswerSecret() {}
 // another. When the actor's narrator cannot be muted (see
 // screenplay.WithForceAllNarration), the steps narrate as usual.
 func (q *SilentlyQuestion[T]) AnsweredBy(actor *screenplay.Actor) (T, error) {
+	if q.question == nil {
+		var zero T
+
+		return zero, errors.New("the question given to Silently is nil")
+	}
+
 	return q.question.AnsweredBy(actor.Muted())
 }
 

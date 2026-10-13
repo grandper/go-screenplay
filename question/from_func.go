@@ -1,6 +1,8 @@
 package question
 
 import (
+	"errors"
+
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
@@ -28,6 +30,12 @@ func (q *funcQuestion[T]) String() string {
 
 // AnsweredBy returns the answer that the provided actor gives to the question.
 func (q *funcQuestion[T]) AnsweredBy(actor *screenplay.Actor) (T, error) {
+	if q.answeredBy == nil {
+		var zero T
+
+		return zero, errors.New("the function given to FromFunc is nil")
+	}
+
 	return q.answeredBy(actor)
 }
 
