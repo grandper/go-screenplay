@@ -186,6 +186,50 @@ func TestRunCLICommands(t *testing.T) {
 		wg.Wait()
 	})
 
+	t.Run("Forget ends the interactive command still running", func(t *testing.T) {
+		t.Run("by closing its input, which a program reading it waits for", func(t *testing.T) {
+			runCLICommands := ability.RunCLICommands()
+			require.NoError(t, runCLICommands.Run(ctx, &ability.Command{
+				Program:     "cat",
+				Interactive: true,
+			}))
+			require.NoError(t, runCLICommands.Type("hello"))
+
+			start := time.Now()
+			require.NoError(t, runCLICommands.Forget())
+			assert.Less(t, time.Since(start), 4*time.Second, "cat exits on end of file, before the kill")
+
+			responses := runCLICommands.Responses()
+			require.Len(t, responses, 1)
+			assert.Equal(t, []byte("hello"), responses[0].StdOut())
+			assert.Equal(t, 0, responses[0].ExitCode())
+			assert.NoError(t, responses[0].Err())
+
+			require.ErrorIs(t, runCLICommands.Type("again"), ability.ErrNoCommandCurrentlyRunning)
+		})
+
+		t.Run("by killing a program that ignores the end of its input", func(t *testing.T) {
+			runCLICommands := ability.RunCLICommands()
+			require.NoError(t, runCLICommands.Run(ctx, &ability.Command{
+				Program:     "sh",
+				Args:        []string{"-c", "trap '' PIPE; while true; do sleep 1; done"},
+				Interactive: true,
+			}))
+
+			require.NoError(t, runCLICommands.Forget())
+
+			responses := runCLICommands.Responses()
+			require.Len(t, responses, 1)
+			assert.Error(t, responses[0].Err(), "the result records the kill")
+		})
+
+		t.Run("and is a no-op when no command is running", func(t *testing.T) {
+			runCLICommands := ability.RunCLICommands()
+			require.NoError(t, runCLICommands.Forget())
+			require.NoError(t, runCLICommands.Forget())
+		})
+	})
+
 	t.Run("records the error of a command exiting with a non-zero code", func(t *testing.T) {
 		runCLICommands := ability.RunCLICommands()
 		err := runCLICommands.Run(ctx, &ability.Command{Program: "sh", Args: []string{"-c", "exit 3"}})
