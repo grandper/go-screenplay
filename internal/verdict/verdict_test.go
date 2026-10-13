@@ -44,4 +44,22 @@ func TestVerdict(t *testing.T) {
 		require.ErrorIs(t, err, errBadPattern)
 		require.EqualError(t, err, "invalid resolution \"match pattern `A-(`\": missing closing )")
 	})
+
+	t.Run("equal", func(t *testing.T) {
+		t.Run("compares comparable values", func(t *testing.T) {
+			equal, err := verdict.Equal(200, 200)
+			require.NoError(t, err)
+			assert.True(t, equal)
+
+			equal, err = verdict.Equal[any](200, 404)
+			require.NoError(t, err)
+			assert.False(t, equal)
+		})
+
+		t.Run("reports an invalid resolution instead of panicking on an uncomparable dynamic type", func(t *testing.T) {
+			_, err := verdict.Equal[any]([]int{1}, []int{1})
+			require.ErrorIs(t, err, screenplay.ErrInvalidResolution)
+			assert.EqualError(t, err, "invalid resolution: values of type []int cannot be compared")
+		})
+	})
 }

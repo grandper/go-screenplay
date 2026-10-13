@@ -5,6 +5,7 @@ package verdict
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -30,6 +31,22 @@ func Of(satisfied bool, value any) error {
 	}
 
 	return fmt.Errorf("got %s", Describe(value))
+}
+
+// Equal compares two values of a comparable type. When T is an interface type,
+// such as any, a value whose dynamic type is not comparable (a slice, a map, a
+// func) would make == panic; Equal reports it as an invalid resolution instead,
+// so that the mistake fails when the actor performs the action.
+func Equal[T comparable](value, expected T) (bool, error) {
+	if reflect.TypeFor[T]().Kind() == reflect.Interface {
+		for _, v := range []T{value, expected} {
+			if rv := reflect.ValueOf(v); rv.IsValid() && !rv.Comparable() {
+				return false, fmt.Errorf("%w: values of type %T cannot be compared", screenplay.ErrInvalidResolution, v)
+			}
+		}
+	}
+
+	return value == expected, nil
 }
 
 // Invalid creates the resolution a constructor returns when it is given

@@ -140,4 +140,15 @@ func TestContain(t *testing.T) {
 			testdata.AssertInvalid(t, contain.TheItemMatchingRegexString("A-("), []string{"A-42"})
 		})
 	})
+
+	t.Run("with an interface type parameter", func(t *testing.T) {
+		testdata.AssertMatch(t, contain.Element[any](3), []any{1, 3})
+		testdata.AssertInvalid(t, contain.Element[any]([]int{1}), []any{[]int{1}})
+
+		testdata.AssertMatch(t, contain.Value[string, any](3), map[string]any{"a": 3})
+		testdata.AssertInvalid(t, contain.Value[string, any]([]int{1}), map[string]any{"a": []int{1}})
+
+		testdata.AssertMatch(t, contain.Entries[string, any](map[string]any{"a": 3}), map[string]any{"a": 3, "b": 4})
+		testdata.AssertInvalid(t, contain.Entries[string, any](map[string]any{"a": []int{1}}), map[string]any{"a": []int{1}})
+	})
 }

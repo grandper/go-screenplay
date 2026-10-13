@@ -228,4 +228,11 @@ func TestBe(t *testing.T) {
 		testdata.AssertNoMatch(t, be.False(), true)
 		assert.Equal(t, "be false", be.False().String())
 	})
+
+	t.Run("equal to, with an interface type parameter", func(t *testing.T) {
+		testdata.AssertMatch[any](t, be.EqualTo[any](3), 3)
+		testdata.AssertNoMatch[any](t, be.EqualTo[any](3), 4)
+		// A slice held in an interface cannot be compared: the resolution is invalid, no panic.
+		testdata.AssertInvalid[any](t, be.EqualTo[any]([]int{1}), []int{1})
+	})
 }

@@ -31,7 +31,12 @@ func EqualTo[T comparable](expected T) screenplay.Resolution[T] {
 	return resolution.FromFunc(
 		"be equal to "+verdict.Describe(expected),
 		func(value T) error {
-			return verdict.Of(value == expected, value)
+			equal, err := verdict.Equal(value, expected)
+			if err != nil {
+				return err
+			}
+
+			return verdict.Of(equal, value)
 		},
 	)
 }

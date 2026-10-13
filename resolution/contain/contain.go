@@ -42,7 +42,17 @@ func Element[T comparable](element T) screenplay.Resolution[[]T] {
 	return resolution.FromFunc(
 		"contain element "+verdict.Describe(element),
 		func(elements []T) error {
-			return verdict.Of(slices.Contains(elements, element), elements)
+			for _, candidate := range elements {
+				equal, err := verdict.Equal(candidate, element)
+				if err != nil {
+					return err
+				}
+				if equal {
+					return nil
+				}
+			}
+
+			return verdict.Of(false, elements)
 		},
 	)
 }
@@ -73,7 +83,11 @@ func Value[K comparable, V comparable](value V) screenplay.Resolution[map[K]V] {
 		"contain value "+verdict.Describe(value),
 		func(entries map[K]V) error {
 			for _, candidate := range entries {
-				if candidate == value {
+				equal, err := verdict.Equal(candidate, value)
+				if err != nil {
+					return err
+				}
+				if equal {
 					return nil
 				}
 			}
@@ -93,7 +107,14 @@ func Entries[K comparable, V comparable](expected map[K]V) screenplay.Resolution
 		func(entries map[K]V) error {
 			for key, value := range expected {
 				candidate, found := entries[key]
-				if !found || candidate != value {
+				if !found {
+					return verdict.Of(false, entries)
+				}
+				equal, err := verdict.Equal(candidate, value)
+				if err != nil {
+					return err
+				}
+				if !equal {
 					return verdict.Of(false, entries)
 				}
 			}
