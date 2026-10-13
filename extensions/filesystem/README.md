@@ -37,6 +37,9 @@ Create a file (the action fails if the file already exists):
 ```go
 err := anActor.AttemptsTo(Create().TheFile("foobar.txt"))
 ```
+A file is created with mode 0600, readable and writable by its owner only, and
+no write ever follows a symbolic link: creating, appending to or overwriting a
+path that is a symbolic link fails.
 Provide the content at creation time from an `io.Reader`, a byte slice, or a string:
 ```go
 err := anActor.AttemptsTo(Create().TheFile("foobar.txt").Containing(strings.NewReader("Hello World")))

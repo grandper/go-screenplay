@@ -267,7 +267,79 @@ func TestUseTheFileSystem(t *testing.T) {
 			}()
 
 			err = useTheFileSystem.CreateFile(filename)
-			require.Error(t, err)
+			require.ErrorIs(t, err, ability.ErrFileAlreadyExists)
+		})
+
+		t.Run("readable and writable by its owner only", func(t *testing.T) {
+			filename := getFilename()
+			require.NoError(t, useTheFileSystem.CreateFile(filename))
+
+			defer func() {
+				assert.NoError(t, os.Remove(filename))
+			}()
+
+			info, err := os.Stat(filename)
+			require.NoError(t, err)
+			assert.Equal(t, fs.FileMode(0600), info.Mode().Perm())
+		})
+	})
+
+	t.Run("never writes through a symbolic link", func(t *testing.T) {
+		// A dangling link: the target does not exist, so a naive existence check
+		// would see "no file" and a naive write would create the target.
+		newDanglingLink := func(t *testing.T) (link, target string) {
+			t.Helper()
+			target = getFilename()
+			link = getFilename()
+			require.NoError(t, os.Symlink(target, link))
+			t.Cleanup(func() {
+				assert.NoError(t, os.Remove(link))
+				_, err := os.Lstat(target)
+				assert.ErrorIs(t, err, os.ErrNotExist, "the target of the link must not have been created")
+			})
+			return link, target
+		}
+
+		t.Run("when creating a file", func(t *testing.T) {
+			link, _ := newDanglingLink(t)
+			err := useTheFileSystem.CreateFile(link)
+			require.ErrorIs(t, err, ability.ErrFileAlreadyExists)
+		})
+
+		t.Run("when creating a file with content", func(t *testing.T) {
+			link, _ := newDanglingLink(t)
+			err := useTheFileSystem.CreateFileWithContent(link, strings.NewReader("owned"))
+			require.ErrorIs(t, err, ability.ErrFileAlreadyExists)
+		})
+
+		t.Run("when overwriting a file", func(t *testing.T) {
+			link, _ := newDanglingLink(t)
+			err := useTheFileSystem.OverwriteFileWithContent(link, strings.NewReader("owned"))
+			require.ErrorIs(t, err, ability.ErrSymbolicLink)
+		})
+
+		t.Run("when appending to a file", func(t *testing.T) {
+			link, _ := newDanglingLink(t)
+			err := useTheFileSystem.AppendTo(link, strings.NewReader("owned"))
+			require.ErrorIs(t, err, ability.ErrSymbolicLink)
+		})
+
+		t.Run("even when the link points to an existing file", func(t *testing.T) {
+			target := getFilename()
+			require.NoError(t, useTheFileSystem.CreateFileWithContent(target, strings.NewReader("original")))
+			link := getFilename()
+			require.NoError(t, os.Symlink(target, link))
+			t.Cleanup(func() {
+				assert.NoError(t, os.Remove(link))
+				assert.NoError(t, os.Remove(target))
+			})
+
+			require.ErrorIs(t, useTheFileSystem.OverwriteFileWithContent(link, strings.NewReader("owned")), ability.ErrSymbolicLink)
+			require.ErrorIs(t, useTheFileSystem.AppendTo(link, strings.NewReader("owned")), ability.ErrSymbolicLink)
+
+			content, err := useTheFileSystem.Read(target)
+			require.NoError(t, err)
+			assert.Equal(t, "original", string(content))
 		})
 	})
 

@@ -15,7 +15,14 @@ import (
 var (
 	// ErrFileAlreadyExists is returned when the file already exists.
 	ErrFileAlreadyExists = errors.New("file already exists")
+	// ErrSymbolicLink is returned when a write is refused because the path is a
+	// symbolic link: the ability never writes through a symbolic link.
+	ErrSymbolicLink = errors.New("the path is a symbolic link")
 )
+
+// createdFileMode is the permission of every file the ability creates: readable
+// and writable by its owner only, like a temporary file from os.CreateTemp.
+const createdFileMode = 0600
 
 // UseTheFileSystem represents the ability of an actor to use the file system.
 func UseTheFileSystem() *UseTheFileSystemAbility {
@@ -182,23 +189,33 @@ func (a *UseTheFileSystemAbility) CreateFileWithContent(filename string, reader 
 	return nil
 }
 
+// createFile creates the file in one atomic call: O_EXCL makes the kernel refuse
+// a path that already exists, so no file appearing between a check and the
+// creation can be truncated, and a symbolic link on the final component,
+// dangling or not, is refused as well.
 func (a *UseTheFileSystemAbility) createFile(filename string) (*os.File, error) {
 	path, err := a.resolve(filename)
 	if err != nil {
 		return nil, err
 	}
-	exists, err := a.FileExists(path)
-	if err != nil {
-		return nil, err
-	}
-	if exists {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, createdFileMode)
+	if errors.Is(err, os.ErrExist) {
 		return nil, ErrFileAlreadyExists
 	}
-	file, err := os.Create(path)
 	if err != nil {
 		return nil, err
 	}
 	return file, nil
+}
+
+// refuseSymbolicLink fails with ErrSymbolicLink when the path is a symbolic
+// link, so that a write never lands somewhere else than the named path.
+func refuseSymbolicLink(path string) error {
+	info, err := os.Lstat(path)
+	if err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return ErrSymbolicLink
+	}
+	return nil
 }
 
 // OverwriteFileWithContent overwrites the content of the specified file with the content from the provided reader.
@@ -207,7 +224,10 @@ func (a *UseTheFileSystemAbility) OverwriteFileWithContent(filename string, read
 	if err != nil {
 		return err
 	}
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0600)
+	if err := refuseSymbolicLink(path); err != nil {
+		return err
+	}
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, createdFileMode)
 	if err != nil {
 		return err
 	}
@@ -225,7 +245,10 @@ func (a *UseTheFileSystemAbility) AppendTo(filename string, reader io.Reader) er
 	if err != nil {
 		return err
 	}
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
+	if err := refuseSymbolicLink(path); err != nil {
+		return err
+	}
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, createdFileMode)
 	if err != nil {
 		return err
 	}
