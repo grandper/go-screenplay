@@ -1,6 +1,7 @@
 package action
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -9,10 +10,16 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
+// ErrInvalidHeaders is wrapped by the error AddHeader, AddHeaders, SetHeader
+// and SetHeaders return when they are given headers they cannot use: an empty
+// key, no header at all, or a key without its value. Nothing panics when the
+// action is built; the mistake is reported when the actor performs it.
+var ErrInvalidHeaders = errors.New("invalid headers")
+
 // AddHeader adds a header to the actor's HTTP session.
 func AddHeader(key, value string) *AddHeadersAction {
 	if key == "" {
-		panic("a key cannot be empty")
+		return &AddHeadersAction{err: fmt.Errorf("%w: a key cannot be empty", ErrInvalidHeaders)}
 	}
 	return &AddHeadersAction{
 		headers: map[string]string{
@@ -26,10 +33,14 @@ func AddHeader(key, value string) *AddHeadersAction {
 func AddHeaders(args ...string) *AddHeadersAction {
 	numArgs := len(args)
 	if numArgs == 0 {
-		panic("AddHeaders should receive at least one key and its value")
+		return &AddHeadersAction{
+			err: fmt.Errorf("%w: AddHeaders should receive at least one key and its value", ErrInvalidHeaders),
+		}
 	}
 	if numArgs%2 != 0 {
-		panic("AddHeaders should receive a list of key-value pairs")
+		return &AddHeadersAction{
+			err: fmt.Errorf("%w: AddHeaders should receive a list of key-value pairs", ErrInvalidHeaders),
+		}
 	}
 
 	numHeaders := numArgs / 2 //nolint:mnd // the number is explicitly divided by 2
@@ -48,6 +59,7 @@ func AddHeaders(args ...string) *AddHeadersAction {
 type AddHeadersAction struct {
 	headers map[string]string
 	secret  bool
+	err     error // why the action cannot be performed, when it was built wrongly
 }
 
 // WhichShouldBeKeptSecret makes sure that the header value is not displayed in logs.
@@ -89,6 +101,10 @@ func (a *AddHeadersAction) logHeaders() string {
 
 // PerformAs performs the task or the action as the provided actor.
 func (a *AddHeadersAction) PerformAs(theActor *screenplay.Actor) error {
+	if a.err != nil {
+		return a.err
+	}
+
 	makeHTTPRequests, err := screenplay.UseAbilityTo[*ability.MakeHTTPRequestsAbility]().Of(theActor)
 	if err != nil {
 		return err

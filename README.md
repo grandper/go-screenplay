@@ -1007,6 +1007,10 @@ check for them with `errors.Is`:
 | `screenplay.ErrInvalidResolution` | a resolution was built wrongly: `match.PatternString("A-(")`, `match.Pattern(nil)`, `be.Between(10, 1)`, `be.CloseTo(3.0, -0.1)`, `be.Empty[int]()`, `length.Exactly[int](1)`, `length.Exactly[string](-1)`, `resolution.FromFunc[int]("...", nil)` |
 | `term.ErrInvalidTerm` | a sentence was built wrongly: a verb without a resolution, a `nil` resolution, a `nil` question, or a `nil` term |
 
+The extensions follow the same rule. For example, the HTTP actions `AddHeaders` and
+`SetHeaders` report an empty key or an incomplete list of key-value pairs with an error
+wrapping their `ErrInvalidHeaders`, when the actor performs them.
+
 A mistake fails the action **whatever the verb**. This matters for the negative verbs: an
 error returned by a resolution normally means "not satisfied", which `ShouldNot` turns into
 a success. A resolution that was built wrongly checked nothing, so it must not pass:

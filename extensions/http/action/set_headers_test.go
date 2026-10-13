@@ -12,32 +12,43 @@ import (
 )
 
 func TestSetHeaderAction(t *testing.T) {
-	t.Run("panics if the header is empty", func(t *testing.T) {
-		assert.Panics(t, func() {
-			action.SetHeader("", "application/json")
-		})
+	t.Run("fails with invalid headers when the key is empty", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+
+		err := adam.AttemptsTo(action.SetHeader("", "application/json"))
+		require.ErrorIs(t, err, action.ErrInvalidHeaders)
+		require.EqualError(t, err, "invalid headers: a key cannot be empty")
 	})
 
-	t.Run("does not panic when the value is empty", func(t *testing.T) {
+	t.Run("accepts an empty value", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+
+		require.NoError(t, adam.AttemptsTo(action.SetHeader("Content-Type", "")))
+	})
+
+	t.Run("fails with invalid headers when the list of headers is empty", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+
+		err := adam.AttemptsTo(action.SetHeaders())
+		require.ErrorIs(t, err, action.ErrInvalidHeaders)
+		require.EqualError(t, err, "invalid headers: SetHeaders should receive at least one key and its value")
+	})
+
+	t.Run("fails with invalid headers when the list of header-value pairs is incomplete", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+
+		err := adam.AttemptsTo(action.SetHeaders("Content-Type"))
+		require.ErrorIs(t, err, action.ErrInvalidHeaders)
+		require.EqualError(t, err, "invalid headers: SetHeaders should receive a list of key-value pairs")
+
+		err = adam.AttemptsTo(action.SetHeaders("Content-Type", "application/json", "Authorization"))
+		require.ErrorIs(t, err, action.ErrInvalidHeaders)
+	})
+
+	t.Run("never panics when it is built wrongly", func(t *testing.T) {
 		assert.NotPanics(t, func() {
-			action.SetHeader("Content-Type", "")
-		})
-	})
-
-	t.Run("panics when a list of headers is empty", func(t *testing.T) {
-		assert.Panics(t, func() {
+			action.SetHeader("", "application/json")
 			action.SetHeaders()
-		})
-	})
-
-	t.Run("panics when the list of header-value pairs is incomplete", func(t *testing.T) {
-		assert.Panics(t, func() {
-			action.SetHeaders("Content-Type")
-		})
-		assert.Panics(t, func() {
-			action.SetHeaders(
-				"Content-Type", "application/json",
-				"Authorization")
 		})
 	})
 

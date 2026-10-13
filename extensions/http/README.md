@@ -48,6 +48,14 @@ err := anActor.AttemptsTo(SetHeaders(
 `AddHeaders` and `SetHeaders` take an even number of arguments, read as
 `key, value, key, value, ...`.
 
+Nothing panics when the headers are written wrongly. An empty key, no header at all, or a
+key without its value is reported when the actor performs the action, with an error wrapping
+`ErrInvalidHeaders`:
+```go
+err := anActor.AttemptsTo(AddHeaders("Content-Type"))
+// invalid headers: AddHeaders should receive a list of key-value pairs
+```
+
 Headers are sent with every request of the actor. When a server redirects to another
 host, the headers added through the ability are not forwarded to it.
 

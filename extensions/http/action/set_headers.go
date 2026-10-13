@@ -16,7 +16,7 @@ type headerPair struct {
 // This action will remove any headers previously set in the session.
 func SetHeader(key, value string) *SetHeadersAction {
 	if key == "" {
-		panic("a key cannot be empty")
+		return &SetHeadersAction{err: fmt.Errorf("%w: a key cannot be empty", ErrInvalidHeaders)}
 	}
 	return &SetHeadersAction{
 		headers: []headerPair{{key, value}},
@@ -29,10 +29,14 @@ func SetHeader(key, value string) *SetHeadersAction {
 func SetHeaders(args ...string) *SetHeadersAction {
 	numArgs := len(args)
 	if numArgs == 0 {
-		panic("SetHeaders should receive at least one key and its value")
+		return &SetHeadersAction{
+			err: fmt.Errorf("%w: SetHeaders should receive at least one key and its value", ErrInvalidHeaders),
+		}
 	}
 	if numArgs%2 != 0 {
-		panic("SetHeaders should receive a list of key-value pairs")
+		return &SetHeadersAction{
+			err: fmt.Errorf("%w: SetHeaders should receive a list of key-value pairs", ErrInvalidHeaders),
+		}
 	}
 
 	numHeaders := numArgs / 2 //nolint:mnd // the number is explicitly divided by 2
@@ -51,6 +55,7 @@ func SetHeaders(args ...string) *SetHeadersAction {
 type SetHeadersAction struct {
 	headers []headerPair
 	secret  bool
+	err     error // why the action cannot be performed, when it was built wrongly
 }
 
 // WhichShouldBeKeptSecret makes sure that the header value is not displayed in logs.
@@ -90,6 +95,10 @@ func (a *SetHeadersAction) logHeaders() string {
 
 // PerformAs performs the task or the action as the provided actor.
 func (a *SetHeadersAction) PerformAs(theActor *screenplay.Actor) error {
+	if a.err != nil {
+		return a.err
+	}
+
 	makeHTTPRequests, err := screenplay.UseAbilityTo[*ability.MakeHTTPRequestsAbility]().Of(theActor)
 	if err != nil {
 		return err
