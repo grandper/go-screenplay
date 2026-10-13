@@ -80,7 +80,11 @@ func (a *SendHTTPRequestAction) WithBody(body io.Reader) *SendHTTPRequestAction 
 	}
 
 	a.hasBody = true
-	a.body, a.bodyErr = io.ReadAll(body)
+	a.body, a.bodyErr = io.ReadAll(io.LimitReader(body, screenplay.DefaultMaxBufferedSize+1))
+	if a.bodyErr == nil && len(a.body) > screenplay.DefaultMaxBufferedSize {
+		a.body = nil
+		a.bodyErr = fmt.Errorf("the request body exceeds %d MiB", screenplay.DefaultMaxBufferedSize>>20)
+	}
 
 	return a
 }

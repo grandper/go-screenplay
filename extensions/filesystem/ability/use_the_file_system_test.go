@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestUseTheFileSystem(t *testing.T) {
@@ -498,6 +499,21 @@ func TestUseTheFileSystem(t *testing.T) {
 	t.Run("should be able to forget", func(t *testing.T) {
 		require.NoError(t, useTheFileSystem.Forget())
 	})
+
+	t.Run("refuses to read a file larger than the buffered size", func(t *testing.T) {
+		// A sparse file: the size is set without writing the bytes.
+		filename := filepath.Join(t.TempDir(), "huge.bin")
+		require.NoError(t, os.WriteFile(filename, nil, 0o600))
+		require.NoError(t, os.Truncate(filename, screenplay.DefaultMaxBufferedSize+1))
+
+		_, err := useTheFileSystem.Read(filename)
+		require.EqualError(t, err, "the content of the file exceeds 64 MiB")
+
+		require.NoError(t, os.Truncate(filename, screenplay.DefaultMaxBufferedSize))
+		content, err := useTheFileSystem.Read(filename)
+		require.NoError(t, err)
+		assert.Len(t, content, screenplay.DefaultMaxBufferedSize)
+	})
 }
 
 type failingReader struct{}
@@ -505,4 +521,5 @@ type failingReader struct{}
 // Read always fails.
 func (r *failingReader) Read(_ []byte) (int, error) {
 	return 0, os.ErrInvalid
+
 }

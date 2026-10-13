@@ -4,6 +4,7 @@ import (
 	"context"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestRunCLICommands(t *testing.T) {
@@ -228,6 +230,20 @@ func TestRunCLICommands(t *testing.T) {
 			require.NoError(t, runCLICommands.Forget())
 			require.NoError(t, runCLICommands.Forget())
 		})
+	})
+
+	t.Run("reports an output larger than the buffered size", func(t *testing.T) {
+		runCLICommands := ability.RunCLICommands()
+		err := runCLICommands.Run(ctx, &ability.Command{
+			Program: "head",
+			Args:    []string{"-c", strconv.Itoa(screenplay.DefaultMaxBufferedSize + 1), "/dev/zero"},
+		})
+		require.EqualError(t, err, "the output of the command exceeds 64 MiB")
+
+		responses := runCLICommands.Responses()
+		require.Len(t, responses, 1)
+		assert.Len(t, responses[0].StdOut(), screenplay.DefaultMaxBufferedSize, "the output is kept up to the bound")
+		assert.Equal(t, 0, responses[0].ExitCode(), "the command itself ran to completion")
 	})
 
 	t.Run("records the error of a command exiting with a non-zero code", func(t *testing.T) {

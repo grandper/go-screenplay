@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
 	"github.com/grandper/go-screenplay/v2/extensions/http/action"
@@ -152,4 +153,24 @@ func TestSendHTTPRequestAction(t *testing.T) {
 		sendRequest = action.SendHTTPRequest(http.MethodGet).To("https://www.google.com").WhichShouldBeKeptSecret()
 		assert.Equal(t, "send a secret HTTP request", sendRequest.String())
 	})
+
+	t.Run("refuses a request body larger than the buffered size", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
+		defer server.Close()
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+
+		tooLarge := io.LimitReader(endlessZeros{}, screenplay.DefaultMaxBufferedSize+1)
+		err := adam.AttemptsTo(action.SendPostRequest().To(server.URL).WithBody(tooLarge))
+		require.EqualError(t, err, "failed to read the request body: the request body exceeds 64 MiB")
+	})
+}
+
+// endlessZeros is an endless source of zero bytes.
+type endlessZeros struct{}
+
+func (endlessZeros) Read(p []byte) (int, error) {
+	for i := range p {
+		p[i] = 0
+	}
+	return len(p), nil
 }

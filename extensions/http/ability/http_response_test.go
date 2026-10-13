@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
+	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 func TestHTTPResponse(t *testing.T) {
@@ -57,6 +58,23 @@ func TestHTTPResponse(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, httpResponse)
 	})
+
+	t.Run("refuses a body larger than the buffered size", func(t *testing.T) {
+		tooLarge := io.LimitReader(zeroReader{}, screenplay.DefaultMaxBufferedSize+1)
+		response := &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(tooLarge)}
+
+		_, err := ability.NewHTTPResponseFrom(response)
+		require.EqualError(t, err, "failed to create a new HTTPResponse: the response body exceeds 64 MiB")
+	})
+
+	t.Run("accepts a body of exactly the buffered size", func(t *testing.T) {
+		exact := io.LimitReader(zeroReader{}, screenplay.DefaultMaxBufferedSize)
+		response := &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(exact)}
+
+		httpResponse, err := ability.NewHTTPResponseFrom(response)
+		require.NoError(t, err)
+		assert.Len(t, httpResponse.Body(), screenplay.DefaultMaxBufferedSize)
+	})
 }
 
 type fakeReader struct{}
@@ -65,4 +83,15 @@ type fakeReader struct{}
 // of bytes read (0 <= n <= len(p)) and any error encountered.
 func (fr *fakeReader) Read(_ []byte) (int, error) {
 	return 0, errors.New("failed to read the body")
+
+}
+
+// zeroReader is an endless source of zero bytes.
+type zeroReader struct{}
+
+func (zeroReader) Read(p []byte) (int, error) {
+	for i := range p {
+		p[i] = 0
+	}
+	return len(p), nil
 }

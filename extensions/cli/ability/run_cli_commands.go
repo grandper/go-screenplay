@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -75,17 +76,21 @@ func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error {
 		c.Env = env
 	}
 
-	var outBuf, errBuf bytes.Buffer
+	var outBuf, errBuf boundedBuffer
 	c.Stdout = &outBuf
 	c.Stderr = &errBuf
 
 	if !cmd.Interactive {
-		err := c.Run()
+		runErr := c.Run()
+		err := runErr
+		if err == nil {
+			err = outputWithinBounds(&outBuf, &errBuf)
+		}
 		result := &Result{
 			exitCode: c.ProcessState.ExitCode(),
 			stdOut:   outBuf.Bytes(),
 			stdErr:   errBuf.Bytes(),
-			err:      err,
+			err:      runErr,
 		}
 		a.mutex.Lock()
 		defer a.mutex.Unlock()
@@ -118,6 +123,9 @@ func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error {
 	go func() {
 		defer close(done)
 		waitErr := c.Wait()
+		if waitErr == nil {
+			waitErr = outputWithinBounds(&outBuf, &errBuf)
+		}
 		a.mutex.Lock()
 		defer a.mutex.Unlock()
 		result := &Result{
@@ -177,3 +185,42 @@ func (a *RunCLICommandsAbility) Forget() error {
 
 // RunCLICommandsAbility implements the screenplay.Ability interface.
 var _ screenplay.Ability = (*RunCLICommandsAbility)(nil)
+
+// boundedBuffer collects the output of a command up to
+// screenplay.DefaultMaxBufferedSize. Beyond that the output is dropped and the
+// overflow is remembered, so the command keeps running and its result reports
+// the overflow, while the test process never exhausts its memory.
+type boundedBuffer struct {
+	buffer     bytes.Buffer
+	overflowed bool
+}
+
+// Write implements io.Writer; it never fails and always accounts for the whole
+// input, so the command's pipes stay drained.
+func (b *boundedBuffer) Write(p []byte) (int, error) {
+	written := len(p)
+	room := screenplay.DefaultMaxBufferedSize - b.buffer.Len()
+	if len(p) > room {
+		b.overflowed = true
+		p = p[:max(room, 0)]
+	}
+	b.buffer.Write(p)
+	return written, nil
+}
+
+// Bytes returns the output collected so far, never nil.
+func (b *boundedBuffer) Bytes() []byte {
+	if b.buffer.Len() == 0 {
+		return []byte{}
+	}
+	return b.buffer.Bytes()
+}
+
+// outputWithinBounds fails when the standard output or error of the command
+// exceeded screenplay.DefaultMaxBufferedSize.
+func outputWithinBounds(stdout, stderr *boundedBuffer) error {
+	if stdout.overflowed || stderr.overflowed {
+		return fmt.Errorf("the output of the command exceeds %d MiB", screenplay.DefaultMaxBufferedSize>>20)
+	}
+	return nil
+}

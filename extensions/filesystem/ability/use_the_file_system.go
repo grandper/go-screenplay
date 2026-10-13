@@ -258,12 +258,27 @@ func (a *UseTheFileSystemAbility) AppendTo(filename string, reader io.Reader) er
 }
 
 // Read reads the content of the specified file and returns it as a byte slice.
+// A file larger than screenplay.DefaultMaxBufferedSize is refused, so a big
+// fixture never exhausts the memory of the test process.
 func (a *UseTheFileSystemAbility) Read(filename string) ([]byte, error) {
 	path, err := a.resolve(filename)
 	if err != nil {
 		return nil, err
 	}
-	return os.ReadFile(path)
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	content, err := io.ReadAll(io.LimitReader(file, screenplay.DefaultMaxBufferedSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(content) > screenplay.DefaultMaxBufferedSize {
+		return nil, fmt.Errorf("the content of the file exceeds %d MiB", screenplay.DefaultMaxBufferedSize>>20)
+	}
+	return content, nil
 }
 
 // CreateDirectory creates a new directory with the specified name and permission bits.
