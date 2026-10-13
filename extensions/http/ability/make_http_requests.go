@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"maps"
 	"net/http"
 	"slices"
@@ -15,16 +14,22 @@ import (
 
 // MakeHTTPRequests enables the actor to make HTTP requests.
 func MakeHTTPRequests() *MakeHTTPRequestsAbility {
-	return &MakeHTTPRequestsAbility{
+	mhr := &MakeHTTPRequestsAbility{
 		headers:   map[string]string{},
 		responses: []*HTTPResponse{},
 	}
+	mhr.client = &http.Client{}
+	return mhr
 }
 
 // MakeHTTPRequestsAbility is the ability to make HTTP requests.
 // It is safe for concurrent use: actions running in parallel (see
 // action.Concurrently) can add headers and send requests without racing.
+// Requests are sent through the ability's own client, never the process-wide
+// http.DefaultClient, and carry the actor's context so that a deadline or a
+// cancellation set on the actor stops a request in flight.
 type MakeHTTPRequestsAbility struct {
+	client    *http.Client
 	mutex     sync.RWMutex
 	headers   map[string]string
 	responses []*HTTPResponse
@@ -55,22 +60,25 @@ func (mhr *MakeHTTPRequestsAbility) ToRetrieveHeaders() map[string]string {
 	return maps.Clone(mhr.headers)
 }
 
-// ToSend sends a request. The response is stored in the ability struct.
-func (mhr *MakeHTTPRequestsAbility) ToSend(method, url string, body io.Reader, credential *Credential) error {
+// ToSend sends a request with the given context, which is the actor's context
+// when called from an action. The response is stored in the ability struct.
+func (mhr *MakeHTTPRequestsAbility) ToSend(
+	ctx context.Context,
+	method, url string,
+	body io.Reader,
+	credential *Credential,
+) error {
 	if !methodIsValid(method) {
 		return fmt.Errorf("%s is not a valid HTTP method", method)
 	}
-	response, err := mhr.sendRequest(method, url, body, credential)
+	response, err := mhr.sendRequest(ctx, method, url, body, credential)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		errClose := response.Body.Close()
-		if errClose != nil {
-			slog.Default().ErrorContext(context.Background(), "Error closing response body", "error", errClose.Error())
-		}
-	}()
 	httpResponse, err := NewHTTPResponseFrom(response)
+	if errClose := response.Body.Close(); errClose != nil && err == nil {
+		err = fmt.Errorf("failed to close the response body: %w", errClose)
+	}
 	if err != nil {
 		return err
 	}
@@ -115,11 +123,12 @@ type Credential struct {
 }
 
 func (mhr *MakeHTTPRequestsAbility) sendRequest(
+	ctx context.Context,
 	method, url string,
 	body io.Reader,
 	credential *Credential,
 ) (*http.Response, error) {
-	request, err := http.NewRequestWithContext(context.Background(), method, url, body)
+	request, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +144,7 @@ func (mhr *MakeHTTPRequestsAbility) sendRequest(
 		request.Header.Add(key, value)
 	}
 
-	response, err := http.DefaultClient.Do(request)
+	response, err := mhr.client.Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -144,8 +153,13 @@ func (mhr *MakeHTTPRequestsAbility) sendRequest(
 
 // Send sends a request. The response is stored in the ability struct.
 // Send is an alias for ToSend.
-func (mhr *MakeHTTPRequestsAbility) Send(method, url string, body io.Reader, credential *Credential) error {
-	return mhr.ToSend(method, url, body, credential)
+func (mhr *MakeHTTPRequestsAbility) Send(
+	ctx context.Context,
+	method, url string,
+	body io.Reader,
+	credential *Credential,
+) error {
+	return mhr.ToSend(ctx, method, url, body, credential)
 }
 
 // Forget cleans up the ability.

@@ -147,7 +147,7 @@ func (a *SendHTTPRequestAction) PerformAs(theActor *screenplay.Actor) error {
 		body = bytes.NewReader(a.body)
 	}
 
-	return makeHTTPRequests.ToSend(a.method, a.url, body, a.credential)
+	return makeHTTPRequests.ToSend(theActor.Context(), a.method, a.url, body, a.credential)
 }
 
 // SendHTTPRequestAction implements the screenplay.Performable interface.

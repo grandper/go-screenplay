@@ -1,11 +1,13 @@
 package ability_test
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,7 +73,7 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		assert.Empty(t, makeHTTPRequests.ToRetrieveResponses())
 		require.NoError(
 			t,
-			makeHTTPRequests.ToSend(http.MethodPost, server.URL, strings.NewReader(`{"foo":"bar"}`), nil),
+			makeHTTPRequests.ToSend(context.Background(), http.MethodPost, server.URL, strings.NewReader(`{"foo":"bar"}`), nil),
 		)
 
 		responses := makeHTTPRequests.ToRetrieveResponses()
@@ -90,17 +92,17 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		}
 		makeHTTPRequests := ability.MakeHTTPRequests()
 		assert.Empty(t, makeHTTPRequests.ToRetrieveResponses())
-		require.NoError(t, makeHTTPRequests.ToSend(http.MethodGet, server.URL, nil, credential))
+		require.NoError(t, makeHTTPRequests.ToSend(context.Background(), http.MethodGet, server.URL, nil, credential))
 	})
 
 	t.Run("should fail to send request when the method is wrong", func(t *testing.T) {
 		makeHTTPRequests := ability.MakeHTTPRequests()
-		assert.Error(t, makeHTTPRequests.ToSend("foobar", "https://www.google.fr", nil, nil))
+		assert.Error(t, makeHTTPRequests.ToSend(context.Background(), "foobar", "https://www.google.fr", nil, nil))
 	})
 
 	t.Run("should fail to send request when the protocol scheme is unsupported", func(t *testing.T) {
 		makeHTTPRequests := ability.MakeHTTPRequests()
-		assert.Error(t, makeHTTPRequests.Send(http.MethodGet, "foobar", nil, nil))
+		assert.Error(t, makeHTTPRequests.Send(context.Background(), http.MethodGet, "foobar", nil, nil))
 	})
 
 	t.Run("should be able to forget", func(t *testing.T) {
@@ -143,5 +145,24 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, makeHTTPRequests.ToRetrieveResponses(), 3)
 		assert.Len(t, makeHTTPRequests.ToRetrieveHeaders(), 2)
+	})
+
+	t.Run("stops a request when the actor's context expires", func(t *testing.T) {
+		// The server never answers: only the actor's deadline can end the request.
+		released := make(chan struct{})
+		server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+			<-released
+		}))
+		defer server.Close()
+		defer close(released)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests()).WithContext(ctx)
+
+		start := time.Now()
+		err := adam.AttemptsTo(httpaction.SendGetRequest().To(server.URL))
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		assert.Less(t, time.Since(start), 5*time.Second)
 	})
 }
