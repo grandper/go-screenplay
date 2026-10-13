@@ -130,7 +130,7 @@ func (a *ConcurrentlyAction) performWaitingForAll(theActor *screenplay.Actor) er
 	errs := make([]error, len(a.performables))
 
 	a.run(func(index int, performable screenplay.Performable) {
-		if err := performable.PerformAs(theActor); err != nil {
+		if err := theActor.AttemptsTo(performable); err != nil {
 			errs[index] = fmt.Errorf("%s: %w", performable, err)
 		}
 	})
@@ -142,7 +142,7 @@ func (a *ConcurrentlyAction) performWaitingForAll(theActor *screenplay.Actor) er
 // discards the errors that occurred.
 func (a *ConcurrentlyAction) performIgnoringErrors(theActor *screenplay.Actor) error {
 	a.run(func(_ int, performable screenplay.Performable) {
-		_ = performable.PerformAs(theActor)
+		_ = theActor.AttemptsTo(performable)
 	})
 
 	return nil
@@ -165,7 +165,7 @@ func (a *ConcurrentlyAction) performStoppingOnError(theActor *screenplay.Actor) 
 			default:
 			}
 
-			if err := performable.PerformAs(theActor); err != nil {
+			if err := theActor.AttemptsTo(performable); err != nil {
 				return err
 			}
 
@@ -178,6 +178,7 @@ func (a *ConcurrentlyAction) performStoppingOnError(theActor *screenplay.Actor) 
 
 // run performs every action in its own goroutine, waits for all of them and
 // caps the number of actions running at the same time when a limit is set.
+// Each action is performed through AttemptsTo, so it is narrated as a beat.
 func (a *ConcurrentlyAction) run(perform func(index int, performable screenplay.Performable)) {
 	var (
 		waitGroup sync.WaitGroup

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/action"
+	"github.com/grandper/go-screenplay/v2/fixture"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
@@ -186,4 +187,28 @@ func TestConcurrentlyAction(t *testing.T) {
 		assert.Equal(t, []string{"do task 1", "do task 2"}, sortedRecord())
 		assert.Equal(t, action.Concurrently(doTask1), action.Simultaneously(doTask1))
 	})
+
+	t.Run("narrates each of its performables", func(t *testing.T) {
+		for name, mode := range map[string]func(*action.ConcurrentlyAction) *action.ConcurrentlyAction{
+			"waiting for all":   (*action.ConcurrentlyAction).WaitingForAll,
+			"ignoring errors":   (*action.ConcurrentlyAction).IgnoringErrors,
+			"stopping on error": (*action.ConcurrentlyAction).StoppingOnError,
+		} {
+			t.Run(name, func(t *testing.T) {
+				recorder := fixture.NewRecorder()
+				adam := narratedActor(recorder)
+
+				concurrently := action.Concurrently(
+					fixture.NewFakePerformable("open the door", nil),
+					fixture.NewFakePerformable("close the window", nil),
+				)
+				require.NoError(t, adam.AttemptsTo(mode(concurrently)))
+
+				messages := recorder.Messages()
+				assert.Contains(t, messages, "Adam attempts to open the door")
+				assert.Contains(t, messages, "Adam attempts to close the window")
+			})
+		}
+	})
+
 }
