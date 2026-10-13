@@ -82,7 +82,10 @@ func (a *ConcurrentlyAction) WaitingForAll() *ConcurrentlyAction {
 }
 
 // StoppingOnError cancels the remaining actions as soon as one of them fails
-// and returns that error.
+// and returns that error. An action still running is canceled through the
+// actor's context: it observes the cancellation with actor.Context(), as the
+// README's "Working with contexts" section describes. An action not started yet
+// is skipped.
 func (a *ConcurrentlyAction) StoppingOnError() *ConcurrentlyAction {
 	a.mode = stoppingOnError
 
@@ -149,9 +152,13 @@ func (a *ConcurrentlyAction) performIgnoringErrors(theActor *screenplay.Actor) e
 }
 
 // performStoppingOnError performs every action and cancels the remaining ones
-// as soon as one fails, relying on the errgroup context for cancellation.
+// as soon as one fails. The actions are performed through a view of the actor
+// whose context is the errgroup's, so they observe the cancellation with
+// actor.Context() while the actor itself, and every other goroutine holding
+// it, keep their own context.
 func (a *ConcurrentlyAction) performStoppingOnError(theActor *screenplay.Actor) error {
 	group, ctx := errgroup.WithContext(theActor.Context())
+	actorInTheRun := theActor.WithContext(ctx)
 
 	if a.limit > 0 {
 		group.SetLimit(a.limit)
@@ -165,7 +172,7 @@ func (a *ConcurrentlyAction) performStoppingOnError(theActor *screenplay.Actor) 
 			default:
 			}
 
-			if err := theActor.AttemptsTo(performable); err != nil {
+			if err := actorInTheRun.AttemptsTo(performable); err != nil {
 				return err
 			}
 

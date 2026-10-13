@@ -71,7 +71,9 @@ func (a *AsynchronouslyAction) WaitingForAll() *AsynchronouslyAction {
 }
 
 // CancelOnError cancels the remaining actions as soon as one of them fails.
-// The error is collected for later investigation.
+// The error is collected for later investigation. An action still running is
+// canceled through the actor's context: it observes the cancellation with
+// actor.Context(). An action not started yet is skipped.
 func (a *AsynchronouslyAction) CancelOnError() *AsynchronouslyAction {
 	a.mode = stoppingOnError
 

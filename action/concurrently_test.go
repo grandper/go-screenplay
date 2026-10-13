@@ -211,4 +211,32 @@ func TestConcurrentlyAction(t *testing.T) {
 		}
 	})
 
+	t.Run("stopping on error cancels the actions still running through the actor's context", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		boom := errors.New("boom")
+		failImmediately := action.FromFunc("fail immediately", func(_ *screenplay.Actor) error { return boom })
+		waitUnlessCanceled := func(name string) screenplay.Performable {
+			return action.FromFunc(name, func(actor *screenplay.Actor) error {
+				select {
+				case <-actor.Context().Done():
+					return actor.Context().Err()
+				case <-time.After(2 * time.Second):
+					return errors.New(name + " was not canceled")
+				}
+			})
+		}
+
+		start := time.Now()
+		err := adam.AttemptsTo(action.Concurrently(
+			failImmediately,
+			waitUnlessCanceled("wait for the first order"),
+			waitUnlessCanceled("wait for the second order"),
+		).StoppingOnError())
+		require.ErrorIs(t, err, boom)
+		assert.Less(t, time.Since(start), time.Second)
+
+		// The actor itself, and whoever else holds it, never saw the run's context.
+		assert.NoError(t, adam.Context().Err())
+	})
+
 }

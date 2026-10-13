@@ -615,7 +615,9 @@ and makes this default explicit:
 err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat()).WaitingForAll())
 ```
 Use `StoppingOnError` to cancel the remaining actions as soon as one of them fails.
-This mode relies on an `errgroup` and its context cancellation:
+An action still running is canceled through the actor's context: it observes the
+cancellation with `actor.Context()`, as described in "Working with contexts". An
+action not started yet is skipped:
 ```go
 err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat()).StoppingOnError())
 ```
@@ -646,7 +648,8 @@ errs, _ := theActor.AsksFor(AsynchronousErrors()) // errs is a []error
 Like `Concurrently`, several flavors of execution are available. By default (or
 with an explicit `WaitingForAll`) it waits for every action to complete before
 collecting the errors. Use `CancelOnError` to cancel the remaining actions as soon
-as one of them fails, or `IgnoringErrors` to discard the errors altogether:
+as one of them fails (a running action observes it with `actor.Context()`), or
+`IgnoringErrors` to discard the errors altogether:
 ```go
 err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).WaitingForAll())
 err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).CancelOnError())
