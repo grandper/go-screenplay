@@ -52,8 +52,8 @@ func TestProduction(t *testing.T) {
 		stage := production.SetTheStage(screenplay.CastOfStandardActors())
 		adam := stage.ActorNamed("Adam")
 
-		require.NoError(t, adam.AttemptsTo(fixture.NewFakePerformable("waves", nil)))
-		assert.Equal(t, []string{"Adam waves", "Adam waves"}, recorder.Messages())
+		require.NoError(t, adam.AttemptsTo(fixture.NewFakePerformable("wave", nil)))
+		assert.Equal(t, []string{"Adam attempts to wave", "Adam attempts to wave"}, recorder.Messages())
 	})
 
 	t.Run("sets a stage even without a narrator", func(t *testing.T) {

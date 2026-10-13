@@ -310,10 +310,21 @@ func (a *Actor) WithIndependentCleanupTasks(tasks ...Performable) {
 // an error when the first action failed.
 // Nil actions are ignored so that optional or conditionally built actions can be
 // passed without guarding against nil.
+//
+// Each action is narrated with the words of the method that was called,
+// followed by the description of the action: "Adam attempts to open the home
+// page". The description of an action is therefore written in the infinitive.
+//
 // Aliases:
 //
-//	WasAbleTo, Does, Did, Will, TriesTo, TriedTo, Should, Shall
+//	WasAbleTo, Does, Did, Will, TriesTo, TriedTo, Tries, Tried, Should, Shall
 func (a *Actor) AttemptsTo(actions ...Performable) error {
+	return a.performs("attempts to", actions)
+}
+
+// performs makes the actor perform a list of actions, narrating each of them
+// with the given verb: "<actor> <verb> <action>".
+func (a *Actor) performs(verb string, actions []Performable) error {
 	for _, action := range actions {
 		if action == nil {
 			continue
@@ -331,7 +342,7 @@ func (a *Actor) AttemptsTo(actions ...Performable) error {
 			continue
 		}
 
-		message := fmt.Sprintf("%s %s", a.name, action.String())
+		message := fmt.Sprintf("%s %s %s", a.name, verb, action.String())
 
 		err := a.narrator().StatesTheFact(a.name, message, func() error {
 			return action.PerformAs(a)
@@ -346,72 +357,72 @@ func (a *Actor) AttemptsTo(actions ...Performable) error {
 
 // WasAbleTo performs a list of actions and return an error when the
 // first action failed.
-// This method is an alias to 'AttemptsTo'.
+// This method is an alias to 'AttemptsTo'; it narrates "<actor> was able to <action>".
 func (a *Actor) WasAbleTo(actions ...Performable) error {
-	return a.AttemptsTo(actions...)
+	return a.performs("was able to", actions)
 }
 
 // Does performs a list of actions and return an error when the
 // first action failed.
-// This method is an alias to 'AttemptsTo'.
+// This method is an alias to 'AttemptsTo'; it narrates "<actor> does <action>".
 func (a *Actor) Does(actions ...Performable) error {
-	return a.AttemptsTo(actions...)
+	return a.performs("does", actions)
 }
 
 // Did performs a list of actions and return an error when the
 // first action failed.
-// This method is an alias to 'AttemptsTo'.
+// This method is an alias to 'AttemptsTo'; it narrates "<actor> did <action>".
 func (a *Actor) Did(actions ...Performable) error {
-	return a.AttemptsTo(actions...)
+	return a.performs("did", actions)
 }
 
 // Will performs a list of actions and return an error when the
 // first action failed.
-// This method is an alias to 'AttemptsTo'.
+// This method is an alias to 'AttemptsTo'; it narrates "<actor> will <action>".
 func (a *Actor) Will(actions ...Performable) error {
-	return a.AttemptsTo(actions...)
+	return a.performs("will", actions)
 }
 
 // TriesTo performs a list of actions and return an error when the
 // first action failed.
-// This method is an alias to 'AttemptsTo'.
+// This method is an alias to 'AttemptsTo'; it narrates "<actor> tries to <action>".
 func (a *Actor) TriesTo(actions ...Performable) error {
-	return a.AttemptsTo(actions...)
+	return a.performs("tries to", actions)
 }
 
 // TriedTo performs a list of actions and return an error when the
 // first action failed.
-// This method is an alias to 'AttemptsTo'.
+// This method is an alias to 'AttemptsTo'; it narrates "<actor> tried to <action>".
 func (a *Actor) TriedTo(actions ...Performable) error {
-	return a.AttemptsTo(actions...)
+	return a.performs("tried to", actions)
 }
 
 // Tries performs a list of actions and return an error when the
 // first action failed.
-// This method is an alias to 'AttemptsTo'.
+// This method is an alias to 'AttemptsTo'; it narrates "<actor> tries to <action>".
 func (a *Actor) Tries(actions ...Performable) error {
-	return a.AttemptsTo(actions...)
+	return a.performs("tries to", actions)
 }
 
 // Tried performs a list of actions and return an error when the
 // first action failed.
-// This method is an alias to 'AttemptsTo'.
+// This method is an alias to 'AttemptsTo'; it narrates "<actor> tried to <action>".
 func (a *Actor) Tried(actions ...Performable) error {
-	return a.AttemptsTo(actions...)
+	return a.performs("tried to", actions)
 }
 
 // Shall performs a list of actions and return an error when the
 // first action failed.
-// This method is an alias to 'AttemptsTo'.
+// This method is an alias to 'AttemptsTo'; it narrates "<actor> shall <action>".
 func (a *Actor) Shall(actions ...Performable) error {
-	return a.AttemptsTo(actions...)
+	return a.performs("shall", actions)
 }
 
 // Should performs a list of actions and return an error when the
 // first action failed.
-// This method is an alias to 'AttemptsTo'.
+// This method is an alias to 'AttemptsTo'; it narrates "<actor> should <action>".
 func (a *Actor) Should(actions ...Performable) error {
-	return a.AttemptsTo(actions...)
+	return a.performs("should", actions)
 }
 
 // AsksFor asks the given question.

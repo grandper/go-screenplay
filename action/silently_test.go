@@ -43,15 +43,15 @@ func TestSilentlyAction(t *testing.T) {
 		adam := narratedActor(recorder)
 
 		task := screenplay.TaskWhere("log in",
-			fixture.NewFakePerformable("enters the password", nil),
-			fixture.NewFakePerformable("submits the form", nil),
+			fixture.NewFakePerformable("enter the password", nil),
+			fixture.NewFakePerformable("submit the form", nil),
 		)
 		require.NoError(t, adam.AttemptsTo(action.Silently(task)))
 
 		events := recorder.Events()
 		require.Len(t, events, 2)
-		assert.Equal(t, "Adam silently log in", events[0].Message)
-		assert.Equal(t, "Adam silently log in", events[1].Message)
+		assert.Equal(t, "Adam attempts to silently log in", events[0].Message)
+		assert.Equal(t, "Adam attempts to silently log in", events[1].Message)
 	})
 
 	t.Run("restores the narrator once the performable is done", func(t *testing.T) {
@@ -59,11 +59,11 @@ func TestSilentlyAction(t *testing.T) {
 		adam := narratedActor(recorder)
 
 		require.NoError(t, adam.AttemptsTo(
-			action.Silently(fixture.NewFakePerformable("logs in", nil)),
-			fixture.NewFakePerformable("waves", nil),
+			action.Silently(fixture.NewFakePerformable("log in", nil)),
+			fixture.NewFakePerformable("wave", nil),
 		))
 
-		assert.Contains(t, recorder.Messages(), "Adam waves")
+		assert.Contains(t, recorder.Messages(), "Adam attempts to wave")
 	})
 
 	t.Run("is neutralized by a production forcing all narration", func(t *testing.T) {
@@ -75,14 +75,14 @@ func TestSilentlyAction(t *testing.T) {
 		adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
 
 		task := screenplay.TaskWhere("log in",
-			fixture.NewFakePerformable("enters the password", nil),
-			fixture.NewFakePerformable("submits the form", nil),
+			fixture.NewFakePerformable("enter the password", nil),
+			fixture.NewFakePerformable("submit the form", nil),
 		)
 		require.NoError(t, adam.AttemptsTo(action.Silently(task)))
 
 		// The silenced steps narrate again because the production forces it.
-		assert.Contains(t, recorder.Messages(), "Adam enters the password")
-		assert.Contains(t, recorder.Messages(), "Adam submits the form")
+		assert.Contains(t, recorder.Messages(), "Adam attempts to enter the password")
+		assert.Contains(t, recorder.Messages(), "Adam attempts to submit the form")
 	})
 
 	t.Run("mutes only its own view under Concurrently", func(t *testing.T) {
@@ -90,10 +90,10 @@ func TestSilentlyAction(t *testing.T) {
 		adam := narratedActor(recorder)
 
 		login := screenplay.TaskWhere("log in",
-			fixture.NewFakePerformable("enters the password", nil),
-			fixture.NewFakePerformable("submits the form", nil),
+			fixture.NewFakePerformable("enter the password", nil),
+			fixture.NewFakePerformable("submit the form", nil),
 		)
-		greeting := screenplay.TaskWhere("greet", fixture.NewFakePerformable("waves", nil))
+		greeting := screenplay.TaskWhere("greet", fixture.NewFakePerformable("wave", nil))
 
 		// Each Silently mutes its own view of the actor, never the actor itself,
 		// so the concurrent greeting branch still narrates while the login steps
@@ -106,8 +106,8 @@ func TestSilentlyAction(t *testing.T) {
 		require.NoError(t, err)
 
 		messages := recorder.Messages()
-		assert.Contains(t, messages, "Adam waves")
-		assert.NotContains(t, messages, "Adam enters the password")
+		assert.Contains(t, messages, "Adam attempts to wave")
+		assert.NotContains(t, messages, "Adam attempts to enter the password")
 	})
 
 	t.Run("implements the performable interface", func(t *testing.T) {

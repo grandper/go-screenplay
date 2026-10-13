@@ -41,7 +41,7 @@ func TestLogAction(t *testing.T) {
 		// as a nested aside — never through an "asks for" line.
 		events := recorder.Events()
 		require.Len(t, events, 3)
-		assert.Equal(t, "Adam log the form field", events[0].Message)
+		assert.Equal(t, "Adam attempts to log the form field", events[0].Message)
 		assert.Equal(t, screenplay.KindAside, events[1].Kind)
 		assert.Equal(t, "=> hello world", events[1].Message)
 		assert.Equal(t, 1, events[1].Depth)

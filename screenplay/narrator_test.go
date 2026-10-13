@@ -141,102 +141,129 @@ func TestNarrator(t *testing.T) {
 		assert.Equal(t, 1, events[2].Depth, "inner end")
 		assert.Equal(t, 0, events[3].Depth, "outer end")
 	})
-}
 
-func TestKindString(t *testing.T) {
-	t.Parallel()
-
-	assert.Equal(t, "act", screenplay.KindAct.String())
-	assert.Equal(t, "scene", screenplay.KindScene.String())
-	assert.Equal(t, "beat", screenplay.KindBeat.String())
-	assert.Equal(t, "aside", screenplay.KindAside.String())
-	assert.Equal(t, "unknown", screenplay.Kind(42).String())
-}
-
-func TestActorNarration(t *testing.T) {
-	t.Parallel()
-
-	t.Run("actors are silent by default", func(t *testing.T) {
+	t.Run("kind string", func(t *testing.T) {
 		t.Parallel()
 
-		adam := screenplay.ActorNamed("Adam")
+		assert.Equal(t, "act", screenplay.KindAct.String())
+		assert.Equal(t, "scene", screenplay.KindScene.String())
+		assert.Equal(t, "beat", screenplay.KindBeat.String())
+		assert.Equal(t, "aside", screenplay.KindAside.String())
+		assert.Equal(t, "unknown", screenplay.Kind(42).String())
+	})
 
-		assert.NotPanics(t, func() {
-			_ = adam.AttemptsTo(fixture.NewFakePerformable("does something", nil))
+	t.Run("actor narration", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("actors are silent by default", func(t *testing.T) {
+			t.Parallel()
+
+			adam := screenplay.ActorNamed("Adam")
+
+			assert.NotPanics(t, func() {
+				_ = adam.AttemptsTo(fixture.NewFakePerformable("does something", nil))
+			})
 		})
-	})
 
-	t.Run("narrates every attempted action", func(t *testing.T) {
-		t.Parallel()
+		t.Run("narrates an action with the words of the method that was called", func(t *testing.T) {
+			wave := fixture.NewFakePerformable("wave", nil)
 
-		recorder := fixture.NewRecorder()
-		adam := narratedActor(recorder)
+			for _, testCase := range []struct {
+				perform func(actor *screenplay.Actor) error
+				reads   string
+			}{
+				{func(actor *screenplay.Actor) error { return actor.AttemptsTo(wave) }, "Adam attempts to wave"},
+				{func(actor *screenplay.Actor) error { return actor.WasAbleTo(wave) }, "Adam was able to wave"},
+				{func(actor *screenplay.Actor) error { return actor.Does(wave) }, "Adam does wave"},
+				{func(actor *screenplay.Actor) error { return actor.Did(wave) }, "Adam did wave"},
+				{func(actor *screenplay.Actor) error { return actor.Will(wave) }, "Adam will wave"},
+				{func(actor *screenplay.Actor) error { return actor.TriesTo(wave) }, "Adam tries to wave"},
+				{func(actor *screenplay.Actor) error { return actor.TriedTo(wave) }, "Adam tried to wave"},
+				{func(actor *screenplay.Actor) error { return actor.Tries(wave) }, "Adam tries to wave"},
+				{func(actor *screenplay.Actor) error { return actor.Tried(wave) }, "Adam tried to wave"},
+				{func(actor *screenplay.Actor) error { return actor.Shall(wave) }, "Adam shall wave"},
+				{func(actor *screenplay.Actor) error { return actor.Should(wave) }, "Adam should wave"},
+			} {
+				recorder := fixture.NewRecorder()
+				adam := narratedActor(recorder)
 
-		require.NoError(t, adam.AttemptsTo(fixture.NewFakePerformable("waves", nil)))
+				require.NoError(t, testCase.perform(adam))
+				assert.Equal(t, testCase.reads, recorder.Events()[0].Message)
+			}
+		})
 
-		events := recorder.Events()
-		require.Len(t, events, 2)
-		assert.Equal(t, "Adam waves", events[0].Message)
-		assert.Equal(t, "Adam", events[0].Actor)
-	})
+		t.Run("narrates every attempted action", func(t *testing.T) {
+			t.Parallel()
 
-	t.Run("narrates the steps of a task as nested beats", func(t *testing.T) {
-		t.Parallel()
+			recorder := fixture.NewRecorder()
+			adam := narratedActor(recorder)
 
-		recorder := fixture.NewRecorder()
-		adam := narratedActor(recorder)
+			require.NoError(t, adam.AttemptsTo(fixture.NewFakePerformable("wave", nil)))
 
-		task := screenplay.TaskWhere("greet everyone",
-			fixture.NewFakePerformable("says hello", nil),
-			fixture.NewFakePerformable("waves", nil),
-		)
-		require.NoError(t, adam.AttemptsTo(task))
+			events := recorder.Events()
+			require.Len(t, events, 2)
+			assert.Equal(t, "Adam attempts to wave", events[0].Message)
+			assert.Equal(t, "Adam", events[0].Actor)
+		})
 
-		events := recorder.Events()
-		require.Len(t, events, 6)
+		t.Run("narrates the steps of a task as nested beats", func(t *testing.T) {
+			t.Parallel()
 
-		assert.Equal(t, "Adam greet everyone", events[0].Message)
-		assert.Equal(t, 0, events[0].Depth)
-		assert.Equal(t, "Adam says hello", events[1].Message)
-		assert.Equal(t, 1, events[1].Depth)
-		assert.Equal(t, "Adam waves", events[3].Message)
-		assert.Equal(t, 1, events[3].Depth)
-	})
+			recorder := fixture.NewRecorder()
+			adam := narratedActor(recorder)
 
-	t.Run("narrates a failing action at the error level", func(t *testing.T) {
-		t.Parallel()
+			task := screenplay.TaskWhere("greet everyone",
+				fixture.NewFakePerformable("say hello", nil),
+				fixture.NewFakePerformable("wave", nil),
+			)
+			require.NoError(t, adam.AttemptsTo(task))
 
-		recorder := fixture.NewRecorder()
-		adam := narratedActor(recorder)
-		boom := errors.New("boom")
+			events := recorder.Events()
+			require.Len(t, events, 6)
 
-		require.Error(t, adam.AttemptsTo(fixture.NewFakePerformable("stumbles", boom)))
+			assert.Equal(t, "Adam attempts to greet everyone", events[0].Message)
+			assert.Equal(t, 0, events[0].Depth)
+			assert.Equal(t, "Adam attempts to say hello", events[1].Message)
+			assert.Equal(t, 1, events[1].Depth)
+			assert.Equal(t, "Adam attempts to wave", events[3].Message)
+			assert.Equal(t, 1, events[3].Depth)
+		})
 
-		events := recorder.Events()
-		require.Len(t, events, 2)
-		assert.Equal(t, screenplay.PhaseEnd, events[1].Phase)
-		assert.Equal(t, screenplay.LevelError, events[1].Level)
-		assert.ErrorIs(t, events[1].Err, boom)
-	})
+		t.Run("narrates a failing action at the error level", func(t *testing.T) {
+			t.Parallel()
 
-	t.Run("narrates questions and their answers", func(t *testing.T) {
-		t.Parallel()
+			recorder := fixture.NewRecorder()
+			adam := narratedActor(recorder)
+			boom := errors.New("boom")
 
-		recorder := fixture.NewRecorder()
-		adam := narratedActor(recorder)
+			require.Error(t, adam.AttemptsTo(fixture.NewFakePerformable("stumbles", boom)))
 
-		answer, err := adam.Sees(fixture.NewFakeQuestion("the greeting", "hello world"))
-		require.NoError(t, err)
-		assert.Equal(t, "hello world", answer)
+			events := recorder.Events()
+			require.Len(t, events, 2)
+			assert.Equal(t, screenplay.PhaseEnd, events[1].Phase)
+			assert.Equal(t, screenplay.LevelError, events[1].Level)
+			assert.ErrorIs(t, events[1].Err, boom)
+		})
 
-		events := recorder.Events()
-		require.Len(t, events, 2)
+		t.Run("narrates questions and their answers", func(t *testing.T) {
+			t.Parallel()
 
-		assert.Equal(t, screenplay.KindAside, events[0].Kind)
-		assert.Equal(t, "Adam asks for the greeting", events[0].Message)
+			recorder := fixture.NewRecorder()
+			adam := narratedActor(recorder)
 
-		assert.Equal(t, screenplay.PhaseEnd, events[1].Phase)
-		assert.Equal(t, "hello world", events[1].Answer)
+			answer, err := adam.Sees(fixture.NewFakeQuestion("the greeting", "hello world"))
+			require.NoError(t, err)
+			assert.Equal(t, "hello world", answer)
+
+			events := recorder.Events()
+			require.Len(t, events, 2)
+
+			assert.Equal(t, screenplay.KindAside, events[0].Kind)
+			assert.Equal(t, "Adam asks for the greeting", events[0].Message)
+
+			assert.Equal(t, screenplay.PhaseEnd, events[1].Phase)
+			assert.Equal(t, "hello world", events[1].Answer)
+		})
 	})
 }
 

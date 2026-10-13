@@ -234,6 +234,10 @@ err := bob.Should(create.Folder().Named("my_folder"))
 ```
 The reason for having all these alias functions available is providing you
 the liberty to choose the word that makes the code of your tests easier to read.
+The word you choose is also the one the actor narrates (see
+[Logging and narration](#logging-and-narration)): `bob.AttemptsTo(...)` is narrated
+"Bob attempts to create the folder my_folder", and `bob.WasAbleTo(...)` "Bob was able to
+create the folder my_folder".
 
 ### Tasks
 It happens very often that we need to group several actions together.
@@ -374,12 +378,16 @@ As actors perform actions and ask questions, the library can emit a readable,
 hierarchical narrative of what is happening — an idea borrowed from
 [ScreenPy's narration model](https://screenpy-docs.readthedocs.io/en/latest/narration.html):
 ```
-Wanda sends a GET request to /birds
-    Wanda sets the 'Accept' header to 'application/json'
-    Wanda sends a GET request to /birds
+Wanda attempts to request the list of birds
+    Wanda attempts to set the header 'Accept' to 'application/json'
+    Wanda attempts to send a GET request to /birds
 Wanda asks for the status code of the last response
     => 200
 ```
+Each line is the name of the actor, the words of the method you called (`AttemptsTo`,
+`WasAbleTo`, `Should`, ...), and the description of the action. An action therefore
+describes itself in the infinitive, so that it reads after any of them: "send a GET request
+to /birds", "see if the status code is equal to 200".
 
 Narration is **backend independent**: the library does not force a logging
 library on you. It exposes a small `screenplay.Adapter` interface and ships two
