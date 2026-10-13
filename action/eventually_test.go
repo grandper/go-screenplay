@@ -1,6 +1,7 @@
 package action_test
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"sync/atomic"
@@ -105,6 +106,36 @@ func TestEventuallyAction(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		action1 := action.Eventually(openTheHomePage)
 		assert.Equal(t, "eventually open the home page", action1.String())
+	})
+
+	t.Run("eventually action concurrency", func(t *testing.T) {
+		t.Run("one instance can be performed concurrently", func(t *testing.T) {
+			// Run with -race: the state of a run is local to it, never on the action.
+			var attempts atomic.Int32
+			flaky := action.FromFunc("open the home page", func(_ *screenplay.Actor) error {
+				if attempts.Add(1)%3 != 0 {
+					return errors.New("not yet")
+				}
+				return nil
+			})
+			waitForTheHomePage := action.Eventually(flaky).For(2).Seconds().PollingEvery(10).Milliseconds()
+
+			adam := screenplay.ActorNamed("Adam")
+			require.NoError(t, adam.AttemptsTo(action.Concurrently(waitForTheHomePage, waitForTheHomePage, waitForTheHomePage)))
+		})
+
+		t.Run("stops when the actor's context ends", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			defer cancel()
+			adam := screenplay.ActorNamed("Adam").WithContext(ctx)
+			failing := fixture.NewFakePerformable("open the home page", errors.New("not yet"))
+
+			start := time.Now()
+			err := adam.AttemptsTo(action.Eventually(failing).For(5).Minutes().PollingEvery(10).Milliseconds())
+			require.ErrorIs(t, err, context.DeadlineExceeded)
+			assert.Less(t, time.Since(start), 5*time.Second)
+			assert.EqualError(t, err, "an error occurred when Adam tried to eventually open the home page: context deadline exceeded")
+		})
 	})
 
 	t.Run("returns within its window when the first attempt is slow", func(t *testing.T) {

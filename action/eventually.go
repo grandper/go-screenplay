@@ -30,8 +30,6 @@ func Eventually(performable screenplay.Performable) *EventuallyAction {
 	action := &EventuallyAction{
 		performable: performable,
 		window:      timing.NewWindow(0, 0),
-		caughtErr:   nil,
-		uniqueErrs:  []error{},
 	}
 	action.WindowBuilder = timing.NewWindowBuilder(action, &action.window)
 
@@ -47,8 +45,6 @@ type EventuallyAction struct {
 
 	performable screenplay.Performable
 	window      timing.Window
-	caughtErr   error
-	uniqueErrs  []error
 }
 
 // String describes the action.
@@ -74,7 +70,9 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 		)
 	}
 
-	a.uniqueErrs = []error{}
+	// The state of one run is local to it, so the same instance can be
+	// performed by several actors at the same time.
+	var uniqueErrs []error
 
 	timeoutTimer := time.NewTimer(window.Total)
 	defer timeoutTimer.Stop()
@@ -100,29 +98,34 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 
 	var tick <-chan time.Time
 
+	ctx := theActor.Context()
+
 	for {
 		select {
+		case <-ctx.Done():
+			return fmt.Errorf("an error occurred when %s tried to eventually %s: %w",
+				theActor.Name(), a.performable, ctx.Err())
 		case <-timeoutTimer.C:
 			mutex.RLock()
 			localCount := count
 			mutex.RUnlock()
-			if len(a.uniqueErrs) == 0 {
+			if len(uniqueErrs) == 0 {
 				return fmt.Errorf("an error occurred when %s tried to eventually %s %d times over %s: %w",
 					theActor.Name(), a.performable, localCount, window.Total, ErrNoAttemptCompleted)
 			}
 			return fmt.Errorf("an error occurred when %s tried to eventually %s %d times over %s: %w",
-				theActor.Name(), a.performable, localCount, window.Total, errors.Join(a.uniqueErrs...))
+				theActor.Name(), a.performable, localCount, window.Total, errors.Join(uniqueErrs...))
 		case <-tick:
 			tick = nil
 
 			go tryToPerformTheAction()
-		case a.caughtErr = <-errCh:
-			if a.caughtErr == nil {
+		case caughtErr := <-errCh:
+			if caughtErr == nil {
 				return nil
 			}
 
-			if !containsErr(a.uniqueErrs, a.caughtErr) {
-				a.uniqueErrs = append(a.uniqueErrs, a.caughtErr)
+			if !containsErr(uniqueErrs, caughtErr) {
+				uniqueErrs = append(uniqueErrs, caughtErr)
 			}
 
 			// The polling interval counts from the end of the failed attempt, so an
