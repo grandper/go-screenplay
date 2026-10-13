@@ -1,6 +1,7 @@
 package screenplay_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -150,5 +151,29 @@ func TestStage(t *testing.T) {
 			require.NoError(t, err)
 			assert.Same(t, bob, spotlight)
 		})
+	})
+
+	t.Run("stage is safe for concurrent use", func(t *testing.T) {
+		// Run with -race.
+		stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
+
+		var group sync.WaitGroup
+		for i := 0; i < 8; i++ {
+			group.Add(1)
+			go func() {
+				defer group.Done()
+				stage.ActorNamed("Adam")
+				stage.ActorNamed("Wanda")
+				_, _ = stage.TheActorInTheSpotlight()
+				_ = stage.AnActorIsOnStage()
+			}()
+		}
+		group.Wait()
+
+		adam := stage.ActorNamed("Adam")
+		again := stage.ActorNamed("adam")
+		assert.Same(t, adam, again, "one actor per name, whatever the goroutine that created it")
+		require.NoError(t, stage.DrawTheCurtain())
+		assert.False(t, stage.AnActorIsOnStage())
 	})
 }
