@@ -154,6 +154,26 @@ func TestSendHTTPRequestAction(t *testing.T) {
 		assert.Equal(t, "send a secret HTTP request", sendRequest.String())
 	})
 
+	t.Run("keeps the URL out of the error of a failed secret request", func(t *testing.T) {
+		// Nothing listens on port 1, so the request fails with a transport error
+		// that would otherwise embed the URL and its query string.
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+
+		err := adam.AttemptsTo(action.SendPostRequest().To("http://127.0.0.1:1/login?token=SECRET").Secretly())
+		require.Error(t, err)
+		assert.NotContains(t, err.Error(), "SECRET")
+		assert.NotContains(t, err.Error(), "/login")
+		assert.Contains(t, err.Error(), "failed to send a secret HTTP request")
+	})
+
+	t.Run("keeps the URL in the error of a failed request that is not secret", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
+
+		err := adam.AttemptsTo(action.SendPostRequest().To("http://127.0.0.1:1/login?token=SECRET"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "http://127.0.0.1:1/login?token=SECRET")
+	})
+
 	t.Run("refuses a request body larger than the buffered size", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
 		defer server.Close()

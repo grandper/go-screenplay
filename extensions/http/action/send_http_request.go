@@ -2,9 +2,11 @@ package action
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
@@ -147,7 +149,25 @@ func (a *SendHTTPRequestAction) PerformAs(theActor *screenplay.Actor) error {
 		body = bytes.NewReader(a.body)
 	}
 
-	return makeHTTPRequests.ToSend(theActor.Context(), a.method, a.url, body, a.credential)
+	err = makeHTTPRequests.ToSend(theActor.Context(), a.method, a.url, body, a.credential)
+	if err != nil && a.secret {
+		// A transport error embeds the full URL, query string included. A secret
+		// request reports only the cause, so the URL never reaches the narration.
+		return fmt.Errorf("failed to send a secret HTTP request: %w", withoutTheURL(err))
+	}
+
+	return err
+}
+
+// withoutTheURL strips the URL from a net/http or net/url error, keeping only
+// its cause. Any other error is returned unchanged.
+func withoutTheURL(err error) error {
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		return urlErr.Err
+	}
+
+	return err
 }
 
 // SendHTTPRequestAction implements the screenplay.Performable interface.

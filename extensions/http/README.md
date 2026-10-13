@@ -91,11 +91,14 @@ Use basic authentication with `WithCredential` (or its alias `WithAuth`):
 err := anActor.AttemptsTo(SendGetRequest().To("http://www.example.com").WithCredential("username", "password"))
 err := anActor.AttemptsTo(SendGetRequest().To("http://www.example.com").WithAuth("username", "password"))
 ```
-A request can be sent secretly, so neither its body nor headers appear in the
-narration:
+A request can be sent secretly, so neither its URL nor its body appear in the
+narration. When a secret request fails, its error keeps the cause but drops the
+URL, so a token carried in the query string never reaches the logs:
 ```go
 err := anActor.AttemptsTo(SendPostRequest().To("http://www.example.com").WithBody(body).Secretly())
 err := anActor.AttemptsTo(SendPostRequest().To("http://www.example.com").WithBody(body).WhichShouldBeKeptSecret())
+// narrated: Adam attempts to send a secret HTTP request
+// on failure: Adam attempts to send a secret HTTP request: failed to send a secret HTTP request: dial tcp 127.0.0.1:1: connect: connection refused
 ```
 
 ## Questions
