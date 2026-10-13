@@ -13,6 +13,8 @@ import (
 var (
 	// ErrPollingPeriodMustBeLessThanOrEqualToTimeout is returned when the polling period is greater than the timeout.
 	ErrPollingPeriodMustBeLessThanOrEqualToTimeout = errors.New("polling period must be less than or equal to timeout")
+	// ErrNoAttemptCompleted is returned when the timeout is reached while the only attempt is still running.
+	ErrNoAttemptCompleted = errors.New("no attempt completed within the timeout")
 )
 
 // Eventually retries a task or action until it eventually succeed.
@@ -83,7 +85,9 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 		errCh <- theActor.AttemptsTo(a.performable)
 	}
 
-	tryToPerformTheAction()
+	// The first attempt races the timer like the retries do: a slow first
+	// attempt never holds the action past its window.
+	go tryToPerformTheAction()
 
 	var tick <-chan time.Time
 
@@ -93,8 +97,12 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 			mutex.RLock()
 			localCount := count
 			mutex.RUnlock()
-			return fmt.Errorf("an error occurred when %s tried to eventually %s %d times over %f seconds: %w",
-				theActor.Name(), a.performable, localCount, window.Total.Seconds(), errors.Join(a.uniqueErrs...))
+			if len(a.uniqueErrs) == 0 {
+				return fmt.Errorf("an error occurred when %s tried to eventually %s %d times over %s: %w",
+					theActor.Name(), a.performable, localCount, window.Total, ErrNoAttemptCompleted)
+			}
+			return fmt.Errorf("an error occurred when %s tried to eventually %s %d times over %s: %w",
+				theActor.Name(), a.performable, localCount, window.Total, errors.Join(a.uniqueErrs...))
 		case <-tick:
 			tick = nil
 
@@ -108,6 +116,9 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 				a.uniqueErrs = append(a.uniqueErrs, a.caughtErr)
 			}
 
+			// The polling interval counts from the end of the failed attempt, so an
+			// attempt longer than the interval never triggers an immediate retry.
+			pollingTicker.Reset(window.Interval)
 			tick = pollingTicker.C
 		}
 	}

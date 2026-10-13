@@ -3,6 +3,7 @@ package action_test
 import (
 	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -72,7 +73,7 @@ func TestEventuallyAction(t *testing.T) {
 		require.Error(t, err)
 		// The timeout in the message reflects the production's timeout (0.1s), not
 		// the DefaultTimeout of 2s.
-		assert.Contains(t, err.Error(), "over 0.100000 seconds")
+		assert.Contains(t, err.Error(), "over 100ms")
 	})
 
 	t.Run("explicit overrides win over the production timeout and polling", func(t *testing.T) {
@@ -90,11 +91,49 @@ func TestEventuallyAction(t *testing.T) {
 			action.Eventually(failing).For(100).Milliseconds().PollingEvery(10).Milliseconds(),
 		)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "over 0.100000 seconds")
+		assert.Contains(t, err.Error(), "over 100ms")
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		action1 := action.Eventually(openTheHomePage)
 		assert.Equal(t, "eventually open the home page", action1.String())
 	})
+
+	t.Run("returns within its window when the first attempt is slow", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		slow := action.FromFunc("open the home page", func(_ *screenplay.Actor) error {
+			time.Sleep(300 * time.Millisecond)
+			return errors.New("still failing")
+		})
+
+		start := time.Now()
+		err := adam.AttemptsTo(action.Eventually(slow).For(50).Milliseconds().PollingEvery(10).Milliseconds())
+		require.ErrorIs(t, err, action.ErrNoAttemptCompleted)
+		assert.Less(t, time.Since(start), 250*time.Millisecond)
+		assert.EqualError(t, err, "an error occurred when Adam tried to eventually open the home page 1 times over 50ms: no attempt completed within the timeout")
+	})
+
+	t.Run("reports the collected failures over the window", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		failing := fixture.NewFakePerformable("open the home page", errors.New("not yet"))
+
+		err := adam.AttemptsTo(action.Eventually(failing).For(50).Milliseconds().PollingEvery(10).Milliseconds())
+		require.Error(t, err)
+		assert.Regexp(t, `^an error occurred when Adam tried to eventually open the home page \d+ times over 50ms: not yet$`, err.Error())
+	})
+
+	t.Run("waits a full polling interval after a failed attempt longer than the interval", func(t *testing.T) {
+		var attempts atomic.Int32
+		slow := action.FromFunc("open the home page", func(_ *screenplay.Actor) error {
+			attempts.Add(1)
+			time.Sleep(30 * time.Millisecond)
+			return errors.New("not yet")
+		})
+		adam := screenplay.ActorNamed("Adam")
+
+		// 30 ms attempts followed by 20 ms pauses: at most 4 attempts fit in 200 ms.
+		_ = adam.AttemptsTo(action.Eventually(slow).For(200).Milliseconds().PollingEvery(20).Milliseconds())
+		assert.LessOrEqual(t, attempts.Load(), int32(5))
+	})
+
 }
