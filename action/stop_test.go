@@ -1,8 +1,10 @@
 package action_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -95,6 +97,21 @@ func TestStopAction(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, r.Close())
 		require.Error(t, adam.AttemptsTo(action.Stop().UntilAnInputIsProvidedBy(r)))
+	})
+
+	t.Run("stop action honors the actor context", func(t *testing.T) {
+		// A reader that never delivers anything, like a stdin nobody types into.
+		never, _ := io.Pipe()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+		adam := screenplay.ActorNamed("Adam").WithContext(ctx)
+
+		start := time.Now()
+		err := adam.AttemptsTo(action.Stop().UntilAnInputIsProvidedBy(never))
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		assert.Less(t, time.Since(start), 5*time.Second)
+		assert.EqualError(t, err, "Adam stopped waiting for an input: context deadline exceeded")
 	})
 
 	t.Run("fails when the condition is met only after the timeout", func(t *testing.T) {

@@ -1,11 +1,9 @@
 package action
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 
 	"github.com/grandper/go-screenplay/v2/internal/sentence"
@@ -141,14 +139,7 @@ func (a *StopAction) String() string {
 // PerformAs performs the task or the action as the provided actor.
 func (a *StopAction) PerformAs(actor *screenplay.Actor) error {
 	if a.condition == nil {
-		slog.Default().
-			InfoContext(context.Background(), "the actor stops, waiting for your go\n(press enter to continue)\n")
-
-		_, err := fmt.Fscanln(a.reader)
-		if err != nil {
-			return err
-		}
-		return nil
+		return a.waitForAnInput(actor)
 	}
 
 	// A condition that was built wrongly can never be seen: it is reported at
@@ -166,6 +157,28 @@ func (a *StopAction) PerformAs(actor *screenplay.Actor) error {
 		return a.neverSeen(actor)
 	}
 	return nil
+}
+
+// waitForAnInput blocks until a line is read from the reader, or until the
+// actor's context ends. The prompt is written to the standard error of the
+// process, where the person debugging the test reads it; the narrator already
+// states that the actor stops.
+func (a *StopAction) waitForAnInput(actor *screenplay.Actor) error {
+	fmt.Fprintln(os.Stderr, "the actor stops, waiting for your go (press enter to continue)")
+
+	read := make(chan error, 1)
+	go func() {
+		_, err := fmt.Fscanln(a.reader)
+		read <- err
+	}()
+
+	ctx := actor.Context()
+	select {
+	case err := <-read:
+		return err
+	case <-ctx.Done():
+		return fmt.Errorf("%s stopped waiting for an input: %w", actor.Name(), ctx.Err())
+	}
 }
 
 // awaitedCondition is what the actor keeps trying to see while it is stopped.
