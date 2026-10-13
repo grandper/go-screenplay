@@ -381,117 +381,118 @@ func TestActor(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, answer)
 	})
-}
 
-func TestActorAttemptsToAliases(t *testing.T) {
-	openTheHomePage := fixture.NewFakePerformable("open the home page", nil)
-	openTheHomePageButFailed := fixture.NewFakePerformable(
-		"open the home page",
-		errors.New("the actor failed to perform the task"),
-	)
+	t.Run("attempts to aliases", func(t *testing.T) {
+		openTheHomePage := fixture.NewFakePerformable("open the home page", nil)
+		openTheHomePageButFailed := fixture.NewFakePerformable(
+			"open the home page",
+			errors.New("the actor failed to perform the task"),
+		)
 
-	aliases := map[string]func(*screenplay.Actor, ...screenplay.Performable) error{
-		"WasAbleTo": (*screenplay.Actor).WasAbleTo,
-		"Does":      (*screenplay.Actor).Does,
-		"Did":       (*screenplay.Actor).Did,
-		"Will":      (*screenplay.Actor).Will,
-		"TriesTo":   (*screenplay.Actor).TriesTo,
-		"TriedTo":   (*screenplay.Actor).TriedTo,
-		"Tries":     (*screenplay.Actor).Tries,
-		"Tried":     (*screenplay.Actor).Tried,
-		"Shall":     (*screenplay.Actor).Shall,
-		"Should":    (*screenplay.Actor).Should,
-	}
+		aliases := map[string]func(*screenplay.Actor, ...screenplay.Performable) error{
+			"WasAbleTo": (*screenplay.Actor).WasAbleTo,
+			"Does":      (*screenplay.Actor).Does,
+			"Did":       (*screenplay.Actor).Did,
+			"Will":      (*screenplay.Actor).Will,
+			"TriesTo":   (*screenplay.Actor).TriesTo,
+			"TriedTo":   (*screenplay.Actor).TriedTo,
+			"Tries":     (*screenplay.Actor).Tries,
+			"Tried":     (*screenplay.Actor).Tried,
+			"Shall":     (*screenplay.Actor).Shall,
+			"Should":    (*screenplay.Actor).Should,
+		}
 
-	for name, perform := range aliases {
-		t.Run(name+" performs the actions like AttemptsTo", func(t *testing.T) {
+		for name, perform := range aliases {
+			t.Run(name+" performs the actions like AttemptsTo", func(t *testing.T) {
+				adam := screenplay.ActorNamed("Adam")
+				action := &countingPerformable{}
+
+				require.NoError(t, perform(adam, action))
+				assert.Equal(t, 1, action.count)
+			})
+
+			t.Run(name+" returns the error when an action fails", func(t *testing.T) {
+				adam := screenplay.ActorNamed("Adam")
+				require.NoError(t, perform(adam, openTheHomePage))
+				require.Error(t, perform(adam, openTheHomePageButFailed))
+			})
+		}
+	})
+
+	t.Run("timeout and polling", func(t *testing.T) {
+		t.Run("falls back to the default timeout and polling without a production", func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam")
+			assert.Equal(t, screenplay.DefaultTimeout, adam.Timeout())
+			assert.Equal(t, screenplay.DefaultPolling, adam.Polling())
+		})
+
+		t.Run("reads the timeout and polling from the production", func(t *testing.T) {
+			production := screenplay.NewProduction(
+				screenplay.WithTimeout(10*time.Second),
+				screenplay.WithPolling(250*time.Millisecond),
+			)
+			adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
+
+			assert.Equal(t, 10*time.Second, adam.Timeout())
+			assert.Equal(t, 250*time.Millisecond, adam.Polling())
+		})
+	})
+
+	t.Run("muted", func(t *testing.T) {
+		t.Run("shares the memory of the actor it is derived from", func(t *testing.T) {
+			adam := screenplay.ActorNamed("Adam")
+			adam.Remember("greeting", "hello world")
+
+			assert.Equal(t, "hello world", adam.Muted().Recall("greeting"))
+		})
+
+		t.Run("still performs the actions it is asked to", func(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam")
 			action := &countingPerformable{}
 
-			require.NoError(t, perform(adam, action))
+			require.NoError(t, adam.Muted().AttemptsTo(action))
 			assert.Equal(t, 1, action.count)
 		})
 
-		t.Run(name+" returns the error when an action fails", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam")
-			require.NoError(t, perform(adam, openTheHomePage))
-			require.Error(t, perform(adam, openTheHomePageButFailed))
+		t.Run("suppresses narration", func(t *testing.T) {
+			recorder := fixture.NewRecorder()
+			adam := narratedActor(recorder)
+
+			require.NoError(t, adam.Muted().AttemptsTo(fixture.NewFakePerformable("wave", nil)))
+			assert.Empty(t, recorder.Events())
 		})
-	}
-}
+	})
 
-func TestActorTimeoutAndPolling(t *testing.T) {
-	t.Run("falls back to the default timeout and polling without a production", func(t *testing.T) {
+	t.Run("is thread safe", func(_ *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
-		assert.Equal(t, screenplay.DefaultTimeout, adam.Timeout())
-		assert.Equal(t, screenplay.DefaultPolling, adam.Polling())
-	})
 
-	t.Run("reads the timeout and polling from the production", func(t *testing.T) {
-		production := screenplay.NewProduction(
-			screenplay.WithTimeout(10*time.Second),
-			screenplay.WithPolling(250*time.Millisecond),
-		)
-		adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
+		const goroutines = 50
 
-		assert.Equal(t, 10*time.Second, adam.Timeout())
-		assert.Equal(t, 250*time.Millisecond, adam.Polling())
-	})
-}
+		var waitGroup sync.WaitGroup
+		waitGroup.Add(goroutines)
 
-func TestActorMuted(t *testing.T) {
-	t.Run("shares the memory of the actor it is derived from", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam")
-		adam.Remember("greeting", "hello world")
+		for i := range goroutines {
+			go func(i int) {
+				defer waitGroup.Done()
 
-		assert.Equal(t, "hello world", adam.Muted().Recall("greeting"))
-	})
+				key := fmt.Sprintf("key-%d", i)
 
-	t.Run("still performs the actions it is asked to", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam")
-		action := &countingPerformable{}
+				adam.Remember(key, i)
+				_ = adam.Recall(key)
+				adam.Can(flyInTheSkyAbility{})
+				_ = adam.HasAbilityTo(flyInTheSkyAbility{})
+				_ = adam.NumAbilities()
+				adam.Forget(key)
+			}(i)
+		}
 
-		require.NoError(t, adam.Muted().AttemptsTo(action))
-		assert.Equal(t, 1, action.count)
-	})
-
-	t.Run("suppresses narration", func(t *testing.T) {
-		recorder := fixture.NewRecorder()
-		adam := narratedActor(recorder)
-
-		require.NoError(t, adam.Muted().AttemptsTo(fixture.NewFakePerformable("waves", nil)))
-		assert.Empty(t, recorder.Events())
+		waitGroup.Wait()
 	})
 }
 
 // TestActorIsThreadSafe exercises the actor from many goroutines at once. It is
 // meant to be run with the race detector (go test -race) to make sure the
 // concurrent access to the actor's memory and abilities is properly guarded.
-func TestActorIsThreadSafe(_ *testing.T) {
-	adam := screenplay.ActorNamed("Adam")
-
-	const goroutines = 50
-
-	var waitGroup sync.WaitGroup
-	waitGroup.Add(goroutines)
-
-	for i := range goroutines {
-		go func(i int) {
-			defer waitGroup.Done()
-
-			key := fmt.Sprintf("key-%d", i)
-
-			adam.Remember(key, i)
-			_ = adam.Recall(key)
-			adam.Can(flyInTheSkyAbility{})
-			_ = adam.HasAbilityTo(flyInTheSkyAbility{})
-			_ = adam.NumAbilities()
-			adam.Forget(key)
-		}(i)
-	}
-
-	waitGroup.Wait()
-}
 
 type testOrderedTask struct {
 	id     int
