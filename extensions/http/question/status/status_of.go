@@ -8,8 +8,8 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-// ErrAnswerIsNil is returned when the wrapped question answers with a nil HTTP response.
-var ErrAnswerIsNil = errors.New("the answer of the question is a nil HTTP response")
+// ErrResponseIsNil is returned when the wrapped question answers with a nil HTTP response.
+var ErrResponseIsNil = errors.New("the answer of the question is a nil HTTP response")
 
 // CodeOf creates a question whose answer is the status code of the HTTP response answered by the wrapped question.
 func CodeOf(question screenplay.Question[*ability.HTTPResponse]) *CodeOfQuestion {
@@ -31,7 +31,7 @@ func (q *CodeOfQuestion) AnsweredBy(actor *screenplay.Actor) (int, error) {
 	}
 
 	if response == nil {
-		return 0, fmt.Errorf("%w: %s", ErrAnswerIsNil, q.question)
+		return 0, fmt.Errorf("%w: %s", ErrResponseIsNil, q.question)
 	}
 
 	return response.StatusCode(), nil

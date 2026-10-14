@@ -3,6 +3,8 @@ package action
 import (
 	"fmt"
 
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
+
 	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -28,7 +30,7 @@ func (a *TypeAction) AndPressEnter() *TypeAction {
 
 // String describes the action.
 func (a *TypeAction) String() string {
-	str := fmt.Sprintf("type the content '%s'", a.content)
+	str := fmt.Sprintf("type the content %s", verdict.Describe(a.content))
 	if a.pressEnter {
 		str += " and press enter"
 	}
@@ -39,9 +41,9 @@ func (a *TypeAction) String() string {
 func (a *TypeAction) PerformAs(theActor *screenplay.Actor) error {
 	runCLICommands := screenplay.UseAnAbilityOf(theActor).That(ability.RunCLICommands())
 	if a.pressEnter {
-		return runCLICommands.Type(a.content + "\n")
+		return runCLICommands.ToType(a.content + "\n")
 	}
-	return runCLICommands.Type(a.content)
+	return runCLICommands.ToType(a.content)
 }
 
 // TypeAction implements the screenplay.Performable interface.

@@ -32,7 +32,7 @@ func TestOutputOfQuestion(t *testing.T) {
 
 		answer, err := standard.OutputOf(nilResult).AnsweredBy(screenplay.ActorNamed("Adam"))
 
-		require.ErrorIs(t, err, standard.ErrAnswerIsNil)
+		require.ErrorIs(t, err, standard.ErrResultIsNil)
 		assert.Nil(t, answer)
 	})
 
@@ -50,7 +50,7 @@ func TestOutputOfQuestion(t *testing.T) {
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		q := standard.OutputOf(last.Of(question.Responses()))
-		assert.Equal(t, "standard output of last of responses", q.String())
+		assert.Equal(t, "standard output of last of command results", q.String())
 	})
 
 	t.Run("implements the question interface", func(t *testing.T) {

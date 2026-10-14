@@ -204,7 +204,7 @@ func TestTerm(t *testing.T) {
 			require.EqualError(t, err, "the status code should not be equal to 200: got 200")
 
 			err = term.That(statusCode).ShouldAnyOf(be.EqualTo(201), be.EqualTo(204)).MetBy(adam)
-			require.EqualError(t, err, "the status code (got 200) should be any of: equal to 201, equal to 204")
+			require.EqualError(t, err, "the status code should be any of: equal to 201, equal to 204: got 200")
 
 			err = term.That(customers).ShouldHave(length.Exactly[[]string](3)).MetBy(adam)
 			require.EqualError(t, err, "the customers should have length exactly 3: got [Adam Eve]")

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
+
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
@@ -37,7 +39,7 @@ type RecalledQuestion[T any] struct {
 
 // String describes the question.
 func (q *RecalledQuestion[T]) String() string {
-	return fmt.Sprintf("recalled '%s'", q.key)
+	return fmt.Sprintf("recalled %s", verdict.Describe(q.key))
 }
 
 // AnsweredBy returns the value the actor remembers under the question's key,

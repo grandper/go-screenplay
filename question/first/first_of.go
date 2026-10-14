@@ -1,14 +1,15 @@
 package first
 
 import (
-	"errors"
 	"fmt"
 
+	"github.com/grandper/go-screenplay/v2/question"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-// ErrAnswerIsEmpty is returned when the wrapped question answers with an empty slice.
-var ErrAnswerIsEmpty = errors.New("the answer of the question is an empty slice")
+// ErrAnswerIsEmpty is returned when the wrapped question answers with an empty
+// slice. It is question.ErrAnswerIsEmpty, shared by first.Of and last.Of.
+var ErrAnswerIsEmpty = question.ErrAnswerIsEmpty
 
 // Of creates a question whose answer is the first element of the slice answered
 // by the wrapped question. The wrapped question must answer with a slice; its

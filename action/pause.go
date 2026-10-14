@@ -9,6 +9,9 @@ import (
 	"github.com/grandper/go-screenplay/v2/timing"
 )
 
+// ErrReasonNotProvided is returned when a pause is performed without a reason.
+var ErrReasonNotProvided = errors.New("cannot pause without a reason: you must call the .Because() method")
+
 // PauseFor creates an action that pauses for a given time. The returned
 // DurationBuilder lets the caller pick a unit, for example
 // PauseFor(20).Milliseconds().
@@ -43,9 +46,7 @@ func (a *PauseAction) String() string {
 // PerformAs performs the task or the action as the provided actor.
 func (a *PauseAction) PerformAs(_ *screenplay.Actor) error {
 	if a.reason == "" {
-		return errors.New(
-			"failed to pause: cannot pause without a reason: you must call the .Because() method",
-		)
+		return fmt.Errorf("failed to pause: %w", ErrReasonNotProvided)
 	}
 
 	time.Sleep(a.duration)

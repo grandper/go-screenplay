@@ -42,7 +42,7 @@ func TestContentOfTheFileNamedQuestion(t *testing.T) {
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		contentOfTheFileNamedFooBar := question.ContentOfTheFileNamed("foo.bar")
-		assert.Equal(t, "content of the file named 'foo.bar'", contentOfTheFileNamedFooBar.String())
+		assert.Equal(t, "content of the file named \"foo.bar\"", contentOfTheFileNamedFooBar.String())
 	})
 
 	t.Run("implements the question interface", func(t *testing.T) {

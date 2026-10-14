@@ -37,7 +37,7 @@ func TestHTTPResponse(t *testing.T) {
 
 	t.Run("cannot be created from a nil http.Response", func(t *testing.T) {
 		httpResponse, err := ability.NewHTTPResponseFrom(nil)
-		require.Error(t, err)
+		require.ErrorIs(t, err, ability.ErrResponseIsNil)
 		assert.Nil(t, httpResponse)
 	})
 

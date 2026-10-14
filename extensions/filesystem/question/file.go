@@ -9,7 +9,9 @@ type File struct {
 	exists bool
 }
 
-func newFile(filePath string, exists bool) *File {
+// NewFile creates the answer of FileNamed: the file at the path, which exists or
+// not. Dir and Name split the path as it was written; the path is not resolved.
+func NewFile(filePath string, exists bool) *File {
 	return &File{
 		dir:    path.Dir(filePath),
 		name:   path.Base(filePath),
@@ -17,7 +19,7 @@ func newFile(filePath string, exists bool) *File {
 	}
 }
 
-// Dir returns the dir to the file.
+// Dir returns the directory of the file.
 func (f *File) Dir() string {
 	return f.dir
 }

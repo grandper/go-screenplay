@@ -9,7 +9,10 @@ type Directory struct {
 	exists bool
 }
 
-func newDirectory(directoryPath string, exists bool) *Directory {
+// NewDirectory creates the answer of DirectoryNamed: the directory at the path,
+// which exists or not. Dir and Name split the path as it was written; the path
+// is not resolved.
+func NewDirectory(directoryPath string, exists bool) *Directory {
 	return &Directory{
 		dir:    path.Dir(directoryPath),
 		name:   path.Base(directoryPath),

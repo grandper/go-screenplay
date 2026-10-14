@@ -18,8 +18,17 @@ Assertions are written with the core screenplay packages (`action/see`,
 `resolution/be`, `resolution/contain`, `question/last`, ...). For readability the
 examples below drop the package qualifiers on the extension constructors; import the
 packages above and qualify them as `action.SendGetRequest()`, `ability.MakeHTTPRequests()`,
-and so on (note that the extension's `action`/`question` packages share their name with
-the core ones, so you may need an import alias when you use both in the same file).
+and so on. The extension's `action`/`question` packages share their name with the core ones:
+when a file uses both, keep the core name and alias the extension package with the `http`
+prefix:
+```go
+import (
+	"github.com/grandper/go-screenplay/v2/action"
+	httpaction "github.com/grandper/go-screenplay/v2/extensions/http/action"
+)
+
+err := anActor.AttemptsTo(action.Eventually(httpaction.SendGetRequest().To(url)))
+```
 
 ## The ability
 This extension introduces a single ability: making HTTP requests. Give it to an actor

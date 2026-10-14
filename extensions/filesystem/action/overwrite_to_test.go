@@ -83,9 +83,12 @@ func TestOverwriteTo(t *testing.T) {
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		filename := fixture.CreateFilename(t)
-		action1 := action.OverwriteTo(filename).WithTheText("some text")
-		assert.Equal(t, "overwrite the file "+filename, action1.String())
+		assert.Equal(t, `overwrite "notes.txt" with the text "x"`,
+			action.OverwriteTo("notes.txt").WithTheText("x").String())
+		assert.Equal(t, `overwrite "notes.txt" with the bytes "x"`,
+			action.OverwriteTo("notes.txt").WithTheBytes([]byte("x")).String())
+		assert.Equal(t, `overwrite "notes.txt" with the content "x"`,
+			action.OverwriteTo("notes.txt").WithTheContent(strings.NewReader("x")).String())
 	})
 
 	t.Run("can be performed more than once", func(t *testing.T) {

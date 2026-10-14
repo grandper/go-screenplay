@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
+
 	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -63,12 +65,12 @@ func (a *RunTheCommandAction) WithEnvVar(key, value string) *RunTheCommandAction
 
 // String describes the action.
 func (a *RunTheCommandAction) String() string {
-	str := fmt.Sprintf("run the command '%s %s'", a.name, strings.Join(a.args, " "))
+	str := fmt.Sprintf("run the command %s", verdict.Describe(strings.Join(append([]string{a.name}, a.args...), " ")))
 	if a.interactive {
 		str += " interactively"
 	}
 	if a.workingDir != "" {
-		str += fmt.Sprintf(" in the working directory %s", a.workingDir)
+		str += fmt.Sprintf(" in the working directory %s", verdict.Describe(a.workingDir))
 	}
 	return str
 }
@@ -87,7 +89,7 @@ func (a *RunTheCommandAction) PerformAs(actor *screenplay.Actor) error {
 		Interactive: a.interactive,
 	}
 
-	return screenplay.UseAnAbilityOf(actor).That(ability.RunCLICommands()).Run(actor.Context(), cmd)
+	return screenplay.UseAnAbilityOf(actor).That(ability.RunCLICommands()).ToRun(actor.Context(), cmd)
 }
 
 // RunTheCommandAction implements the screenplay.Performable interface.

@@ -73,8 +73,12 @@ func TestAppendTo(t *testing.T) {
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		action1 := action.AppendTheText("some text").To("file.txt")
-		assert.Equal(t, "append content to the file file.txt", action1.String())
+		assert.Equal(t, `append the text "some text" to "file.txt"`,
+			action.AppendTheText("some text").To("file.txt").String())
+		assert.Equal(t, `append the bytes "some bytes" to "file.txt"`,
+			action.AppendTheBytes([]byte("some bytes")).To("file.txt").String())
+		assert.Equal(t, `append the content "some content" to "file.txt"`,
+			action.AppendTheContent(strings.NewReader("some content")).To("file.txt").String())
 	})
 
 	t.Run("can be performed more than once", func(t *testing.T) {

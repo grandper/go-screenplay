@@ -2,27 +2,20 @@ package action
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
 	"github.com/grandper/go-screenplay/v2/screenplay"
-)
-
-var (
-	// ErrFilenameNotProvided is returned when no filename is provided.
-	ErrFilenameNotProvided = errors.New("filename must be provided")
-
-	// ErrReaderNotProvided is returned when no reader is provided.
-	ErrReaderNotProvided = errors.New("reader must be provided")
 )
 
 // AppendTheText adds the text to the end of the file without altering the existing content.
 func AppendTheText(text string) *AppendToAction {
 	return &AppendToAction{
-		content:    []byte(text),
-		hasContent: true,
+		content:     []byte(text),
+		contentKind: "text",
+		hasContent:  true,
 	}
 }
 
@@ -31,32 +24,35 @@ func AppendTheText(text string) *AppendToAction {
 // more than once.
 func AppendTheContent(reader io.Reader) *AppendToAction {
 	if reader == nil {
-		return &AppendToAction{}
+		return &AppendToAction{contentKind: "content"}
 	}
 
 	content, err := readTheContent(reader)
 
 	return &AppendToAction{
-		content:    content,
-		hasContent: true,
-		contentErr: err,
+		content:     content,
+		contentKind: "content",
+		hasContent:  true,
+		contentErr:  err,
 	}
 }
 
 // AppendTheBytes adds the bytes to the end of the file without altering the existing content.
 func AppendTheBytes(b []byte) *AppendToAction {
 	return &AppendToAction{
-		content:    bytes.Clone(b),
-		hasContent: true,
+		content:     bytes.Clone(b),
+		contentKind: "bytes",
+		hasContent:  true,
 	}
 }
 
 // AppendToAction is an action to append content to a file.
 type AppendToAction struct {
-	filename   string
-	content    []byte
-	hasContent bool
-	contentErr error
+	filename    string
+	content     []byte
+	contentKind string // "text", "bytes" or "content", as the constructor reads
+	hasContent  bool
+	contentErr  error
 }
 
 // To sets the filename to which the content will be appended.
@@ -67,7 +63,8 @@ func (a *AppendToAction) To(filename string) *AppendToAction {
 
 // String describes the action.
 func (a *AppendToAction) String() string {
-	return fmt.Sprintf("append content to the file %s", a.filename)
+	return fmt.Sprintf("append %s to %s",
+		describeContent(a.contentKind, a.content, a.contentErr), verdict.Describe(a.filename))
 }
 
 // PerformAs performs the task or the action as the provided actor.
@@ -83,7 +80,7 @@ func (a *AppendToAction) PerformAs(actor *screenplay.Actor) error {
 	}
 	return screenplay.UseAnAbilityOf(actor).
 		That(ability.UseTheFileSystem()).
-		AppendTo(a.filename, bytes.NewReader(a.content))
+		ToAppendTo(a.filename, bytes.NewReader(a.content))
 }
 
 // readTheContent buffers the content of a reader once, up to
@@ -101,6 +98,17 @@ func readTheContent(reader io.Reader) ([]byte, error) {
 		)
 	}
 	return content, nil
+}
+
+// describeContent describes the content of an action as its constructor reads,
+// followed by the content itself: the text "Hello", the bytes "Hello". A
+// content that could not be read is described without its value.
+func describeContent(kind string, content []byte, err error) string {
+	if err != nil {
+		return "the " + kind
+	}
+
+	return fmt.Sprintf("the %s %s", kind, verdict.Describe(content))
 }
 
 // AppendToAction implements the screenplay.Performable interface.

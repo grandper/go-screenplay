@@ -131,7 +131,7 @@ func (s *StopBuilder[T]) waitsFor(clause sentence.Clause[T]) *StopAction {
 // String describes the action.
 func (a *StopAction) String() string {
 	if a.condition == nil {
-		return "stop until the 'enter' key is pressed"
+		return `stop until the "enter" key is pressed`
 	}
 	return fmt.Sprintf("stop until %s", a.term)
 }

@@ -8,7 +8,7 @@ import (
 )
 
 // condition reports whether the guarded action should run, and describes itself.
-// keyword introduces the description: "if" or "unless".
+// keyword introduces the description: "if", "when" or "unless".
 type condition struct {
 	keyword  string
 	describe string
@@ -44,6 +44,13 @@ func termCondition(t *sentence.Term) condition {
 			return verdict.Met, nil
 		},
 	}
+}
+
+// introducedBy returns the same condition, introduced by another keyword.
+func (c condition) introducedBy(keyword string) condition {
+	c.keyword = keyword
+
+	return c
 }
 
 // negated returns the condition that holds when the receiver does not.
@@ -82,9 +89,12 @@ func (a *ConditionalAction) If(cond bool) *ConditionalAction {
 	return a
 }
 
-// When guards the action behind a boolean expression.
+// When guards the action behind a boolean expression. It is narrated "when
+// the condition holds".
 func (a *ConditionalAction) When(cond bool) *ConditionalAction {
-	return a.If(cond)
+	a.condition = booleanCondition(cond).introducedBy("when")
+
+	return a
 }
 
 // Unless guards the action behind the negation of a boolean expression. It is
@@ -100,13 +110,15 @@ func (a *ConditionalAction) Unless(cond bool) *ConditionalAction {
 //
 //	Conditionally(task).IfThe(statusCode).HappensTo(be.EqualTo(200))
 func (a *ConditionalAction) IfThe[T any](question screenplay.Question[T]) *ConditionalBuilder[T] {
-	return &ConditionalBuilder[T]{action: a, question: question, unless: false}
+	return &ConditionalBuilder[T]{action: a, question: question, keyword: "if"}
 }
 
 // WhenThe guards the action behind what the answer to a question happens to be.
-// It is an alias of IfThe.
+// It behaves like IfThe and is narrated with "when":
+//
+//	Conditionally(task).WhenThe(statusCode).HappensTo(be.AtLeast(500))
 func (a *ConditionalAction) WhenThe[T any](question screenplay.Question[T]) *ConditionalBuilder[T] {
-	return a.IfThe(question)
+	return &ConditionalBuilder[T]{action: a, question: question, keyword: "when"}
 }
 
 // UnlessThe guards the action behind the negation of what the answer to a
@@ -114,7 +126,7 @@ func (a *ConditionalAction) WhenThe[T any](question screenplay.Question[T]) *Con
 //
 //	Conditionally(task).UnlessThe(statusCode).HappensTo(be.EqualTo(200))
 func (a *ConditionalAction) UnlessThe[T any](question screenplay.Question[T]) *ConditionalBuilder[T] {
-	return &ConditionalBuilder[T]{action: a, question: question, unless: true}
+	return &ConditionalBuilder[T]{action: a, question: question, keyword: "unless"}
 }
 
 // ConditionalBuilder builds the condition of a conditional action: it holds
@@ -123,7 +135,7 @@ func (a *ConditionalAction) UnlessThe[T any](question screenplay.Question[T]) *C
 type ConditionalBuilder[T any] struct {
 	action   *ConditionalAction
 	question screenplay.Question[T]
-	unless   bool
+	keyword  string
 }
 
 // HappensTo guards the action behind the answer satisfying every resolution. It reads "happens to ...".
@@ -199,8 +211,10 @@ func (s *ConditionalBuilder[T]) HappenToBeAnyOf(resolutions ...screenplay.Resolu
 // guards sets the condition of the action: the answer satisfies the clause.
 func (s *ConditionalBuilder[T]) guards(clause sentence.Clause[T]) *ConditionalAction {
 	guard := termCondition(sentence.NewTerm(s.question, clause))
-	if s.unless {
+	if s.keyword == "unless" {
 		guard = guard.negated()
+	} else {
+		guard = guard.introducedBy(s.keyword)
 	}
 
 	s.action.condition = guard

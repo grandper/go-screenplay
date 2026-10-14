@@ -1,7 +1,6 @@
 package ability
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,7 +19,7 @@ type HTTPResponse struct {
 // NewHTTPResponseFrom creates a new HTTPResponse from an http.Response.
 func NewHTTPResponseFrom(response *http.Response) (*HTTPResponse, error) {
 	if response == nil {
-		return nil, errors.New("failed to create a new HTTPResponse: the http.Response is nil")
+		return nil, fmt.Errorf("failed to create a new HTTPResponse: %w", ErrResponseIsNil)
 	}
 	body, err := readTheBody(response.Body)
 	if err != nil {

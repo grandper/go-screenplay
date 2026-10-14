@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/grandper/go-screenplay/v2/resolution/fixture"
 	"github.com/grandper/go-screenplay/v2/resolution/start"
-	"github.com/grandper/go-screenplay/v2/resolution/testdata"
 )
 
 func TestWith(t *testing.T) {
@@ -14,7 +14,7 @@ func TestWith(t *testing.T) {
 
 	resolution := start.With("hello")
 
-	testdata.AssertMatch(t, resolution, "hello world")
-	testdata.AssertNoMatch(t, resolution, "world hello")
+	fixture.AssertMatch(t, resolution, "hello world")
+	fixture.AssertNoMatch(t, resolution, "world hello")
 	assert.Equal(t, `start with "hello"`, resolution.String())
 }

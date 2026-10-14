@@ -22,13 +22,13 @@ func TestRunCLICommands(t *testing.T) {
 	t.Run("can execute a command", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
 			runCLICommands := ability.RunCLICommands()
-			err := runCLICommands.Run(ctx, &ability.Command{
+			err := runCLICommands.ToRun(ctx, &ability.Command{
 				Program: "echo",
 				Args:    []string{"Hello, World!"},
 			})
 			require.NoError(t, err)
 
-			responses, err := runCLICommands.Responses()
+			responses, err := runCLICommands.ToRetrieveResponses()
 			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			require.Equal(t, []byte("Hello, World!\n"), responses[0].StdOut())
@@ -40,7 +40,7 @@ func TestRunCLICommands(t *testing.T) {
 			tmpDir := t.TempDir()
 			const testDir = "testdata"
 			runCLICommands := ability.RunCLICommands()
-			require.NoError(t, runCLICommands.Run(ctx, &ability.Command{
+			require.NoError(t, runCLICommands.ToRun(ctx, &ability.Command{
 				Program: "mkdir",
 				Args:    []string{testDir},
 				Dir:     tmpDir,
@@ -50,14 +50,14 @@ func TestRunCLICommands(t *testing.T) {
 
 		t.Run("with environment variable", func(t *testing.T) {
 			runCLICommands := ability.RunCLICommands()
-			err := runCLICommands.Run(ctx, &ability.Command{
+			err := runCLICommands.ToRun(ctx, &ability.Command{
 				Program: "printenv",
 				Args:    []string{"FOO"},
 				Env:     map[string]string{"FOO": "bar"},
 			})
 			require.NoError(t, err)
 
-			responses, err := runCLICommands.Responses()
+			responses, err := runCLICommands.ToRetrieveResponses()
 			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			assert.Equal(t, []byte("bar\n"), responses[0].StdOut())
@@ -67,12 +67,12 @@ func TestRunCLICommands(t *testing.T) {
 
 		t.Run("fail when the command does not exist", func(t *testing.T) {
 			runCLICommands := ability.RunCLICommands()
-			err := runCLICommands.Run(ctx, &ability.Command{
+			err := runCLICommands.ToRun(ctx, &ability.Command{
 				Program: "nonexistentcommand",
 			})
 			require.Error(t, err)
 
-			responses, err := runCLICommands.Responses()
+			responses, err := runCLICommands.ToRetrieveResponses()
 			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			require.Empty(t, responses[0].StdOut())
@@ -84,7 +84,7 @@ func TestRunCLICommands(t *testing.T) {
 	t.Run("can execute an interactive command", func(t *testing.T) {
 		t.Run("even though no input is provided", func(t *testing.T) {
 			runCLICommands := ability.RunCLICommands()
-			err := runCLICommands.Run(ctx, &ability.Command{
+			err := runCLICommands.ToRun(ctx, &ability.Command{
 				Program:     "echo",
 				Args:        []string{"Hello, World!"},
 				Interactive: true,
@@ -93,7 +93,7 @@ func TestRunCLICommands(t *testing.T) {
 
 			time.Sleep(time.Second)
 
-			responses, err := runCLICommands.Responses()
+			responses, err := runCLICommands.ToRetrieveResponses()
 			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			require.Equal(t, []byte("Hello, World!\n"), responses[0].StdOut())
@@ -103,18 +103,18 @@ func TestRunCLICommands(t *testing.T) {
 
 		t.Run("and provide input", func(t *testing.T) {
 			runCLICommands := ability.RunCLICommands()
-			err := runCLICommands.Run(ctx, &ability.Command{
+			err := runCLICommands.ToRun(ctx, &ability.Command{
 				Program:     "sh",
 				Args:        []string{"-c", "read -p 'Enter your name: ' name; echo Hello, $name"},
 				Interactive: true,
 			})
 			require.NoError(t, err)
 
-			require.NoError(t, runCLICommands.Type("Alice\n"))
+			require.NoError(t, runCLICommands.ToType("Alice\n"))
 
 			time.Sleep(time.Second)
 
-			responses, err := runCLICommands.Responses()
+			responses, err := runCLICommands.ToRetrieveResponses()
 			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			require.Equal(t, []byte("Hello, Alice\n"), responses[0].StdOut())
@@ -124,7 +124,7 @@ func TestRunCLICommands(t *testing.T) {
 
 		t.Run("fail to type when no command in executed", func(t *testing.T) {
 			runCLICommands := ability.RunCLICommands()
-			require.ErrorIs(t, runCLICommands.Type("Some input\n"), ability.ErrNoCommandCurrentlyRunning)
+			require.ErrorIs(t, runCLICommands.ToType("Some input\n"), ability.ErrNoCommandCurrentlyRunning)
 		})
 	})
 
@@ -136,7 +136,7 @@ func TestRunCLICommands(t *testing.T) {
 	t.Run("captures the Wait error in the result for interactive commands", func(t *testing.T) {
 		t.Run("is nil when the command succeeds", func(t *testing.T) {
 			runCLICommands := ability.RunCLICommands()
-			require.NoError(t, runCLICommands.Run(ctx, &ability.Command{
+			require.NoError(t, runCLICommands.ToRun(ctx, &ability.Command{
 				Program:     "sh",
 				Args:        []string{"-c", "exit 0"},
 				Interactive: true,
@@ -144,7 +144,7 @@ func TestRunCLICommands(t *testing.T) {
 
 			time.Sleep(200 * time.Millisecond)
 
-			responses, err := runCLICommands.Responses()
+			responses, err := runCLICommands.ToRetrieveResponses()
 			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			assert.NoError(t, responses[0].Err())
@@ -152,7 +152,7 @@ func TestRunCLICommands(t *testing.T) {
 
 		t.Run("is non-nil when the command exits with a non-zero code", func(t *testing.T) {
 			runCLICommands := ability.RunCLICommands()
-			require.NoError(t, runCLICommands.Run(ctx, &ability.Command{
+			require.NoError(t, runCLICommands.ToRun(ctx, &ability.Command{
 				Program:     "sh",
 				Args:        []string{"-c", "exit 42"},
 				Interactive: true,
@@ -160,7 +160,7 @@ func TestRunCLICommands(t *testing.T) {
 
 			time.Sleep(200 * time.Millisecond)
 
-			responses, err := runCLICommands.Responses()
+			responses, err := runCLICommands.ToRetrieveResponses()
 			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			require.Error(t, responses[0].Err())
@@ -170,7 +170,7 @@ func TestRunCLICommands(t *testing.T) {
 
 	t.Run("Type is safe to call concurrently with a finishing interactive command", func(t *testing.T) {
 		runCLICommands := ability.RunCLICommands()
-		err := runCLICommands.Run(ctx, &ability.Command{
+		err := runCLICommands.ToRun(ctx, &ability.Command{
 			Program:     "sh",
 			Args:        []string{"-c", "read name; echo Hello, $name"},
 			Interactive: true,
@@ -183,13 +183,13 @@ func TestRunCLICommands(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			_ = runCLICommands.Type("Alice\n")
+			_ = runCLICommands.ToType("Alice\n")
 		}()
 
 		go func() {
 			defer wg.Done()
-			// Calling Type concurrently races with the goroutine that sets stdin=nil on exit.
-			_ = runCLICommands.Type("Bob\n")
+			// Calling ToType concurrently races with the goroutine that sets stdin=nil on exit.
+			_ = runCLICommands.ToType("Bob\n")
 		}()
 
 		wg.Wait()
@@ -198,29 +198,29 @@ func TestRunCLICommands(t *testing.T) {
 	t.Run("Forget ends the interactive command still running", func(t *testing.T) {
 		t.Run("by closing its input, which a program reading it waits for", func(t *testing.T) {
 			runCLICommands := ability.RunCLICommands()
-			require.NoError(t, runCLICommands.Run(ctx, &ability.Command{
+			require.NoError(t, runCLICommands.ToRun(ctx, &ability.Command{
 				Program:     "cat",
 				Interactive: true,
 			}))
-			require.NoError(t, runCLICommands.Type("hello"))
+			require.NoError(t, runCLICommands.ToType("hello"))
 
 			start := time.Now()
 			require.NoError(t, runCLICommands.Forget())
 			assert.Less(t, time.Since(start), 4*time.Second, "cat exits on end of file, before the kill")
 
-			responses, err := runCLICommands.Responses()
+			responses, err := runCLICommands.ToRetrieveResponses()
 			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			assert.Equal(t, []byte("hello"), responses[0].StdOut())
 			assert.Equal(t, 0, responses[0].ExitCode())
 			require.NoError(t, responses[0].Err())
 
-			require.ErrorIs(t, runCLICommands.Type("again"), ability.ErrNoCommandCurrentlyRunning)
+			require.ErrorIs(t, runCLICommands.ToType("again"), ability.ErrNoCommandCurrentlyRunning)
 		})
 
 		t.Run("by killing a program that ignores the end of its input", func(t *testing.T) {
 			runCLICommands := ability.RunCLICommands()
-			require.NoError(t, runCLICommands.Run(ctx, &ability.Command{
+			require.NoError(t, runCLICommands.ToRun(ctx, &ability.Command{
 				Program:     "sh",
 				Args:        []string{"-c", "trap '' PIPE; while true; do sleep 1; done"},
 				Interactive: true,
@@ -228,7 +228,7 @@ func TestRunCLICommands(t *testing.T) {
 
 			require.NoError(t, runCLICommands.Forget())
 
-			responses, err := runCLICommands.Responses()
+			responses, err := runCLICommands.ToRetrieveResponses()
 			require.NoError(t, err)
 			require.Len(t, responses, 1)
 			assert.Error(t, responses[0].Err(), "the result records the kill")
@@ -243,13 +243,13 @@ func TestRunCLICommands(t *testing.T) {
 
 	t.Run("reports an output larger than the buffered size", func(t *testing.T) {
 		runCLICommands := ability.RunCLICommands()
-		err := runCLICommands.Run(ctx, &ability.Command{
+		err := runCLICommands.ToRun(ctx, &ability.Command{
 			Program: "head",
 			Args:    []string{"-c", strconv.Itoa(screenplay.DefaultMaxBufferedSize + 1), "/dev/zero"},
 		})
 		require.EqualError(t, err, "the output of the command exceeds 64 MiB")
 
-		responses, err := runCLICommands.Responses()
+		responses, err := runCLICommands.ToRetrieveResponses()
 		require.NoError(t, err)
 		require.Len(t, responses, 1)
 		assert.Len(t, responses[0].StdOut(), screenplay.DefaultMaxBufferedSize, "the output is kept up to the bound")
@@ -258,10 +258,10 @@ func TestRunCLICommands(t *testing.T) {
 
 	t.Run("records the error of a command exiting with a non-zero code", func(t *testing.T) {
 		runCLICommands := ability.RunCLICommands()
-		err := runCLICommands.Run(ctx, &ability.Command{Program: "sh", Args: []string{"-c", "exit 3"}})
+		err := runCLICommands.ToRun(ctx, &ability.Command{Program: "sh", Args: []string{"-c", "exit 3"}})
 		require.Error(t, err)
 
-		responses, err := runCLICommands.Responses()
+		responses, err := runCLICommands.ToRetrieveResponses()
 		require.NoError(t, err)
 		require.Len(t, responses, 1)
 		assert.Equal(t, 3, responses[0].ExitCode())
@@ -271,13 +271,13 @@ func TestRunCLICommands(t *testing.T) {
 
 	t.Run("records nothing when an interactive command cannot start", func(t *testing.T) {
 		runCLICommands := ability.RunCLICommands()
-		err := runCLICommands.Run(ctx, &ability.Command{Program: "/nonexistent/program", Interactive: true})
+		err := runCLICommands.ToRun(ctx, &ability.Command{Program: "/nonexistent/program", Interactive: true})
 		require.Error(t, err)
 
-		responses, err := runCLICommands.Responses()
+		responses, err := runCLICommands.ToRetrieveResponses()
 		require.NoError(t, err)
 		assert.Empty(t, responses)
-		require.ErrorIs(t, runCLICommands.Type("hello"), ability.ErrNoCommandCurrentlyRunning)
+		require.ErrorIs(t, runCLICommands.ToType("hello"), ability.ErrNoCommandCurrentlyRunning)
 		require.NoError(t, runCLICommands.Forget())
 	})
 
@@ -285,11 +285,11 @@ func TestRunCLICommands(t *testing.T) {
 		var runCLICommands *ability.RunCLICommandsAbility
 		require.ErrorIs(
 			t,
-			runCLICommands.Run(ctx, &ability.Command{Program: "echo"}),
+			runCLICommands.ToRun(ctx, &ability.Command{Program: "echo"}),
 			screenplay.ErrActorMissingAbility,
 		)
-		require.ErrorIs(t, runCLICommands.Type("hello"), screenplay.ErrActorMissingAbility)
-		_, err := runCLICommands.Responses()
+		require.ErrorIs(t, runCLICommands.ToType("hello"), screenplay.ErrActorMissingAbility)
+		_, err := runCLICommands.ToRetrieveResponses()
 		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
 		assert.ErrorIs(t, runCLICommands.Forget(), screenplay.ErrActorMissingAbility)
 	})

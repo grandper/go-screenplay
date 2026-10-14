@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/resolution/be"
-	"github.com/grandper/go-screenplay/v2/resolution/testdata"
+	"github.com/grandper/go-screenplay/v2/resolution/fixture"
 )
 
 func TestBe(t *testing.T) {
@@ -19,13 +19,13 @@ func TestBe(t *testing.T) {
 
 		t.Run("is satisfied by an equal value", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertMatch(t, be.EqualTo(2.5), 2.5)
-			testdata.AssertMatch(t, be.EqualTo("hello"), "hello")
+			fixture.AssertMatch(t, be.EqualTo(2.5), 2.5)
+			fixture.AssertMatch(t, be.EqualTo("hello"), "hello")
 		})
 
 		t.Run("is not satisfied by another value", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertNoMatch(t, be.EqualTo(2.5), 3.0)
+			fixture.AssertNoMatch(t, be.EqualTo(2.5), 3.0)
 			require.EqualError(t, be.EqualTo("hello").Inspect("bye"), `got "bye"`)
 		})
 
@@ -43,14 +43,14 @@ func TestBe(t *testing.T) {
 
 		t.Run("is satisfied by a deeply equal value", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertMatch(t, resolution, []string{"Adam", "Eve"})
-			testdata.AssertMatch(t, be.DeepEqualTo(map[string]int{"a": 1}), map[string]int{"a": 1})
+			fixture.AssertMatch(t, resolution, []string{"Adam", "Eve"})
+			fixture.AssertMatch(t, be.DeepEqualTo(map[string]int{"a": 1}), map[string]int{"a": 1})
 		})
 
 		t.Run("is not satisfied by another value", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertNoMatch(t, resolution, []string{"Adam"})
-			testdata.AssertNoMatch(t, resolution, nil)
+			fixture.AssertNoMatch(t, resolution, []string{"Adam"})
+			fixture.AssertNoMatch(t, resolution, nil)
 		})
 
 		t.Run("describes itself", func(t *testing.T) {
@@ -64,30 +64,30 @@ func TestBe(t *testing.T) {
 
 		t.Run("GreaterThan", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertMatch(t, be.GreaterThan(5), 6)
-			testdata.AssertNoMatch(t, be.GreaterThan(5), 5)
-			testdata.AssertMatch(t, be.GreaterThan("a"), "b")
+			fixture.AssertMatch(t, be.GreaterThan(5), 6)
+			fixture.AssertNoMatch(t, be.GreaterThan(5), 5)
+			fixture.AssertMatch(t, be.GreaterThan("a"), "b")
 			assert.Equal(t, "be greater than 5", be.GreaterThan(5).String())
 		})
 
 		t.Run("AtLeast", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertMatch(t, be.AtLeast(5), 5)
-			testdata.AssertNoMatch(t, be.AtLeast(5), 4)
+			fixture.AssertMatch(t, be.AtLeast(5), 5)
+			fixture.AssertNoMatch(t, be.AtLeast(5), 4)
 			assert.Equal(t, "be at least 5", be.AtLeast(5).String())
 		})
 
 		t.Run("LessThan", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertMatch(t, be.LessThan(5), 4)
-			testdata.AssertNoMatch(t, be.LessThan(5), 5)
+			fixture.AssertMatch(t, be.LessThan(5), 4)
+			fixture.AssertNoMatch(t, be.LessThan(5), 5)
 			assert.Equal(t, "be less than 5", be.LessThan(5).String())
 		})
 
 		t.Run("AtMost", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertMatch(t, be.AtMost(5), 5)
-			testdata.AssertNoMatch(t, be.AtMost(5), 6)
+			fixture.AssertMatch(t, be.AtMost(5), 5)
+			fixture.AssertNoMatch(t, be.AtMost(5), 6)
 			assert.Equal(t, "be at most 5", be.AtMost(5).String())
 		})
 	})
@@ -99,15 +99,15 @@ func TestBe(t *testing.T) {
 
 		t.Run("is satisfied by a value within the bounds, both included", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertMatch(t, resolution, 1)
-			testdata.AssertMatch(t, resolution, 5)
-			testdata.AssertMatch(t, resolution, 10)
+			fixture.AssertMatch(t, resolution, 1)
+			fixture.AssertMatch(t, resolution, 5)
+			fixture.AssertMatch(t, resolution, 10)
 		})
 
 		t.Run("is not satisfied by a value outside the bounds", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertNoMatch(t, resolution, 0)
-			testdata.AssertNoMatch(t, resolution, 11)
+			fixture.AssertNoMatch(t, resolution, 0)
+			fixture.AssertNoMatch(t, resolution, 11)
 		})
 
 		t.Run("describes itself", func(t *testing.T) {
@@ -120,7 +120,7 @@ func TestBe(t *testing.T) {
 
 			broken := be.Between(10, 1)
 
-			testdata.AssertInvalid(t, broken, 5)
+			fixture.AssertInvalid(t, broken, 5)
 			assert.Equal(t, "be between 10 and 1", broken.String())
 			require.EqualError(t, broken.Inspect(5),
 				`invalid resolution "be between 10 and 1": the lower bound is greater than the upper bound`)
@@ -134,17 +134,17 @@ func TestBe(t *testing.T) {
 
 		t.Run("is satisfied by a number within the tolerance, the bounds included", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertMatch(t, resolution, 3.0)
-			testdata.AssertMatch(t, resolution, 2.5)
-			testdata.AssertMatch(t, resolution, 3.5)
-			testdata.AssertMatch(t, be.CloseTo(10, 2), 12)
+			fixture.AssertMatch(t, resolution, 3.0)
+			fixture.AssertMatch(t, resolution, 2.5)
+			fixture.AssertMatch(t, resolution, 3.5)
+			fixture.AssertMatch(t, be.CloseTo(10, 2), 12)
 		})
 
 		t.Run("is not satisfied by a number outside the tolerance", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertNoMatch(t, resolution, 3.6)
-			testdata.AssertNoMatch(t, resolution, math.NaN())
-			testdata.AssertNoMatch(t, be.CloseTo(10, 2), 13)
+			fixture.AssertNoMatch(t, resolution, 3.6)
+			fixture.AssertNoMatch(t, resolution, math.NaN())
+			fixture.AssertNoMatch(t, be.CloseTo(10, 2), 13)
 		})
 
 		t.Run("describes itself", func(t *testing.T) {
@@ -152,10 +152,15 @@ func TestBe(t *testing.T) {
 			assert.Equal(t, "be close to 3 within 0.5", resolution.String())
 		})
 
-		t.Run("is invalid when the tolerance is not a positive number", func(t *testing.T) {
+		t.Run("is invalid when the tolerance is negative or not a number", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertInvalid(t, be.CloseTo(3.0, -0.1), 3.0)
-			testdata.AssertInvalid(t, be.CloseTo(3.0, math.NaN()), 3.0)
+			fixture.AssertInvalid(t, be.CloseTo(3.0, -0.1), 3.0)
+			fixture.AssertInvalid(t, be.CloseTo(3.0, math.NaN()), 3.0)
+		})
+
+		t.Run("accepts a tolerance of zero", func(t *testing.T) {
+			t.Parallel()
+			fixture.AssertMatch(t, be.CloseTo(3.0, 0), 3.0)
 		})
 	})
 
@@ -164,25 +169,25 @@ func TestBe(t *testing.T) {
 
 		t.Run("is satisfied by an empty value", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertMatch(t, be.Empty[[]string](), []string{})
-			testdata.AssertMatch(t, be.Empty[[]string](), nil)
-			testdata.AssertMatch(t, be.Empty[map[string]int](), map[string]int{})
-			testdata.AssertMatch(t, be.Empty[string](), "")
-			testdata.AssertMatch(t, be.Empty[*[]int](), nil)
-			testdata.AssertMatch[any](t, be.Empty[any](), []int{})
+			fixture.AssertMatch(t, be.Empty[[]string](), []string{})
+			fixture.AssertMatch(t, be.Empty[[]string](), nil)
+			fixture.AssertMatch(t, be.Empty[map[string]int](), map[string]int{})
+			fixture.AssertMatch(t, be.Empty[string](), "")
+			fixture.AssertMatch(t, be.Empty[*[]int](), nil)
+			fixture.AssertMatch[any](t, be.Empty[any](), []int{})
 		})
 
 		t.Run("is not satisfied by a value holding something", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertNoMatch(t, be.Empty[[]string](), []string{"Adam"})
-			testdata.AssertNoMatch(t, be.Empty[map[string]int](), map[string]int{"a": 1})
-			testdata.AssertNoMatch(t, be.Empty[string](), "hello")
-			testdata.AssertNoMatch(t, be.Empty[*[]int](), &[]int{1})
+			fixture.AssertNoMatch(t, be.Empty[[]string](), []string{"Adam"})
+			fixture.AssertNoMatch(t, be.Empty[map[string]int](), map[string]int{"a": 1})
+			fixture.AssertNoMatch(t, be.Empty[string](), "hello")
+			fixture.AssertNoMatch(t, be.Empty[*[]int](), &[]int{1})
 		})
 
 		t.Run("is not satisfied by a value without a length", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertNoMatch[any](t, be.Empty[any](), 3)
+			fixture.AssertNoMatch[any](t, be.Empty[any](), 3)
 		})
 
 		t.Run("describes itself", func(t *testing.T) {
@@ -192,7 +197,7 @@ func TestBe(t *testing.T) {
 
 		t.Run("is invalid when the values of the type have no length", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertInvalid(t, be.Empty[int](), 0)
+			fixture.AssertInvalid(t, be.Empty[int](), 0)
 		})
 	})
 
@@ -201,15 +206,15 @@ func TestBe(t *testing.T) {
 
 		t.Run("is satisfied by the zero value", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertMatch(t, be.Zero[int](), 0)
-			testdata.AssertMatch(t, be.Zero[string](), "")
-			testdata.AssertMatch(t, be.Zero[*int](), nil)
+			fixture.AssertMatch(t, be.Zero[int](), 0)
+			fixture.AssertMatch(t, be.Zero[string](), "")
+			fixture.AssertMatch(t, be.Zero[*int](), nil)
 		})
 
 		t.Run("is not satisfied by another value", func(t *testing.T) {
 			t.Parallel()
-			testdata.AssertNoMatch(t, be.Zero[int](), 3)
-			testdata.AssertNoMatch(t, be.Zero[string](), "hello")
+			fixture.AssertNoMatch(t, be.Zero[int](), 3)
+			fixture.AssertNoMatch(t, be.Zero[string](), "hello")
 		})
 
 		t.Run("describes itself", func(t *testing.T) {
@@ -221,19 +226,19 @@ func TestBe(t *testing.T) {
 	t.Run("true and false", func(t *testing.T) {
 		t.Parallel()
 
-		testdata.AssertMatch(t, be.True(), true)
-		testdata.AssertNoMatch(t, be.True(), false)
+		fixture.AssertMatch(t, be.True(), true)
+		fixture.AssertNoMatch(t, be.True(), false)
 		assert.Equal(t, "be true", be.True().String())
 
-		testdata.AssertMatch(t, be.False(), false)
-		testdata.AssertNoMatch(t, be.False(), true)
+		fixture.AssertMatch(t, be.False(), false)
+		fixture.AssertNoMatch(t, be.False(), true)
 		assert.Equal(t, "be false", be.False().String())
 	})
 
 	t.Run("equal to, with an interface type parameter", func(t *testing.T) {
-		testdata.AssertMatch[any](t, be.EqualTo[any](3), 3)
-		testdata.AssertNoMatch[any](t, be.EqualTo[any](3), 4)
+		fixture.AssertMatch[any](t, be.EqualTo[any](3), 3)
+		fixture.AssertNoMatch[any](t, be.EqualTo[any](3), 4)
 		// A slice held in an interface cannot be compared: the resolution is invalid, no panic.
-		testdata.AssertInvalid[any](t, be.EqualTo[any]([]int{1}), []int{1})
+		fixture.AssertInvalid[any](t, be.EqualTo[any]([]int{1}), []int{1})
 	})
 }

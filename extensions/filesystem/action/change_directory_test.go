@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	coreaction "github.com/grandper/go-screenplay/v2/action"
+	"github.com/grandper/go-screenplay/v2/action"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action"
+	filesystemaction "github.com/grandper/go-screenplay/v2/extensions/filesystem/action"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/fixture"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -24,16 +24,16 @@ func TestChangeDirectory(t *testing.T) {
 
 			dir := t.TempDir()
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
-			require.NoError(t, adam.AttemptsTo(action.ChangeDirectoryTo(dir)))
+			require.NoError(t, adam.AttemptsTo(filesystemaction.ChangeDirectoryTo(dir)))
 
 			var useTheFileSystem *ability.UseTheFileSystemAbility
-			err = adam.AttemptsTo(coreaction.FromFunc("use the ability", func(theActor *screenplay.Actor) error {
+			err = adam.AttemptsTo(action.FromFunc("use the ability", func(theActor *screenplay.Actor) error {
 				useTheFileSystem = screenplay.UseAnAbilityOf(theActor).That(ability.UseTheFileSystem())
 
 				return nil
 			}))
 			require.NoError(t, err)
-			currentDir, err := useTheFileSystem.CurrentPath()
+			currentDir, err := useTheFileSystem.ToRetrieveCurrentPath()
 			require.NoError(t, err)
 			assert.Equal(t, dir, currentDir)
 
@@ -47,8 +47,8 @@ func TestChangeDirectory(t *testing.T) {
 			dir := t.TempDir()
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
 			require.NoError(t, adam.AttemptsTo(
-				action.ChangeDirectoryTo(dir),
-				action.Create().TheFile("notes.txt").ContainingTheText("hello"),
+				filesystemaction.ChangeDirectoryTo(dir),
+				filesystemaction.Create().TheFile("notes.txt").ContainingTheText("hello"),
 			))
 
 			content, err := os.ReadFile(filepath.Join(dir, "notes.txt"))
@@ -68,11 +68,11 @@ func TestChangeDirectory(t *testing.T) {
 			group.Add(2)
 			go func() {
 				defer group.Done()
-				errs[0] = adam.AttemptsTo(action.ChangeDirectoryTo(dirA), action.Create().TheFile("notes.txt"))
+				errs[0] = adam.AttemptsTo(filesystemaction.ChangeDirectoryTo(dirA), filesystemaction.Create().TheFile("notes.txt"))
 			}()
 			go func() {
 				defer group.Done()
-				errs[1] = wanda.AttemptsTo(action.ChangeDirectoryTo(dirB), action.Create().TheFile("notes.txt"))
+				errs[1] = wanda.AttemptsTo(filesystemaction.ChangeDirectoryTo(dirB), filesystemaction.Create().TheFile("notes.txt"))
 			}()
 			group.Wait()
 			require.NoError(t, errs[0])
@@ -84,22 +84,22 @@ func TestChangeDirectory(t *testing.T) {
 
 		t.Run("fail if the directory does not exist", func(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
-			require.ErrorIs(t, adam.AttemptsTo(action.ChangeDirectoryTo("")), action.ErrDirectoryNotProvided)
+			require.ErrorIs(t, adam.AttemptsTo(filesystemaction.ChangeDirectoryTo("")), filesystemaction.ErrDirectoryNameNotProvided)
 		})
 
 		t.Run("fails when the actor has not the ability to use the file system", func(t *testing.T) {
-			require.ErrorIs(t, screenplay.ActorNamed("Bob").AttemptsTo(action.ChangeDirectoryTo(t.TempDir())),
+			require.ErrorIs(t, screenplay.ActorNamed("Bob").AttemptsTo(filesystemaction.ChangeDirectoryTo(t.TempDir())),
 				screenplay.ErrActorMissingAbility)
 		})
 
 		t.Run("fails when the directory does not exist", func(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
-			require.Error(t, adam.AttemptsTo(action.ChangeDirectoryTo(fixture.CreateDirectoryName(t))))
+			require.Error(t, adam.AttemptsTo(filesystemaction.ChangeDirectoryTo(fixture.CreateDirectoryName(t))))
 		})
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		action1 := action.ChangeDirectoryTo("new_dir")
-		assert.Equal(t, "change the directory to new_dir", action1.String())
+		action1 := filesystemaction.ChangeDirectoryTo("new_dir")
+		assert.Equal(t, `change directory to "new_dir"`, action1.String())
 	})
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/grandper/go-screenplay/v2/term"
 )
 
-func TestSwitch(t *testing.T) {
+func TestChoose(t *testing.T) {
 	t.Run("choose action", func(t *testing.T) {
 		record := []string{}
 		createRecordingPerformable := func(description string, err error) screenplay.Performable {
@@ -77,7 +77,7 @@ func TestSwitch(t *testing.T) {
 
 		t.Run("performs the branch when a question matches its resolution", func(t *testing.T) {
 			reset()
-			question := fixture.NewFakeQuestion("the status code", 200)
+			question := fixture.NewFakeQuestion("status code", 200)
 			require.NoError(t, adam.AttemptsTo(
 				action.Choose().
 					To(doTask).WhenThe(question).HappensTo(be.EqualTo(200)),
@@ -87,8 +87,8 @@ func TestSwitch(t *testing.T) {
 
 		t.Run("chooses the first holding branch whatever the condition kind", func(t *testing.T) {
 			reset()
-			miss := fixture.NewFakeQuestion("the status code", 500)
-			hit := fixture.NewFakeQuestion("the status code", 200)
+			miss := fixture.NewFakeQuestion("status code", 500)
+			hit := fixture.NewFakeQuestion("status code", 200)
 			require.NoError(t, adam.AttemptsTo(
 				action.Choose().
 					To(doTask).WhenThe(miss).HappensTo(be.EqualTo(200)).
@@ -110,7 +110,7 @@ func TestSwitch(t *testing.T) {
 		})
 
 		t.Run("fails when a reached branch is built wrongly", func(t *testing.T) {
-			question := fixture.NewFakeQuestion("the status code", 200)
+			question := fixture.NewFakeQuestion("status code", 200)
 
 			reset()
 			require.ErrorIs(t, adam.AttemptsTo(
@@ -224,7 +224,7 @@ func TestSwitch(t *testing.T) {
 
 		t.Run("performs the branch whose resolution matches the answer", func(t *testing.T) {
 			reset()
-			question := fixture.NewFakeQuestion("the status code", 200)
+			question := fixture.NewFakeQuestion("status code", 200)
 			require.NoError(t, adam.AttemptsTo(
 				action.ChooseBasedOnThe(question).
 					To(doTask).WhenIt().HappensTo(be.EqualTo(200)).
@@ -235,7 +235,7 @@ func TestSwitch(t *testing.T) {
 
 		t.Run("performs a later branch when only it matches", func(t *testing.T) {
 			reset()
-			question := fixture.NewFakeQuestion("the status code", 404)
+			question := fixture.NewFakeQuestion("status code", 404)
 			require.NoError(t, adam.AttemptsTo(
 				action.ChooseBasedOnThe(question).
 					To(doTask).WhenIt().HappensTo(be.EqualTo(200)).
@@ -245,7 +245,7 @@ func TestSwitch(t *testing.T) {
 		})
 
 		t.Run("fails when a reached branch is built wrongly", func(t *testing.T) {
-			question := fixture.NewFakeQuestion("the status code", 200)
+			question := fixture.NewFakeQuestion("status code", 200)
 
 			reset()
 			require.ErrorIs(t, adam.AttemptsTo(
@@ -266,7 +266,7 @@ func TestSwitch(t *testing.T) {
 
 		t.Run("supports every verb to close a branch", func(t *testing.T) {
 			reset()
-			question := fixture.NewFakeQuestion("the status code", 503)
+			question := fixture.NewFakeQuestion("status code", 503)
 			require.NoError(t, adam.AttemptsTo(
 				action.ChooseBasedOnThe(question).
 					To(doTask).WhenIt().HappensToBeAnyOf(be.EqualTo(200), be.EqualTo(201)).
@@ -277,7 +277,7 @@ func TestSwitch(t *testing.T) {
 
 		t.Run("performs the fallback when no branch matches", func(t *testing.T) {
 			reset()
-			question := fixture.NewFakeQuestion("the status code", 500)
+			question := fixture.NewFakeQuestion("status code", 500)
 			require.NoError(t, adam.AttemptsTo(
 				action.ChooseBasedOnThe(question).
 					To(doTask).WhenIt().HappensTo(be.EqualTo(200)).
@@ -314,7 +314,7 @@ func TestSwitch(t *testing.T) {
 		})
 
 		t.Run("supports the Default wording for the fallback", func(t *testing.T) {
-			question := fixture.NewFakeQuestion("the status code", 500)
+			question := fixture.NewFakeQuestion("status code", 500)
 			withOtherwise := action.ChooseBasedOnThe(question).
 				To(doTask).
 				WhenIt().HappensTo(be.EqualTo(200)).

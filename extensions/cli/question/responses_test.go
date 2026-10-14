@@ -41,7 +41,7 @@ func TestResponses(t *testing.T) {
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		q := question.Responses()
-		assert.Equal(t, "responses", q.String())
+		assert.Equal(t, "command results", q.String())
 	})
 
 	t.Run("implements the question interface", func(t *testing.T) {

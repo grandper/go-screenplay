@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
@@ -32,23 +33,23 @@ type RemoveTheFileAction struct {
 
 // String describes the action.
 func (a *RemoveTheFileAction) String() string {
-	return fmt.Sprintf("remove the file '%s'", a.filename)
+	return fmt.Sprintf("remove the file %s", verdict.Describe(a.filename))
 }
 
-// PerformAs removes the file or directory.
+// PerformAs removes the file.
 func (a *RemoveTheFileAction) PerformAs(actor *screenplay.Actor) error {
 	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(ability.UseTheFileSystem())
 	if a.filename == "" {
 		return ErrFilenameNotProvided
 	}
-	exists, err := useTheFileSystem.FileExists(a.filename)
+	exists, err := useTheFileSystem.ToTellIfTheFileExists(a.filename)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		return fmt.Errorf("file '%s' does not exist", a.filename)
+		return fmt.Errorf("file %s %w", verdict.Describe(a.filename), ErrFileDoesNotExist)
 	}
-	return useTheFileSystem.RemoveTheFile(a.filename)
+	return useTheFileSystem.ToRemoveFile(a.filename)
 }
 
 // RemoveTheFileAction implements the screenplay.Performable interface.
@@ -61,23 +62,23 @@ type RemoveTheDirectoryAction struct {
 
 // String describes the action.
 func (a *RemoveTheDirectoryAction) String() string {
-	return fmt.Sprintf("remove the directory '%s'", a.directoryName)
+	return fmt.Sprintf("remove the directory %s", verdict.Describe(a.directoryName))
 }
 
-// PerformAs removes the file or directory.
+// PerformAs removes the directory.
 func (a *RemoveTheDirectoryAction) PerformAs(actor *screenplay.Actor) error {
 	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(ability.UseTheFileSystem())
 	if a.directoryName == "" {
 		return ErrDirectoryNameNotProvided
 	}
-	exists, err := useTheFileSystem.DirectoryExists(a.directoryName)
+	exists, err := useTheFileSystem.ToTellIfTheDirectoryExists(a.directoryName)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		return fmt.Errorf("directory '%s' does not exist", a.directoryName)
+		return fmt.Errorf("directory %s %w", verdict.Describe(a.directoryName), ErrDirectoryDoesNotExist)
 	}
-	return useTheFileSystem.RemoveDirectory(a.directoryName)
+	return useTheFileSystem.ToRemoveDirectory(a.directoryName)
 }
 
 // RemoveTheDirectoryAction implements the screenplay.Performable interface.

@@ -62,7 +62,7 @@ func TestRecalled(t *testing.T) {
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		assert.Equal(t, "recalled 'statusCode'", question.Recalled[int]("statusCode").String())
+		assert.Equal(t, "recalled \"statusCode\"", question.Recalled[int]("statusCode").String())
 	})
 
 	t.Run("implements the question interface", func(t *testing.T) {

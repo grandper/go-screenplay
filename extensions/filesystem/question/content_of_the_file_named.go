@@ -3,11 +3,13 @@ package question
 import (
 	"fmt"
 
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
+
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-// ContentOfTheFileNamed returns a file with the provided name.
+// ContentOfTheFileNamed returns the content of the file with the provided name.
 func ContentOfTheFileNamed(filename string) *ContentOfTheFileNamedQuestion {
 	return &ContentOfTheFileNamedQuestion{
 		filename: filename,
@@ -21,12 +23,12 @@ type ContentOfTheFileNamedQuestion struct {
 
 // AnsweredBy returns the answer that an actor provided to the question.
 func (q *ContentOfTheFileNamedQuestion) AnsweredBy(theActor *screenplay.Actor) ([]byte, error) {
-	return screenplay.UseAnAbilityOf(theActor).That(ability.UseTheFileSystem()).Read(q.filename)
+	return screenplay.UseAnAbilityOf(theActor).That(ability.UseTheFileSystem()).ToRead(q.filename)
 }
 
 // String describes the question.
 func (q *ContentOfTheFileNamedQuestion) String() string {
-	return fmt.Sprintf("content of the file named '%s'", q.filename)
+	return fmt.Sprintf("content of the file named %s", verdict.Describe(q.filename))
 }
 
 // ContentOfTheFileNamedQuestion implements the screenplay.Question interface.

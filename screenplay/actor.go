@@ -196,22 +196,22 @@ func (a *Actor) Recall[T any](key string) monad.Option[T] {
 
 // Share starts sharing a value from the actor's memory.
 // Usage: actor.Share("mykey").With(anotherActor).
-func (a *Actor) Share(key string) *ShareAction {
-	return &ShareAction{
+func (a *Actor) Share(key string) *ShareBuilder {
+	return &ShareBuilder{
 		source: a,
 		key:    key,
 	}
 }
 
-// ShareAction holds the context for sharing a memory value between actors.
-type ShareAction struct {
+// ShareBuilder holds the context for sharing a memory value between actors.
+type ShareBuilder struct {
 	source *Actor
 	key    string
 }
 
 // With completes the share by copying the value into the target actor's memory.
 // It does nothing when the source actor remembers nothing under the key.
-func (s *ShareAction) With(target *Actor) {
+func (s *ShareBuilder) With(target *Actor) {
 	value := s.source.recollect(s.key)
 	if value == nil {
 		return
@@ -245,7 +245,7 @@ func (a *Actor) WhoCan(abilities ...Ability) *Actor {
 	return a
 }
 
-// Can defines an abilities that the actor can use.
+// Can defines the abilities that the actor can use.
 func (a *Actor) Can(abilities ...Ability) *Actor {
 	return a.WhoCan(abilities...)
 }
@@ -447,7 +447,7 @@ func (a *Actor) AsksFor[T any](question Question[T]) (T, error) {
 	}
 
 	narrator := a.narrator()
-	message := fmt.Sprintf("%s asks for %s", a.name, question.String())
+	message := fmt.Sprintf("%s asks for the %s", a.name, question.String())
 	narrator.WhispersTheAside(a.name, message)
 
 	answer, err := question.AnsweredBy(a)

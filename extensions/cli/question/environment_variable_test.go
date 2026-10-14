@@ -28,7 +28,7 @@ func TestEnvironmentVariable(t *testing.T) {
 		assert.Equal(t, "world", value)
 	})
 
-	t.Run("fails when fails to get the error code when the actor does not have the ability RunCLICommands",
+	t.Run("fails to get the exit code when the actor does not have the ability RunCLICommands",
 		func(t *testing.T) {
 			theActor := screenplay.ActorNamed("Adam")
 			value, err := question.EnvironmentVariableNamed("HELLO").AnsweredBy(theActor)
@@ -38,7 +38,7 @@ func TestEnvironmentVariable(t *testing.T) {
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		q := question.EnvironmentVariableNamed("HELLO")
-		assert.Equal(t, "environment variable named 'HELLO'", q.String())
+		assert.Equal(t, `environment variable named "HELLO"`, q.String())
 	})
 
 	t.Run("implements the question interface", func(t *testing.T) {

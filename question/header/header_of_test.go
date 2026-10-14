@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/fixture"
+	"github.com/grandper/go-screenplay/v2/question"
 	"github.com/grandper/go-screenplay/v2/question/header"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -86,7 +87,7 @@ func TestHeaderOfQuestion(t *testing.T) {
 
 		answer, err := adam.AsksFor(header.Of[int](textResponse))
 
-		require.ErrorIs(t, err, header.ErrFieldHasWrongType)
+		require.ErrorIs(t, err, question.ErrFieldHasWrongType)
 		assert.Zero(t, answer)
 	})
 
@@ -95,7 +96,7 @@ func TestHeaderOfQuestion(t *testing.T) {
 
 		answer, err := adam.AsksFor(header.Of[any](noHeader))
 
-		require.ErrorIs(t, err, header.ErrFieldNotFound)
+		require.ErrorIs(t, err, question.ErrFieldNotFound)
 		assert.Nil(t, answer)
 	})
 
@@ -104,7 +105,7 @@ func TestHeaderOfQuestion(t *testing.T) {
 
 		answer, err := adam.AsksFor(header.Of[any](notAStruct))
 
-		require.ErrorIs(t, err, header.ErrAnswerIsNotAStruct)
+		require.ErrorIs(t, err, question.ErrAnswerIsNotAStruct)
 		assert.Nil(t, answer)
 	})
 
@@ -113,7 +114,7 @@ func TestHeaderOfQuestion(t *testing.T) {
 
 		answer, err := adam.AsksFor(header.Of[any](nilAnswer))
 
-		require.ErrorIs(t, err, header.ErrAnswerIsNotAStruct)
+		require.ErrorIs(t, err, question.ErrAnswerIsNotAStruct)
 		assert.Nil(t, answer)
 	})
 

@@ -1,18 +1,18 @@
-package question_test
+package fixture_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/question"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/question/fixture"
 )
 
-func TestUtils(t *testing.T) {
+func TestFakes(t *testing.T) {
 	t.Run("create fake existing file", func(t *testing.T) {
 		t.Run("should create a fake existing file", func(t *testing.T) {
 			filePath := "test.txt"
-			file := question.CreateFakeExistingFile(filePath)
+			file := fixture.CreateFakeExistingFile(filePath)
 			require.NotNil(t, file)
 			require.Equal(t, ".", file.Dir())
 			require.Equal(t, "test.txt", file.Name())
@@ -23,7 +23,7 @@ func TestUtils(t *testing.T) {
 	t.Run("create fake missing file", func(t *testing.T) {
 		t.Run("should create a fake missing file", func(t *testing.T) {
 			filePath := "test.txt"
-			file := question.CreateFakeMissingFile(filePath)
+			file := fixture.CreateFakeMissingFile(filePath)
 			require.NotNil(t, file)
 			require.Equal(t, ".", file.Dir())
 			require.Equal(t, "test.txt", file.Name())
@@ -34,7 +34,7 @@ func TestUtils(t *testing.T) {
 	t.Run("create fake existing directory", func(t *testing.T) {
 		t.Run("should create a fake existing directory", func(t *testing.T) {
 			directoryPath := "path/to/MyDirectory"
-			directory := question.CreateFakeExistingDirectory(directoryPath)
+			directory := fixture.CreateFakeExistingDirectory(directoryPath)
 			require.NotNil(t, directory)
 			require.Equal(t, "path/to", directory.Dir())
 			require.Equal(t, "MyDirectory", directory.Name())
@@ -45,7 +45,7 @@ func TestUtils(t *testing.T) {
 	t.Run("create fake missing directory", func(t *testing.T) {
 		t.Run("should create a fake missing directory", func(t *testing.T) {
 			directoryPath := "path/to/MyDirectory"
-			directory := question.CreateFakeMissingDirectory(directoryPath)
+			directory := fixture.CreateFakeMissingDirectory(directoryPath)
 			require.NotNil(t, directory)
 			require.Equal(t, "path/to", directory.Dir())
 			require.Equal(t, "MyDirectory", directory.Name())

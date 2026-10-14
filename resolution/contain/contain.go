@@ -136,10 +136,10 @@ func describeEntries[K comparable, V comparable](entries map[K]V) string {
 	return strings.Join(described, ", ")
 }
 
-// TheItemMatching creates a resolution to tell if a slice of texts contains an
+// AnItemMatching creates a resolution to tell if a slice of texts contains an
 // item matching a regular expression. The resolution is invalid when the
 // expression is nil.
-func TheItemMatching(pattern *regexp.Regexp) screenplay.Resolution[[]string] {
+func AnItemMatching(pattern *regexp.Regexp) screenplay.Resolution[[]string] {
 	if pattern == nil {
 		return verdict.Invalid[[]string](
 			"contain an item matching pattern <nil>",
@@ -155,14 +155,14 @@ func TheItemMatching(pattern *regexp.Regexp) screenplay.Resolution[[]string] {
 	)
 }
 
-// TheItemMatchingRegexString creates a resolution to tell if a slice of texts
+// AnItemMatchingPatternString creates a resolution to tell if a slice of texts
 // contains an item matching a regular expression given as a text. The
 // resolution is invalid when the expression does not compile.
-func TheItemMatchingRegexString(pattern string) screenplay.Resolution[[]string] {
+func AnItemMatchingPatternString(pattern string) screenplay.Resolution[[]string] {
 	compiled, err := regexp.Compile(pattern)
 	if err != nil {
 		return verdict.Invalid[[]string](fmt.Sprintf("contain an item matching pattern `%s`", pattern), err)
 	}
 
-	return TheItemMatching(compiled)
+	return AnItemMatching(compiled)
 }

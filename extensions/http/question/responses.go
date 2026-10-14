@@ -6,7 +6,7 @@ import (
 )
 
 // Responses asks about all the HTTP responses received by the actor.
-func Responses() screenplay.Question[[]*ability.HTTPResponse] {
+func Responses() *ResponsesQuestion {
 	return &ResponsesQuestion{}
 }
 

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
+
 	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -127,13 +129,13 @@ func (a *SendHTTPRequestAction) String() string {
 		return "send a secret HTTP request"
 	}
 	if a.hasBody {
-		body := string(a.body)
+		body := verdict.Describe(string(a.body))
 		if a.bodyErr != nil {
-			body = "failed to read the body"
+			body = verdict.Describe("failed to read the body")
 		}
-		return fmt.Sprintf("send a %s request to %s with body '%s'", a.method, a.url, body)
+		return fmt.Sprintf("send a %s request to %s with body %s", a.method, verdict.Describe(a.url), body)
 	}
-	return fmt.Sprintf("send a %s request to %s", a.method, a.url)
+	return fmt.Sprintf("send a %s request to %s", a.method, verdict.Describe(a.url))
 }
 
 // PerformAs performs the task or the action as the provided actor.

@@ -118,7 +118,7 @@ func CloseTo[T integer | float](target T, tolerance float64) screenplay.Resoluti
 	description := fmt.Sprintf("be close to %v within %v", target, tolerance)
 
 	if tolerance < 0 || math.IsNaN(tolerance) {
-		return verdict.Invalid[T](description, errors.New("the tolerance must be a positive number"))
+		return verdict.Invalid[T](description, errors.New("the tolerance must not be negative"))
 	}
 
 	return resolution.FromFunc(

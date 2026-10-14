@@ -1,4 +1,4 @@
-package errorcode_test
+package exitcode_test
 
 import (
 	"errors"
@@ -10,18 +10,18 @@ import (
 	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
 	"github.com/grandper/go-screenplay/v2/extensions/cli/action"
 	"github.com/grandper/go-screenplay/v2/extensions/cli/question"
-	"github.com/grandper/go-screenplay/v2/extensions/cli/question/errorcode"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/question/exitcode"
 	"github.com/grandper/go-screenplay/v2/fixture"
 	"github.com/grandper/go-screenplay/v2/question/last"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-func TestErrorCodeOfQuestion(t *testing.T) {
-	t.Run("returns the error code of a result", func(t *testing.T) {
+func TestExitCodeOfQuestion(t *testing.T) {
+	t.Run("returns the exit code of a result", func(t *testing.T) {
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
 		require.NoError(t, theActor.AttemptsTo(action.RunTheCommand("echo", "Hello World")))
 
-		answer, err := errorcode.Of(last.Of(question.Responses())).AnsweredBy(theActor)
+		answer, err := exitcode.Of(last.Of(question.Responses())).AnsweredBy(theActor)
 
 		require.NoError(t, err)
 		assert.Equal(t, 0, answer)
@@ -30,9 +30,9 @@ func TestErrorCodeOfQuestion(t *testing.T) {
 	t.Run("fails when the answer is a nil result", func(t *testing.T) {
 		nilResult := fixture.NewFakeQuestion[*ability.Result]("nil result", nil)
 
-		answer, err := errorcode.Of(nilResult).AnsweredBy(screenplay.ActorNamed("Adam"))
+		answer, err := exitcode.Of(nilResult).AnsweredBy(screenplay.ActorNamed("Adam"))
 
-		require.ErrorIs(t, err, errorcode.ErrAnswerIsNil)
+		require.ErrorIs(t, err, exitcode.ErrResultIsNil)
 		assert.Zero(t, answer)
 	})
 
@@ -42,18 +42,18 @@ func TestErrorCodeOfQuestion(t *testing.T) {
 			errors.New("failed to get the answer"),
 		)
 
-		answer, err := errorcode.Of(failingQuestion).AnsweredBy(screenplay.ActorNamed("Adam"))
+		answer, err := exitcode.Of(failingQuestion).AnsweredBy(screenplay.ActorNamed("Adam"))
 
 		require.Error(t, err)
 		assert.Zero(t, answer)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		q := errorcode.Of(last.Of(question.Responses()))
-		assert.Equal(t, "error code of last of responses", q.String())
+		q := exitcode.Of(last.Of(question.Responses()))
+		assert.Equal(t, "exit code of last of command results", q.String())
 	})
 
 	t.Run("implements the question interface", func(t *testing.T) {
-		assert.Implements(t, (*screenplay.Question[int])(nil), errorcode.Of(last.Of(question.Responses())))
+		assert.Implements(t, (*screenplay.Question[int])(nil), exitcode.Of(last.Of(question.Responses())))
 	})
 }

@@ -8,7 +8,7 @@ import (
 
 // Silently wraps a question so that the narration produced while it is answered
 // is muted: any beats or asides emitted while computing the answer never reach
-// the narrator's adapters. The question is narrated as "a secret": neither the
+// the narrator's adapters. The question is narrated as "the secret": neither the
 // wrapped question's description nor its answer is narrated.
 //
 // It is meant to keep secrets out of the logs — a question that reads a token or
@@ -18,7 +18,7 @@ import (
 //
 // A production configured with screenplay.WithForceAllNarration neutralizes
 // this decorator, so a scenario can be debugged with every step narrated again.
-func Silently[T any](q screenplay.Question[T]) screenplay.Question[T] {
+func Silently[T any](q screenplay.Question[T]) *SilentlyQuestion[T] {
 	return &SilentlyQuestion[T]{
 		question: q,
 	}
@@ -33,7 +33,7 @@ type SilentlyQuestion[T any] struct {
 // String describes the question without describing the wrapped question, so
 // that a value the wrapped question carries is never narrated.
 func (q *SilentlyQuestion[T]) String() string {
-	return "a secret"
+	return "secret"
 }
 
 // KeepsItsAnswerSecret marks the question as one whose answer must not be

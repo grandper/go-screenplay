@@ -86,7 +86,7 @@ func TestStopAction(t *testing.T) {
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		action1 := action.Stop()
-		assert.Equal(t, "stop until the 'enter' key is pressed", action1.String())
+		assert.Equal(t, "stop until the \"enter\" key is pressed", action1.String())
 
 		action2 := action.Stop().UntilThe(formField).HappensTo(be.EqualTo("finished"))
 		assert.Equal(t, `stop until the form field happens to be equal to "finished"`, action2.String())

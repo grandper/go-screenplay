@@ -27,7 +27,10 @@ func TestRemove(t *testing.T) {
 		})
 
 		t.Run("fails when the file does not exist", func(t *testing.T) {
-			require.Error(t, adam.AttemptsTo(action.Remove().TheFile(fixture.CreateFilename(t))))
+			filename := fixture.CreateFilename(t)
+			err := adam.AttemptsTo(action.Remove().TheFile(filename))
+			require.ErrorIs(t, err, action.ErrFileDoesNotExist)
+			assert.EqualError(t, err, fmt.Sprintf("file %q does not exist", filename))
 		})
 
 		t.Run("fails when the file is a directory", func(t *testing.T) {
@@ -55,7 +58,10 @@ func TestRemove(t *testing.T) {
 		})
 
 		t.Run("fails when the directory does not exist", func(t *testing.T) {
-			require.Error(t, adam.AttemptsTo(action.Remove().TheDirectory(fixture.CreateDirectoryName(t))))
+			dir := fixture.CreateDirectoryName(t)
+			err := adam.AttemptsTo(action.Remove().TheDirectory(dir))
+			require.ErrorIs(t, err, action.ErrDirectoryDoesNotExist)
+			assert.EqualError(t, err, fmt.Sprintf("directory %q does not exist", dir))
 		})
 
 		t.Run("fails when the directory is not a directory", func(t *testing.T) {
@@ -78,7 +84,7 @@ func TestRemove(t *testing.T) {
 			require.EqualError(
 				t,
 				err,
-				"refused to remove a protected directory: '..' contains the current working directory",
+				`refused to remove a protected directory: ".." contains the current working directory`,
 			)
 
 			_, err = os.Stat("..")
@@ -88,7 +94,7 @@ func TestRemove(t *testing.T) {
 		t.Run("refuses to remove the current directory", func(t *testing.T) {
 			err := adam.AttemptsTo(action.Remove().TheDirectory("."))
 			require.ErrorIs(t, err, ability.ErrProtectedDirectory)
-			assert.EqualError(t, err, "refused to remove a protected directory: '.' is the current working directory")
+			assert.EqualError(t, err, `refused to remove a protected directory: "." is the current working directory`)
 		})
 	})
 
@@ -108,10 +114,10 @@ func TestRemove(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		filename := fixture.CreateFilename(t)
 		action1 := action.Remove().TheFile(filename)
-		assert.Equal(t, fmt.Sprintf("remove the file '%s'", filename), action1.String())
+		assert.Equal(t, fmt.Sprintf("remove the file %q", filename), action1.String())
 
 		dir := fixture.CreateDirectoryName(t)
 		action2 := action.Remove().TheDirectory(dir)
-		assert.Equal(t, fmt.Sprintf("remove the directory '%s'", dir), action2.String())
+		assert.Equal(t, fmt.Sprintf("remove the directory %q", dir), action2.String())
 	})
 }

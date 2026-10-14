@@ -116,10 +116,10 @@ func (mhr *MakeHTTPRequestsAbility) ToAddTheHeader(key, value string) error {
 	return nil
 }
 
-// ResetHeaders removes any headers previously set in the session. On a nil
+// ToResetHeaders removes any headers previously set in the session. On a nil
 // receiver, the actor does not have the ability, it fails with
 // screenplay.ErrActorMissingAbility.
-func (mhr *MakeHTTPRequestsAbility) ResetHeaders() error {
+func (mhr *MakeHTTPRequestsAbility) ToResetHeaders() error {
 	if mhr == nil {
 		return screenplay.ErrActorMissingAbility
 	}
@@ -160,7 +160,7 @@ func (mhr *MakeHTTPRequestsAbility) ToSend(
 		return screenplay.ErrActorMissingAbility
 	}
 	if !methodIsValid(method) {
-		return fmt.Errorf("%s is not a valid HTTP method", method)
+		return fmt.Errorf("%q %w", method, ErrInvalidHTTPMethod)
 	}
 	response, err := mhr.sendRequest(ctx, method, url, body, credential)
 	if err != nil {
@@ -252,22 +252,9 @@ func (mhr *MakeHTTPRequestsAbility) sendRequest(
 	return response, err
 }
 
-// Send sends a request. The response is stored in the ability struct.
-// Send is an alias for ToSend.
-func (mhr *MakeHTTPRequestsAbility) Send(
-	ctx context.Context,
-	method, url string,
-	body io.Reader,
-	credential *Credential,
-) error {
-	return mhr.ToSend(ctx, method, url, body, credential)
-}
-
-// Forget cleans up the ability.
-// The ability cannot be used after Forget() has been called.
-// This method is used, e.g., to close connections to databases,
-// deleting data, closing client cleanly. On a nil receiver, the actor does not
-// have the ability, it fails with screenplay.ErrActorMissingAbility.
+// Forget clears the headers and the responses of the session. On a nil
+// receiver, the actor does not have the ability, it fails with
+// screenplay.ErrActorMissingAbility.
 func (mhr *MakeHTTPRequestsAbility) Forget() error {
 	if mhr == nil {
 		return screenplay.ErrActorMissingAbility

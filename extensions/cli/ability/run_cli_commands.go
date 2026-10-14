@@ -41,10 +41,10 @@ type RunCLICommandsAbility struct {
 	done chan struct{}
 }
 
-// Type types the content in the input of an interactive command. On a nil
+// ToType types the content in the input of an interactive command. On a nil
 // receiver, the actor does not have the ability, it fails with
 // screenplay.ErrActorMissingAbility.
-func (a *RunCLICommandsAbility) Type(input string) error {
+func (a *RunCLICommandsAbility) ToType(input string) error {
 	if a == nil {
 		return screenplay.ErrActorMissingAbility
 	}
@@ -62,9 +62,9 @@ func (a *RunCLICommandsAbility) Type(input string) error {
 	return err
 }
 
-// Run runs a CLI command. On a nil receiver, the actor does not have the
+// ToRun runs a CLI command. On a nil receiver, the actor does not have the
 // ability, it fails with screenplay.ErrActorMissingAbility.
-func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error { //nolint:funlen
+func (a *RunCLICommandsAbility) ToRun(ctx context.Context, cmd *Command) error { //nolint:funlen
 	if a == nil {
 		return screenplay.ErrActorMissingAbility
 	}
@@ -152,9 +152,9 @@ func (a *RunCLICommandsAbility) Run(ctx context.Context, cmd *Command) error { /
 	return nil
 }
 
-// Responses returns the previous responses. On a nil receiver, the actor does
+// ToRetrieveResponses returns the previous responses. On a nil receiver, the actor does
 // not have the ability, it fails with screenplay.ErrActorMissingAbility.
-func (a *RunCLICommandsAbility) Responses() ([]*Result, error) {
+func (a *RunCLICommandsAbility) ToRetrieveResponses() ([]*Result, error) {
 	if a == nil {
 		return nil, screenplay.ErrActorMissingAbility
 	}

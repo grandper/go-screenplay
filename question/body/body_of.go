@@ -1,22 +1,12 @@
 package body
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
+	"github.com/grandper/go-screenplay/v2/question"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
-
-// ErrAnswerIsNotAStruct is returned when the wrapped question does not answer with a struct.
-var ErrAnswerIsNotAStruct = errors.New("the answer of the question is not a struct")
-
-// ErrFieldNotFound is returned when the struct answered by the wrapped question has no Body field.
-var ErrFieldNotFound = errors.New("the answer of the question has no Body field")
-
-// ErrFieldHasWrongType is returned when the Body field of the struct answered by the wrapped question
-// is not of the expected type.
-var ErrFieldHasWrongType = errors.New("the Body field of the answer of the question has the wrong type")
 
 // Of creates a question whose answer is the Body field of the struct answered
 // by the wrapped question. Go cannot constrain a type parameter on the fields it
@@ -52,17 +42,17 @@ func (q *OfQuestion[F, T]) AnsweredBy(actor *screenplay.Actor) (F, error) {
 	}
 
 	if !value.IsValid() || value.Kind() != reflect.Struct {
-		return zero, fmt.Errorf("%w: %s", ErrAnswerIsNotAStruct, q.question)
+		return zero, fmt.Errorf("%w: %s", question.ErrAnswerIsNotAStruct, q.question)
 	}
 
 	field := value.FieldByName("Body")
 	if !field.IsValid() || !field.CanInterface() {
-		return zero, fmt.Errorf("%w: %s", ErrFieldNotFound, q.question)
+		return zero, fmt.Errorf("%w: Body: %s", question.ErrFieldNotFound, q.question)
 	}
 
 	typed, isAnF := field.Interface().(F)
 	if !isAnF {
-		return zero, fmt.Errorf("%w: %s holds a %s, not a %T", ErrFieldHasWrongType, q.question, field.Type(), zero)
+		return zero, fmt.Errorf("%w: Body: %s holds a %s, not a %T", question.ErrFieldHasWrongType, q.question, field.Type(), zero)
 	}
 
 	return typed, nil

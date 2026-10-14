@@ -20,7 +20,7 @@ const asynchronousErrorsKey = "github.com/grandper/go-screenplay/v2/action.async
 //
 // By default, it waits for every action to complete before collecting the errors,
 // which is equivalent to calling WaitingForAll. This behavior can be changed
-// with CancelOnError or IgnoringErrors, and the number of actions running at the
+// with StoppingOnError or IgnoringErrors, and the number of actions running at the
 // same time can be capped with WithLimit.
 func Asynchronously(performables ...screenplay.Performable) *AsynchronouslyAction {
 	return &AsynchronouslyAction{
@@ -47,7 +47,7 @@ func (a *AsynchronouslyAction) String() string {
 	switch a.mode {
 	case waitingForAll:
 	case stoppingOnError:
-		builder.WriteString(" (canceling on error)")
+		builder.WriteString(" (stopping on error)")
 	case ignoringErrors:
 		builder.WriteString(" (ignoring errors)")
 	}
@@ -70,11 +70,11 @@ func (a *AsynchronouslyAction) WaitingForAll() *AsynchronouslyAction {
 	return a
 }
 
-// CancelOnError cancels the remaining actions as soon as one of them fails.
+// StoppingOnError stops the remaining actions as soon as one of them fails.
 // The error is collected for later investigation. An action still running is
 // canceled through the actor's context: it observes the cancellation with
 // actor.Context(). An action not started yet is skipped.
-func (a *AsynchronouslyAction) CancelOnError() *AsynchronouslyAction {
+func (a *AsynchronouslyAction) StoppingOnError() *AsynchronouslyAction {
 	a.mode = stoppingOnError
 
 	return a

@@ -59,7 +59,7 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 			"Authorization": "bearer 75b0c854-b34a-41de-92ef-2dd0e1baccd2",
 		}, headers)
 
-		require.NoError(t, makeHTTPRequests.ResetHeaders())
+		require.NoError(t, makeHTTPRequests.ToResetHeaders())
 		headers, err = makeHTTPRequests.ToRetrieveHeaders()
 		require.NoError(t, err)
 		assert.Empty(t, headers)
@@ -119,12 +119,14 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 
 	t.Run("should fail to send request when the method is wrong", func(t *testing.T) {
 		makeHTTPRequests := ability.MakeHTTPRequests()
-		assert.Error(t, makeHTTPRequests.ToSend(context.Background(), "foobar", "https://www.google.fr", nil, nil))
+		err := makeHTTPRequests.ToSend(context.Background(), "foobar", "https://www.google.fr", nil, nil)
+		require.ErrorIs(t, err, ability.ErrInvalidHTTPMethod)
+		assert.EqualError(t, err, `"foobar" is not a valid HTTP method`)
 	})
 
 	t.Run("should fail to send request when the protocol scheme is unsupported", func(t *testing.T) {
 		makeHTTPRequests := ability.MakeHTTPRequests()
-		assert.Error(t, makeHTTPRequests.Send(context.Background(), http.MethodGet, "foobar", nil, nil))
+		assert.Error(t, makeHTTPRequests.ToSend(context.Background(), http.MethodGet, "foobar", nil, nil))
 	})
 
 	t.Run("should be able to forget", func(t *testing.T) {
@@ -329,7 +331,7 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 			makeHTTPRequests.ToAddTheHeader("Accept", "application/json"),
 			screenplay.ErrActorMissingAbility,
 		)
-		require.ErrorIs(t, makeHTTPRequests.ResetHeaders(), screenplay.ErrActorMissingAbility)
+		require.ErrorIs(t, makeHTTPRequests.ToResetHeaders(), screenplay.ErrActorMissingAbility)
 		_, err := makeHTTPRequests.ToRetrieveHeaders()
 		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
 		require.ErrorIs(

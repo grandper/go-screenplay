@@ -11,9 +11,9 @@ import (
 	"github.com/grandper/go-screenplay/v2/fixture"
 	"github.com/grandper/go-screenplay/v2/resolution/be"
 	"github.com/grandper/go-screenplay/v2/resolution/contain"
+	resolutionfixture "github.com/grandper/go-screenplay/v2/resolution/fixture"
 	"github.com/grandper/go-screenplay/v2/resolution/length"
 	"github.com/grandper/go-screenplay/v2/resolution/match"
-	"github.com/grandper/go-screenplay/v2/resolution/testdata"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 	"github.com/grandper/go-screenplay/v2/term"
 )
@@ -92,7 +92,7 @@ func TestSeeTheAction(t *testing.T) {
 	t.Run("supports every verb", func(t *testing.T) {
 		t.Parallel()
 
-		anything := testdata.NewFakeResolution[string]("anything", true)
+		anything := resolutionfixture.NewFakeResolution[string]("anything", true)
 
 		for _, testCase := range []struct {
 			action *see.TheAction

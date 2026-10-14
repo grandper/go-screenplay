@@ -2,20 +2,15 @@ package action
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-var (
-	// ErrDirectoryNameNotProvided is returned when the directory name is not provided.
-	ErrDirectoryNameNotProvided = errors.New("directory name not provided")
-)
-
-// Create creates a CreateBuild to build a Create action.
+// Create creates a CreateBuilder to build a Create action.
 func Create() *CreateBuilder {
 	return &CreateBuilder{}
 }
@@ -28,7 +23,7 @@ func (b *CreateBuilder) TheFile(fileName string) *CreateTheFileAction {
 	return &CreateTheFileAction{filename: fileName}
 }
 
-// TheTemporaryFile creates a CreateTheTemporaryFileAction.
+// TheTemporaryFile creates a CreateTheFileAction.
 func (b *CreateBuilder) TheTemporaryFile(fileName string) *CreateTheFileAction {
 	return &CreateTheFileAction{
 		filename:  fileName,
@@ -41,7 +36,7 @@ func (b *CreateBuilder) TheDirectory(directoryName string) *CreateTheDirectoryAc
 	return &CreateTheDirectoryAction{directoryName: directoryName}
 }
 
-// TheTemporaryDirectory creates a CreateTheTemporaryDirectoryAction.
+// TheTemporaryDirectory creates a CreateTheDirectoryAction.
 func (b *CreateBuilder) TheTemporaryDirectory(directoryName string) *CreateTheDirectoryAction {
 	return &CreateTheDirectoryAction{
 		directoryName: directoryName,
@@ -53,6 +48,7 @@ func (b *CreateBuilder) TheTemporaryDirectory(directoryName string) *CreateTheDi
 type CreateTheFileAction struct {
 	filename    string
 	content     []byte
+	contentKind string // "text", "bytes" or "content", as the method reads
 	hasContent  bool
 	contentErr  error
 	temporary   bool
@@ -67,6 +63,7 @@ func (a *CreateTheFileAction) Containing(content io.Reader) *CreateTheFileAction
 	}
 
 	a.content, a.contentErr = readTheContent(content)
+	a.contentKind = "content"
 	a.hasContent = true
 	return a
 }
@@ -74,6 +71,7 @@ func (a *CreateTheFileAction) Containing(content io.Reader) *CreateTheFileAction
 // ContainingBytes sets the content to write into the file.
 func (a *CreateTheFileAction) ContainingBytes(b []byte) *CreateTheFileAction {
 	a.content = bytes.Clone(b)
+	a.contentKind = "bytes"
 	a.hasContent = true
 	return a
 }
@@ -81,6 +79,7 @@ func (a *CreateTheFileAction) ContainingBytes(b []byte) *CreateTheFileAction {
 // ContainingTheText sets the content to write into the file.
 func (a *CreateTheFileAction) ContainingTheText(text string) *CreateTheFileAction {
 	a.content = []byte(text)
+	a.contentKind = "text"
 	a.hasContent = true
 	return a
 }
@@ -93,10 +92,14 @@ func (a *CreateTheFileAction) AndSaveNameTo(placeholder *string) *CreateTheFileA
 
 // String describes the action.
 func (a *CreateTheFileAction) String() string {
+	description := fmt.Sprintf("create the file %s", verdict.Describe(a.filename))
 	if a.temporary {
-		return fmt.Sprintf("create the temporary file %s", a.filename)
+		description = fmt.Sprintf("create the temporary file %s", verdict.Describe(a.filename))
 	}
-	return fmt.Sprintf("create the file %s", a.filename)
+	if a.hasContent {
+		description += " containing " + describeContent(a.contentKind, a.content, a.contentErr)
+	}
+	return description
 }
 
 // PerformAs performs the task or the action as the provided actor.
@@ -110,12 +113,12 @@ func (a *CreateTheFileAction) PerformAs(actor *screenplay.Actor) error {
 	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(ability.UseTheFileSystem())
 	if !a.temporary {
 		if a.hasContent {
-			return useTheFileSystem.CreateFileWithContent(a.filename, bytes.NewReader(a.content))
+			return useTheFileSystem.ToCreateFileWithContent(a.filename, bytes.NewReader(a.content))
 		}
-		return useTheFileSystem.CreateFile(a.filename)
+		return useTheFileSystem.ToCreateFile(a.filename)
 	}
 	if a.hasContent {
-		name, errCreate := useTheFileSystem.CreateTemporaryFileWithContent(a.filename, bytes.NewReader(a.content))
+		name, errCreate := useTheFileSystem.ToCreateTemporaryFileWithContent(a.filename, bytes.NewReader(a.content))
 		if errCreate != nil {
 			return errCreate
 		}
@@ -124,7 +127,7 @@ func (a *CreateTheFileAction) PerformAs(actor *screenplay.Actor) error {
 		}
 		return nil
 	}
-	name, err := useTheFileSystem.CreateTemporaryFile(a.filename)
+	name, err := useTheFileSystem.ToCreateTemporaryFile(a.filename)
 	if err != nil {
 		return err
 	}
@@ -153,9 +156,9 @@ func (a *CreateTheDirectoryAction) AndSaveNameTo(placeholder *string) *CreateThe
 // String describes the action.
 func (a *CreateTheDirectoryAction) String() string {
 	if a.temporary {
-		return fmt.Sprintf("create the temporary directory %s", a.directoryName)
+		return fmt.Sprintf("create the temporary directory %s", verdict.Describe(a.directoryName))
 	}
-	return fmt.Sprintf("create the directory %s", a.directoryName)
+	return fmt.Sprintf("create the directory %s", verdict.Describe(a.directoryName))
 }
 
 const fileMode = 0755
@@ -167,9 +170,9 @@ func (a *CreateTheDirectoryAction) PerformAs(actor *screenplay.Actor) error {
 	}
 	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(ability.UseTheFileSystem())
 	if !a.temporary {
-		return useTheFileSystem.CreateDirectory(a.directoryName, fileMode)
+		return useTheFileSystem.ToCreateDirectory(a.directoryName, fileMode)
 	}
-	name, err := useTheFileSystem.CreateTemporaryDirectory(a.directoryName)
+	name, err := useTheFileSystem.ToCreateTemporaryDirectory(a.directoryName)
 	if err != nil {
 		return err
 	}

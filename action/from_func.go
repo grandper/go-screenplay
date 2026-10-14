@@ -9,19 +9,19 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-// PerformableFn represents is function that makes an actor performs an action or a task.
+// PerformableFn represents a function that makes an actor perform an action or a task.
 type PerformableFn func(theActor *screenplay.Actor) error
 
 // FromFunc creates a new performable from a function.
 func FromFunc(description string, fn PerformableFn) screenplay.Performable {
 	return &funcPerformable{
-		performAS:   fn,
+		performAs:   fn,
 		description: description,
 	}
 }
 
 type funcPerformable struct {
-	performAS   PerformableFn
+	performAs   PerformableFn
 	description string
 }
 
@@ -32,11 +32,11 @@ func (p *funcPerformable) String() string {
 
 // PerformAs performs the task or the action as the provided actor.
 func (p *funcPerformable) PerformAs(actor *screenplay.Actor) error {
-	if p.performAS == nil {
+	if p.performAs == nil {
 		return errors.New("the function given to FromFunc is nil")
 	}
 
-	return p.performAS(actor)
+	return p.performAs(actor)
 }
 
 // funcPerformable implements the screenplay.Performable interface.

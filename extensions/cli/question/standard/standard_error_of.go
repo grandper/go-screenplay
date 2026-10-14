@@ -1,15 +1,11 @@
 package standard
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
-
-// ErrAnswerIsNil is returned when the wrapped question answers with a nil CLI result.
-var ErrAnswerIsNil = errors.New("the answer of the question is a nil CLI result")
 
 // ErrorOf creates a question whose answer is the standard error of the result answered by the wrapped question.
 func ErrorOf(question screenplay.Question[*ability.Result]) *ErrorOfQuestion {
@@ -31,7 +27,7 @@ func (q *ErrorOfQuestion) AnsweredBy(actor *screenplay.Actor) ([]byte, error) {
 	}
 
 	if result == nil {
-		return nil, fmt.Errorf("%w: %s", ErrAnswerIsNil, q.question)
+		return nil, fmt.Errorf("%w: %s", ErrResultIsNil, q.question)
 	}
 
 	return result.StdErr(), nil

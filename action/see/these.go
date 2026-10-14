@@ -19,17 +19,33 @@ const (
 	none
 )
 
-// String describes the quantifier as it reads in a sentence.
-func (q quantifier) String() string {
+// ofThese describes the quantifier as AllOfTheseMet, AtLeastOneOfTheseMet and
+// NoneOfTheseMet read: "all of these met".
+func (q quantifier) ofThese() string {
 	switch q {
 	case all:
-		return "all of these terms are met"
+		return "all of these met"
 	case atLeastOne:
-		return "at least one of these terms is met"
+		return "at least one of these met"
 	case none:
-		return "none of these terms is met"
+		return "none of these met"
 	default:
-		return "all of these terms are met"
+		return "all of these met"
+	}
+}
+
+// ofThe describes the quantifier as ThatAllOfThe, ThatAnyOfThe and
+// ThatNoneOfThe read: "all of the".
+func (q quantifier) ofThe() string {
+	switch q {
+	case all:
+		return "all of the"
+	case atLeastOne:
+		return "any of the"
+	case none:
+		return "none of the"
+	default:
+		return "all of the"
 	}
 }
 
@@ -67,8 +83,9 @@ func NoneOfTheseMet(terms ...*term.Term) *TheseAction {
 // term.
 func these(q quantifier, name string, terms []*term.Term) *TheseAction {
 	action := &TheseAction{
-		quantifier: q,
-		terms:      make([]*term.Term, 0, len(terms)),
+		quantifier:  q,
+		description: "see " + q.ofThese(),
+		terms:       make([]*term.Term, 0, len(terms)),
 	}
 
 	for position, t := range terms {
@@ -97,15 +114,17 @@ func these(q quantifier, name string, terms []*term.Term) *TheseAction {
 
 // TheseAction sees whether all, at least one, or none of several terms are met.
 type TheseAction struct {
-	quantifier quantifier
-	terms      []*term.Term
-	err        error // why the action can never be performed, when it was built wrongly
+	quantifier  quantifier
+	description string // the words the user wrote: "see all of these met"
+	terms       []*term.Term
+	err         error // why the action can never be performed, when it was built wrongly
 }
 
-// String describes the action. The terms are not repeated here: each of them
-// is narrated on its own line when the actor checks it.
+// String describes the action with the words the user wrote. The terms of
+// AllOfTheseMet are not repeated here: each of them is narrated on its own
+// line when the actor checks it.
 func (a *TheseAction) String() string {
-	return fmt.Sprintf("see that %s", a.quantifier)
+	return a.description
 }
 
 // PerformAs performs the task or the action as the provided actor.
@@ -156,8 +175,9 @@ func (a *TheseAction) seeAtLeastOne(actor *screenplay.Actor) error {
 
 	return &notSeenError{
 		message: fmt.Sprintf(
-			"%s failed to see that at least one of these terms was met:%s",
+			"%s failed to %s:%s",
 			actor.Name(),
+			a.description,
 			strings.Join(reasons, ""),
 		),
 		failures: failures,
@@ -194,7 +214,7 @@ func (e *notSeenError) Unwrap() []error {
 
 func (a *TheseAction) seeNone(actor *screenplay.Actor) error {
 	for _, t := range a.terms {
-		if err := actor.AttemptsTo(&termNotMet{term: t}); err != nil {
+		if err := actor.AttemptsTo(&termNotMet{term: t, description: a.description}); err != nil {
 			return err
 		}
 	}
@@ -206,7 +226,8 @@ func (a *TheseAction) seeNone(actor *screenplay.Actor) error {
 // each term of NoneOfTheseMet, so that each of them is narrated on its own
 // line.
 type termNotMet struct {
-	term *term.Term
+	term        *term.Term
+	description string // the words of the action the term belongs to
 }
 
 // String describes the action.
@@ -222,8 +243,8 @@ func (a *termNotMet) PerformAs(actor *screenplay.Actor) error {
 	}
 
 	if verdict.Met {
-		return fmt.Errorf("%s failed to see that none of these terms was met: \"%s\" is met: got %s",
-			actor.Name(), a.term, verdict.Got)
+		return fmt.Errorf("%s failed to %s: \"%s\" is met: got %s",
+			actor.Name(), a.description, a.term, verdict.Got)
 	}
 
 	return nil
@@ -312,6 +333,7 @@ func (s *TheSubjects[T]) see(verb sentence.Verb, resolutions []screenplay.Resolu
 	}
 
 	action := these(s.quantifier, s.constructor, terms)
+	action.description = fmt.Sprintf("see that %s %s %s", s.quantifier.ofThe(), s.subjects(), clause)
 	if len(s.questions) == 0 {
 		action.err = fmt.Errorf("%w: %s needs at least one question", term.ErrInvalidTerm, s.constructor)
 	}
@@ -323,4 +345,21 @@ func (s *TheSubjects[T]) see(verb sentence.Verb, resolutions []screenplay.Resolu
 // that was built wrongly, rather than from a term that is not met.
 func isAMistake(err error) bool {
 	return errors.Is(err, term.ErrInvalidTerm) || errors.Is(err, screenplay.ErrInvalidResolution)
+}
+
+// subjects lists the questions as they read after "all of the": "profile
+// widget, login form".
+func (s *TheSubjects[T]) subjects() string {
+	descriptions := make([]string, len(s.questions))
+	for i, question := range s.questions {
+		if question == nil {
+			descriptions[i] = "<nil>"
+
+			continue
+		}
+
+		descriptions[i] = question.String()
+	}
+
+	return strings.Join(descriptions, ", ")
 }

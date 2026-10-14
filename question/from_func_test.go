@@ -13,11 +13,11 @@ import (
 func TestFromFunc(t *testing.T) {
 	adam := screenplay.ActorNamed("Adam")
 
-	theAnswer := question.FromFunc("the answer", func(_ *screenplay.Actor) (int, error) {
+	theAnswer := question.FromFunc("answer", func(_ *screenplay.Actor) (int, error) {
 		return 42, nil
 	})
 	assert.Implements(t, (*screenplay.Question[int])(nil), theAnswer)
-	assert.Equal(t, "the answer", theAnswer.String())
+	assert.Equal(t, "answer", theAnswer.String())
 	answer, err := theAnswer.AnsweredBy(adam)
 	require.NoError(t, err)
 	assert.Equal(t, 42, answer)

@@ -3,6 +3,8 @@ package question
 import (
 	"fmt"
 
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
+
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -22,16 +24,16 @@ type DirectoryNamedQuestion struct {
 // AnsweredBy returns the answer that an actor provided to the question.
 func (q *DirectoryNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (*Directory, error) {
 	useTheFileSystem := screenplay.UseAnAbilityOf(theActor).That(ability.UseTheFileSystem())
-	exists, err := useTheFileSystem.DirectoryExists(q.directoryPath)
+	exists, err := useTheFileSystem.ToTellIfTheDirectoryExists(q.directoryPath)
 	if err != nil {
 		return nil, err
 	}
-	return newDirectory(q.directoryPath, exists), nil
+	return NewDirectory(q.directoryPath, exists), nil
 }
 
 // String describes the question.
 func (q *DirectoryNamedQuestion) String() string {
-	return fmt.Sprintf("directory named '%s'", q.directoryPath)
+	return fmt.Sprintf("directory named %s", verdict.Describe(q.directoryPath))
 }
 
 // DirectoryNamedQuestion implements the screenplay.Question interface.

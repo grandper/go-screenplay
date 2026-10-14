@@ -75,14 +75,14 @@ func TestConditionalAction(t *testing.T) {
 
 	t.Run("performs the task when the question matches the resolution", func(t *testing.T) {
 		reset()
-		question := fixture.NewFakeQuestion("the status code", 200)
+		question := fixture.NewFakeQuestion("status code", 200)
 		require.NoError(t, adam.AttemptsTo(action.Conditionally(doTask).IfThe(question).HappensTo(be.EqualTo(200))))
 		assert.Equal(t, []string{"do the task"}, record)
 	})
 
 	t.Run("performs the alternative when the question does not match the resolution", func(t *testing.T) {
 		reset()
-		question := fixture.NewFakeQuestion("the status code", 500)
+		question := fixture.NewFakeQuestion("status code", 500)
 		require.NoError(
 			t,
 			adam.AttemptsTo(
@@ -107,12 +107,12 @@ func TestConditionalAction(t *testing.T) {
 
 	t.Run("negates the question/resolution condition with UnlessThe", func(t *testing.T) {
 		reset()
-		question := fixture.NewFakeQuestion("the status code", 500)
+		question := fixture.NewFakeQuestion("status code", 500)
 		require.NoError(t, adam.AttemptsTo(action.Conditionally(doTask).UnlessThe(question).HappensTo(be.EqualTo(200))))
 		assert.Equal(t, []string{"do the task"}, record)
 
 		reset()
-		matching := fixture.NewFakeQuestion("the status code", 200)
+		matching := fixture.NewFakeQuestion("status code", 200)
 		require.NoError(
 			t,
 			adam.AttemptsTo(
@@ -123,7 +123,7 @@ func TestConditionalAction(t *testing.T) {
 	})
 
 	t.Run("fails when the condition is built wrongly, whatever its polarity", func(t *testing.T) {
-		question := fixture.NewFakeQuestion("the status code", 200)
+		question := fixture.NewFakeQuestion("status code", 200)
 		broken := be.Between(300, 200)
 
 		for _, conditional := range []screenplay.Performable{
@@ -215,12 +215,12 @@ func TestConditionalAction(t *testing.T) {
 
 		assert.Equal(
 			t,
-			action.Conditionally(doTask).If(true).String(),
+			"conditionally do the task when the condition holds",
 			action.Conditionally(doTask).When(true).String(),
 		)
 		assert.Equal(
 			t,
-			action.Conditionally(doTask).IfThe(question).HappensTo(be.EqualTo(200)).String(),
+			"conditionally do the task when the status code happens to be equal to 200",
 			action.Conditionally(doTask).WhenThe(question).HappensTo(be.EqualTo(200)).String(),
 		)
 

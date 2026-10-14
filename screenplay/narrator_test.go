@@ -251,7 +251,7 @@ func TestNarrator(t *testing.T) {
 			recorder := fixture.NewRecorder()
 			adam := narratedActor(recorder)
 
-			answer, err := adam.Sees(fixture.NewFakeQuestion("the greeting", "hello world"))
+			answer, err := adam.Sees(fixture.NewFakeQuestion("greeting", "hello world"))
 			require.NoError(t, err)
 			assert.Equal(t, "hello world", answer)
 

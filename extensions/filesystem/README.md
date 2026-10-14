@@ -14,14 +14,23 @@ The symbols shown below live in the extension's sub-packages:
 | `action` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action` | `Create`, `Remove`, `AppendTheText`/`AppendTheBytes`/`AppendTheContent`, `OverwriteTo`, `ChangeDirectoryTo` |
 | `question` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/question` | `FileNamed`, `DirectoryNamed`, `ContentOfTheFileNamed` |
 | `resolution` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/resolution` | `Exist` |
+| `fixture` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/question/fixture` | `CreateFakeExistingFile`, `CreateFakeMissingFile`, `CreateFakeExistingDirectory`, `CreateFakeMissingDirectory` |
 
 Assertions are written with the core screenplay packages (`action/see`,
 `resolution/be`, ...) alongside this extension's `resolution.Exist`. For readability
 the examples below drop the package qualifiers on the extension constructors; import the
 packages above and qualify them as `action.Create()`, `ability.UseTheFileSystem()`, and
-so on (note that the extension's `action`/`question`/`resolution` packages share their
-name with the core ones, so you may need an import alias when you use both in the same
-file).
+so on. The extension's `action`/`question`/`resolution` packages share their name with the
+core ones: when a file uses both, keep the core name and alias the extension package with
+the `filesystem` prefix:
+```go
+import (
+	"github.com/grandper/go-screenplay/v2/action"
+	filesystemaction "github.com/grandper/go-screenplay/v2/extensions/filesystem/action"
+)
+
+err := anActor.AttemptsTo(action.Eventually(filesystemaction.Remove().TheFile("notes.txt")))
+```
 
 ## The ability
 This extension introduces a single ability: using the file system. Give it to an actor
@@ -33,7 +42,7 @@ anActor := screenplay.ActorNamed("Boby").WhoCan(UseTheFileSystem())
 An action or a question uses the ability in one chained statement, written in
 `PerformAs` or `AnsweredBy`, never in a test:
 ```go
-err := screenplay.UseAnAbilityOf(theActor).That(UseTheFileSystem()).CreateFile("notes.txt")
+err := screenplay.UseAnAbilityOf(theActor).That(UseTheFileSystem()).ToCreateFile("notes.txt")
 ```
 The argument of `That` carries the type; `That` returns the actor's own instance,
 or a nil pointer when the actor cannot use the file system, and the operation
@@ -107,7 +116,7 @@ root of the file system, the home directory, the current working directory and
 any directory that contains it:
 ```go
 err := anActor.AttemptsTo(Remove().TheDirectory(".."))
-// Adam attempts to remove the directory '..': refused to remove a protected directory: '..' contains the current working directory
+// Adam attempts to remove the directory "..": refused to remove a protected directory: ".." contains the current working directory
 ```
 
 ### Change the current directory

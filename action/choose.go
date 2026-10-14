@@ -47,30 +47,30 @@ type choiceBranch struct {
 }
 
 // Choose starts a multi-way choice; each branch's condition is a boolean or a question/resolution.
-func Choose() *ChoiceAction {
-	return &ChoiceAction{
+func Choose() *ChooseAction {
+	return &ChooseAction{
 		branches: []choiceBranch{},
 		pending:  []screenplay.Performable{},
 		fallback: []screenplay.Performable{},
 	}
 }
 
-// ChoiceAction performs the performables of the first branch whose condition holds.
-type ChoiceAction struct {
+// ChooseAction performs the performables of the first branch whose condition holds.
+type ChooseAction struct {
 	branches []choiceBranch
 	pending  []screenplay.Performable
 	fallback []screenplay.Performable
 }
 
 // To names the performables of the next branch; close it with When or WhenThe.
-func (a *ChoiceAction) To(performables ...screenplay.Performable) *ChoiceAction {
+func (a *ChooseAction) To(performables ...screenplay.Performable) *ChooseAction {
 	a.pending = performables
 
 	return a
 }
 
 // When closes the pending branch with a boolean condition.
-func (a *ChoiceAction) When(cond bool) *ChoiceAction {
+func (a *ChooseAction) When(cond bool) *ChooseAction {
 	branchCondition := booleanCondition(cond)
 	branchCondition.describe = fmt.Sprintf("the %s condition holds", ordinal(len(a.branches)+1))
 
@@ -87,89 +87,89 @@ func (a *ChoiceAction) When(cond bool) *ChoiceAction {
 // to be. Close it with a verb and one or more resolutions:
 //
 //	Choose().To(celebrate).WhenThe(statusCode).HappensTo(be.EqualTo(200))
-func (a *ChoiceAction) WhenThe[T any](question screenplay.Question[T]) *ChoiceBuilder[T] {
-	return &ChoiceBuilder[T]{action: a, question: question}
+func (a *ChooseAction) WhenThe[T any](question screenplay.Question[T]) *ChooseBuilder[T] {
+	return &ChooseBuilder[T]{action: a, question: question}
 }
 
-// ChoiceBuilder builds the condition of a branch of a choice: it holds the
+// ChooseBuilder builds the condition of a branch of a choice: it holds the
 // question the branch depends on, and waits for the verb that closes it.
-type ChoiceBuilder[T any] struct {
-	action   *ChoiceAction
+type ChooseBuilder[T any] struct {
+	action   *ChooseAction
 	question screenplay.Question[T]
 }
 
 // HappensTo closes the branch with the answer satisfying every resolution. It reads "happens to ...".
-func (s *ChoiceBuilder[T]) HappensTo(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) HappensTo(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.Should, false, resolutions))
 }
 
 // HappensToBe closes the branch with the answer satisfying every resolution. It reads "happens to be ...".
-func (s *ChoiceBuilder[T]) HappensToBe(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) HappensToBe(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldBe, false, resolutions))
 }
 
 // HappensToHave closes the branch with the answer satisfying every resolution. It reads "happens to have ...".
-func (s *ChoiceBuilder[T]) HappensToHave(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) HappensToHave(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldHave, false, resolutions))
 }
 
 // DoesNotHappenTo closes the branch with the answer satisfying none of the resolutions. It reads "does not happen to ...".
-func (s *ChoiceBuilder[T]) DoesNotHappenTo(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) DoesNotHappenTo(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldNot, false, resolutions))
 }
 
 // DoesNotHappenToBe closes the branch with the answer satisfying none of the resolutions. It reads "does not happen to be ...".
-func (s *ChoiceBuilder[T]) DoesNotHappenToBe(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) DoesNotHappenToBe(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldNotBe, false, resolutions))
 }
 
 // DoesNotHappenToHave closes the branch with the answer satisfying none of the resolutions. It reads "does not happen to have ...".
-func (s *ChoiceBuilder[T]) DoesNotHappenToHave(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) DoesNotHappenToHave(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldNotHave, false, resolutions))
 }
 
 // HappensToBeAnyOf closes the branch with the answer satisfying at least one resolution. It reads "happens to be any of: ...".
-func (s *ChoiceBuilder[T]) HappensToBeAnyOf(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) HappensToBeAnyOf(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldAnyOf, false, resolutions))
 }
 
 // HappenTo closes the branch with the answer satisfying every resolution. It is the plural form: it reads "happen to ...".
-func (s *ChoiceBuilder[T]) HappenTo(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) HappenTo(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.Should, true, resolutions))
 }
 
 // HappenToBe closes the branch with the answer satisfying every resolution. It is the plural form: it reads "happen to be ...".
-func (s *ChoiceBuilder[T]) HappenToBe(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) HappenToBe(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldBe, true, resolutions))
 }
 
 // HappenToHave closes the branch with the answer satisfying every resolution. It is the plural form: it reads "happen to have ...".
-func (s *ChoiceBuilder[T]) HappenToHave(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) HappenToHave(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldHave, true, resolutions))
 }
 
 // DoNotHappenTo closes the branch with the answer satisfying none of the resolutions. It is the plural form: it reads "do not happen to ...".
-func (s *ChoiceBuilder[T]) DoNotHappenTo(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) DoNotHappenTo(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldNot, true, resolutions))
 }
 
 // DoNotHappenToBe closes the branch with the answer satisfying none of the resolutions. It is the plural form: it reads "do not happen to be ...".
-func (s *ChoiceBuilder[T]) DoNotHappenToBe(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) DoNotHappenToBe(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldNotBe, true, resolutions))
 }
 
 // DoNotHappenToHave closes the branch with the answer satisfying none of the resolutions. It is the plural form: it reads "do not happen to have ...".
-func (s *ChoiceBuilder[T]) DoNotHappenToHave(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) DoNotHappenToHave(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldNotHave, true, resolutions))
 }
 
 // HappenToBeAnyOf closes the branch with the answer satisfying at least one resolution. It is the plural form: it reads "happen to be any of: ...".
-func (s *ChoiceBuilder[T]) HappenToBeAnyOf(resolutions ...screenplay.Resolution[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) HappenToBeAnyOf(resolutions ...screenplay.Resolution[T]) *ChooseAction {
 	return s.closes(sentence.NewCondition(sentence.ShouldAnyOf, true, resolutions))
 }
 
 // closes closes the pending branch: the answer satisfies the clause.
-func (s *ChoiceBuilder[T]) closes(clause sentence.Clause[T]) *ChoiceAction {
+func (s *ChooseBuilder[T]) closes(clause sentence.Clause[T]) *ChooseAction {
 	s.action.branches = append(s.action.branches, choiceBranch{
 		condition:    termCondition(sentence.NewTerm(s.question, clause)),
 		performables: s.action.pending,
@@ -180,7 +180,7 @@ func (s *ChoiceBuilder[T]) closes(clause sentence.Clause[T]) *ChoiceAction {
 }
 
 // Otherwise closes the pending To branch as the fallback, run when no branch holds.
-func (a *ChoiceAction) Otherwise() *ChoiceAction {
+func (a *ChooseAction) Otherwise() *ChooseAction {
 	a.fallback = a.pending
 	a.pending = []screenplay.Performable{}
 
@@ -188,12 +188,12 @@ func (a *ChoiceAction) Otherwise() *ChoiceAction {
 }
 
 // Default closes the pending To branch as the fallback, run when no branch holds.
-func (a *ChoiceAction) Default() *ChoiceAction {
+func (a *ChooseAction) Default() *ChooseAction {
 	return a.Otherwise()
 }
 
 // String describes the action.
-func (a *ChoiceAction) String() string {
+func (a *ChooseAction) String() string {
 	clauses := make([]string, 0, len(a.branches))
 	for _, b := range a.branches {
 		clauses = append(clauses, fmt.Sprintf(
@@ -204,7 +204,7 @@ func (a *ChoiceAction) String() string {
 }
 
 // PerformAs performs the task or the action as the provided actor.
-func (a *ChoiceAction) PerformAs(theActor *screenplay.Actor) error {
+func (a *ChooseAction) PerformAs(theActor *screenplay.Actor) error {
 	for _, b := range a.branches {
 		holds, err := b.condition.holds(theActor)
 		if err != nil {
@@ -219,8 +219,8 @@ func (a *ChoiceAction) PerformAs(theActor *screenplay.Actor) error {
 	return theActor.AttemptsTo(a.fallback...)
 }
 
-// ChoiceAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = (*ChoiceAction)(nil)
+// ChooseAction implements the screenplay.Performable interface.
+var _ screenplay.Performable = (*ChooseAction)(nil)
 
 // clauseBranch pairs a clause with the performables run when the answer is the first to satisfy it.
 type clauseBranch[T any] struct {
@@ -230,8 +230,8 @@ type clauseBranch[T any] struct {
 
 // ChooseBasedOnThe starts a multi-way choice on the answer of a question; each branch states what
 // the answer should be.
-func ChooseBasedOnThe[T any](question screenplay.Question[T]) *ChoiceOnAction[T] {
-	return &ChoiceOnAction[T]{
+func ChooseBasedOnThe[T any](question screenplay.Question[T]) *ChooseBasedOnTheAction[T] {
+	return &ChooseBasedOnTheAction[T]{
 		question: question,
 		branches: []clauseBranch[T]{},
 		pending:  []screenplay.Performable{},
@@ -239,8 +239,8 @@ func ChooseBasedOnThe[T any](question screenplay.Question[T]) *ChoiceOnAction[T]
 	}
 }
 
-// ChoiceOnAction performs the performables of the first branch whose clause the answer satisfies.
-type ChoiceOnAction[T any] struct {
+// ChooseBasedOnTheAction performs the performables of the first branch whose clause the answer satisfies.
+type ChooseBasedOnTheAction[T any] struct {
 	question screenplay.Question[T]
 	branches []clauseBranch[T]
 	pending  []screenplay.Performable
@@ -248,7 +248,7 @@ type ChoiceOnAction[T any] struct {
 }
 
 // To names the performables of the next branch; close it with WhenIt.
-func (a *ChoiceOnAction[T]) To(performables ...screenplay.Performable) *ChoiceOnAction[T] {
+func (a *ChooseBasedOnTheAction[T]) To(performables ...screenplay.Performable) *ChooseBasedOnTheAction[T] {
 	a.pending = performables
 
 	return a
@@ -258,53 +258,53 @@ func (a *ChoiceOnAction[T]) To(performables ...screenplay.Performable) *ChoiceOn
 // it with a verb and one or more resolutions:
 //
 //	ChooseBasedOnThe(statusCode).To(celebrate).WhenIt().HappensTo(be.EqualTo(200))
-func (a *ChoiceOnAction[T]) WhenIt() *ChoiceOnBuilder[T] {
-	return &ChoiceOnBuilder[T]{action: a}
+func (a *ChooseBasedOnTheAction[T]) WhenIt() *ChooseBasedOnTheBuilder[T] {
+	return &ChooseBasedOnTheBuilder[T]{action: a}
 }
 
-// ChoiceOnBuilder builds the condition of a branch of a choice on the answer
+// ChooseBasedOnTheBuilder builds the condition of a branch of a choice on the answer
 // to a question: it waits for the verb that closes it.
-type ChoiceOnBuilder[T any] struct {
-	action *ChoiceOnAction[T]
+type ChooseBasedOnTheBuilder[T any] struct {
+	action *ChooseBasedOnTheAction[T]
 }
 
 // HappensTo closes the branch with the answer satisfying every resolution. It reads "happens to ...".
-func (s *ChoiceOnBuilder[T]) HappensTo(resolutions ...screenplay.Resolution[T]) *ChoiceOnAction[T] {
+func (s *ChooseBasedOnTheBuilder[T]) HappensTo(resolutions ...screenplay.Resolution[T]) *ChooseBasedOnTheAction[T] {
 	return s.closes(sentence.NewCondition(sentence.Should, false, resolutions))
 }
 
 // HappensToBe closes the branch with the answer satisfying every resolution. It reads "happens to be ...".
-func (s *ChoiceOnBuilder[T]) HappensToBe(resolutions ...screenplay.Resolution[T]) *ChoiceOnAction[T] {
+func (s *ChooseBasedOnTheBuilder[T]) HappensToBe(resolutions ...screenplay.Resolution[T]) *ChooseBasedOnTheAction[T] {
 	return s.closes(sentence.NewCondition(sentence.ShouldBe, false, resolutions))
 }
 
 // HappensToHave closes the branch with the answer satisfying every resolution. It reads "happens to have ...".
-func (s *ChoiceOnBuilder[T]) HappensToHave(resolutions ...screenplay.Resolution[T]) *ChoiceOnAction[T] {
+func (s *ChooseBasedOnTheBuilder[T]) HappensToHave(resolutions ...screenplay.Resolution[T]) *ChooseBasedOnTheAction[T] {
 	return s.closes(sentence.NewCondition(sentence.ShouldHave, false, resolutions))
 }
 
 // DoesNotHappenTo closes the branch with the answer satisfying none of the resolutions. It reads "does not happen to ...".
-func (s *ChoiceOnBuilder[T]) DoesNotHappenTo(resolutions ...screenplay.Resolution[T]) *ChoiceOnAction[T] {
+func (s *ChooseBasedOnTheBuilder[T]) DoesNotHappenTo(resolutions ...screenplay.Resolution[T]) *ChooseBasedOnTheAction[T] {
 	return s.closes(sentence.NewCondition(sentence.ShouldNot, false, resolutions))
 }
 
 // DoesNotHappenToBe closes the branch with the answer satisfying none of the resolutions. It reads "does not happen to be ...".
-func (s *ChoiceOnBuilder[T]) DoesNotHappenToBe(resolutions ...screenplay.Resolution[T]) *ChoiceOnAction[T] {
+func (s *ChooseBasedOnTheBuilder[T]) DoesNotHappenToBe(resolutions ...screenplay.Resolution[T]) *ChooseBasedOnTheAction[T] {
 	return s.closes(sentence.NewCondition(sentence.ShouldNotBe, false, resolutions))
 }
 
 // DoesNotHappenToHave closes the branch with the answer satisfying none of the resolutions. It reads "does not happen to have ...".
-func (s *ChoiceOnBuilder[T]) DoesNotHappenToHave(resolutions ...screenplay.Resolution[T]) *ChoiceOnAction[T] {
+func (s *ChooseBasedOnTheBuilder[T]) DoesNotHappenToHave(resolutions ...screenplay.Resolution[T]) *ChooseBasedOnTheAction[T] {
 	return s.closes(sentence.NewCondition(sentence.ShouldNotHave, false, resolutions))
 }
 
 // HappensToBeAnyOf closes the branch with the answer satisfying at least one resolution. It reads "happens to be any of: ...".
-func (s *ChoiceOnBuilder[T]) HappensToBeAnyOf(resolutions ...screenplay.Resolution[T]) *ChoiceOnAction[T] {
+func (s *ChooseBasedOnTheBuilder[T]) HappensToBeAnyOf(resolutions ...screenplay.Resolution[T]) *ChooseBasedOnTheAction[T] {
 	return s.closes(sentence.NewCondition(sentence.ShouldAnyOf, false, resolutions))
 }
 
 // closes closes the pending branch: the answer satisfies the clause.
-func (s *ChoiceOnBuilder[T]) closes(clause sentence.Clause[T]) *ChoiceOnAction[T] {
+func (s *ChooseBasedOnTheBuilder[T]) closes(clause sentence.Clause[T]) *ChooseBasedOnTheAction[T] {
 	s.action.branches = append(s.action.branches, clauseBranch[T]{
 		clause:       clause,
 		performables: s.action.pending,
@@ -315,7 +315,7 @@ func (s *ChoiceOnBuilder[T]) closes(clause sentence.Clause[T]) *ChoiceOnAction[T
 }
 
 // Otherwise closes the pending To branch as the fallback, run when no branch matches.
-func (a *ChoiceOnAction[T]) Otherwise() *ChoiceOnAction[T] {
+func (a *ChooseBasedOnTheAction[T]) Otherwise() *ChooseBasedOnTheAction[T] {
 	a.fallback = a.pending
 	a.pending = []screenplay.Performable{}
 
@@ -323,12 +323,12 @@ func (a *ChoiceOnAction[T]) Otherwise() *ChoiceOnAction[T] {
 }
 
 // Default closes the pending To branch as the fallback, run when no branch matches.
-func (a *ChoiceOnAction[T]) Default() *ChoiceOnAction[T] {
+func (a *ChooseBasedOnTheAction[T]) Default() *ChooseBasedOnTheAction[T] {
 	return a.Otherwise()
 }
 
 // String describes the action.
-func (a *ChoiceOnAction[T]) String() string {
+func (a *ChooseBasedOnTheAction[T]) String() string {
 	clauses := make([]string, 0, len(a.branches))
 	for _, b := range a.branches {
 		clauses = append(clauses, fmt.Sprintf(
@@ -341,7 +341,7 @@ func (a *ChoiceOnAction[T]) String() string {
 }
 
 // PerformAs performs the task or the action as the provided actor.
-func (a *ChoiceOnAction[T]) PerformAs(theActor *screenplay.Actor) error {
+func (a *ChooseBasedOnTheAction[T]) PerformAs(theActor *screenplay.Actor) error {
 	value, err := a.question.AnsweredBy(theActor)
 	if err != nil {
 		return err
@@ -361,5 +361,5 @@ func (a *ChoiceOnAction[T]) PerformAs(theActor *screenplay.Actor) error {
 	return theActor.AttemptsTo(a.fallback...)
 }
 
-// ChoiceOnAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = (*ChoiceOnAction[any])(nil)
+// ChooseBasedOnTheAction implements the screenplay.Performable interface.
+var _ screenplay.Performable = (*ChooseBasedOnTheAction[any])(nil)

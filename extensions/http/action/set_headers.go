@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
+
 	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -83,12 +85,12 @@ func (a *SetHeadersAction) logHeaders() string {
 	headerStrs := make([]string, 0, len(a.headers))
 	if a.secret {
 		for _, h := range a.headers {
-			headerStrs = append(headerStrs, h.key+" = <secret>")
+			headerStrs = append(headerStrs, verdict.Describe(h.key)+" = <secret>")
 		}
 		return strings.Join(headerStrs, ", ")
 	}
 	for _, h := range a.headers {
-		headerStrs = append(headerStrs, fmt.Sprintf("%s = %s", h.key, h.value))
+		headerStrs = append(headerStrs, fmt.Sprintf("%s = %s", verdict.Describe(h.key), verdict.Describe(h.value)))
 	}
 	return strings.Join(headerStrs, ", ")
 }
@@ -100,7 +102,7 @@ func (a *SetHeadersAction) PerformAs(theActor *screenplay.Actor) error {
 	}
 
 	makeHTTPRequests := screenplay.UseAnAbilityOf(theActor).That(ability.MakeHTTPRequests())
-	if err := makeHTTPRequests.ResetHeaders(); err != nil {
+	if err := makeHTTPRequests.ToResetHeaders(); err != nil {
 		return err
 	}
 	for _, h := range a.headers {

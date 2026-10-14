@@ -227,7 +227,7 @@ func (c Clause[T]) Judge(subject string, value T) (Verdict, error) {
 	}
 
 	if c.verb == ShouldAnyOf && held == 0 {
-		unmet.Failure = fmt.Sprintf("%s (got %s) %s", subject, got, c)
+		unmet.Failure = fmt.Sprintf("%s %s: got %s", subject, c, got)
 	}
 
 	if unmet.Failure != "" {

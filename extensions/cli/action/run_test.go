@@ -128,18 +128,18 @@ func TestRunTheCommand(t *testing.T) {
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		action1 := action.RunTheCommand("echo", "Hello, World!")
-		assert.Equal(t, "run the command 'echo Hello, World!'", action1.String())
+		assert.Equal(t, "run the command \"echo Hello, World!\"", action1.String())
 
 		action2 := action.RunTheCommand("echo", "Hello, World!").Interactively()
-		assert.Equal(t, "run the command 'echo Hello, World!' interactively", action2.String())
+		assert.Equal(t, "run the command \"echo Hello, World!\" interactively", action2.String())
 
 		action3 := action.RunTheCommand("echo", "Hello, World!").InTheWorkingDirectory("/tmp")
-		assert.Equal(t, "run the command 'echo Hello, World!' in the working directory /tmp", action3.String())
+		assert.Equal(t, "run the command \"echo Hello, World!\" in the working directory \"/tmp\"", action3.String())
 
 		action4 := action.RunTheCommand("echo", "Hello, World!").Interactively().InTheWorkingDirectory("/tmp")
 		assert.Equal(
 			t,
-			"run the command 'echo Hello, World!' interactively in the working directory /tmp",
+			"run the command \"echo Hello, World!\" interactively in the working directory \"/tmp\"",
 			action4.String(),
 		)
 	})

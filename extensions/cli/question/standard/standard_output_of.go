@@ -27,7 +27,7 @@ func (q *OutputOfQuestion) AnsweredBy(actor *screenplay.Actor) ([]byte, error) {
 	}
 
 	if result == nil {
-		return nil, fmt.Errorf("%w: %s", ErrAnswerIsNil, q.question)
+		return nil, fmt.Errorf("%w: %s", ErrResultIsNil, q.question)
 	}
 
 	return result.StdOut(), nil

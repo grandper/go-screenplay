@@ -49,7 +49,7 @@ func TestCodeOfQuestion(t *testing.T) {
 
 		answer, err := adam.AsksFor(status.CodeOf(nilAnswer))
 
-		require.ErrorIs(t, err, status.ErrAnswerIsNil)
+		require.ErrorIs(t, err, status.ErrResponseIsNil)
 		assert.Zero(t, answer)
 	})
 

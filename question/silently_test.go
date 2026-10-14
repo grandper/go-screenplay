@@ -13,14 +13,14 @@ import (
 
 func TestSilentlyQuestion(t *testing.T) {
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		silent := question.Silently(fixture.NewFakeQuestion("the token", "secret"))
-		assert.Equal(t, "a secret", silent.String())
+		silent := question.Silently(fixture.NewFakeQuestion("token", "secret"))
+		assert.Equal(t, "secret", silent.String())
 	})
 
 	t.Run("answers with the answer of the wrapped question", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 
-		answer, err := question.Silently(fixture.NewFakeQuestion("the token", "secret")).AnsweredBy(adam)
+		answer, err := question.Silently(fixture.NewFakeQuestion("token", "secret")).AnsweredBy(adam)
 		require.NoError(t, err)
 		assert.Equal(t, "secret", answer)
 	})
@@ -39,8 +39,8 @@ func TestSilentlyQuestion(t *testing.T) {
 
 		// A question whose answer is itself obtained by asking another question,
 		// which normally narrates an aside and its answer.
-		inner := fixture.NewFakeQuestion("the inner value", "secret")
-		chatty := question.FromFunc("the token", func(theActor *screenplay.Actor) (string, error) {
+		inner := fixture.NewFakeQuestion("inner value", "secret")
+		chatty := question.FromFunc("token", func(theActor *screenplay.Actor) (string, error) {
 			return theActor.Sees(inner)
 		})
 
@@ -51,15 +51,15 @@ func TestSilentlyQuestion(t *testing.T) {
 		// Only the outer aside is narrated; the inner question stays muted.
 		events := recorder.Events()
 		require.Len(t, events, 2)
-		assert.Equal(t, "Adam asks for a secret", events[0].Message)
-		assert.Equal(t, "Adam asks for a secret", events[1].Message)
+		assert.Equal(t, "Adam asks for the secret", events[0].Message)
+		assert.Equal(t, "Adam asks for the secret", events[1].Message)
 	})
 
 	t.Run("never narrates the answer", func(t *testing.T) {
 		recorder := fixture.NewRecorder()
 		adam := narratedActor(recorder)
 
-		answer, err := adam.Sees(question.Silently(fixture.NewFakeQuestion("the token", "tok-123")))
+		answer, err := adam.Sees(question.Silently(fixture.NewFakeQuestion("token", "tok-123")))
 		require.NoError(t, err)
 		assert.Equal(t, "tok-123", answer)
 
@@ -73,10 +73,10 @@ func TestSilentlyQuestion(t *testing.T) {
 		recorder := fixture.NewRecorder()
 		adam := narratedActor(recorder)
 
-		_, err := adam.Sees(question.Silently(fixture.NewFakeQuestion("the token", "secret")))
+		_, err := adam.Sees(question.Silently(fixture.NewFakeQuestion("token", "secret")))
 		require.NoError(t, err)
 
-		_, err = adam.Sees(fixture.NewFakeQuestion("the greeting", "hello"))
+		_, err = adam.Sees(fixture.NewFakeQuestion("greeting", "hello"))
 		require.NoError(t, err)
 
 		assert.Contains(t, recorder.Messages(), "Adam asks for the greeting")
@@ -90,8 +90,8 @@ func TestSilentlyQuestion(t *testing.T) {
 		)
 		adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
 
-		inner := fixture.NewFakeQuestion("the inner value", "secret")
-		chatty := question.FromFunc("the token", func(theActor *screenplay.Actor) (string, error) {
+		inner := fixture.NewFakeQuestion("inner value", "secret")
+		chatty := question.FromFunc("token", func(theActor *screenplay.Actor) (string, error) {
 			return theActor.Sees(inner)
 		})
 
@@ -107,7 +107,7 @@ func TestSilentlyQuestion(t *testing.T) {
 		assert.Implements(
 			t,
 			(*screenplay.Question[string])(nil),
-			question.Silently(fixture.NewFakeQuestion("the token", "secret")),
+			question.Silently(fixture.NewFakeQuestion("token", "secret")),
 		)
 	})
 

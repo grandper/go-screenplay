@@ -30,8 +30,8 @@ func TestFromFunc(t *testing.T) {
 
 	t.Run("and questions", func(t *testing.T) {
 		t.Run("performs the task with the answers from the questions", func(t *testing.T) {
-			urlQuestion := fixture.NewFakeQuestion("the URL", "https://example.com")
-			portQuestion := fixture.NewFakeQuestion("the port", 8080)
+			urlQuestion := fixture.NewFakeQuestion("URL", "https://example.com")
+			portQuestion := fixture.NewFakeQuestion("port", 8080)
 
 			var capturedURL string
 			var capturedPort int
@@ -63,8 +63,8 @@ func TestFromFunc(t *testing.T) {
 						return nil
 					})
 				},
-				fixture.NewFakeQuestion("the URL", "https://example.com"),
-				fixture.NewFakeQuestion("the port", 8080),
+				fixture.NewFakeQuestion("URL", "https://example.com"),
+				fixture.NewFakeQuestion("port", 8080),
 			)
 
 			assert.Equal(t, "connect to the server", performable.String())
@@ -82,7 +82,7 @@ func TestFromFunc(t *testing.T) {
 						return nil
 					})
 				},
-				fixture.NewFakeQuestion("the port", 8080),
+				fixture.NewFakeQuestion("port", 8080),
 			)
 			require.NoError(t, adam.AttemptsTo(performable))
 			assert.Equal(t, int64(8080), capturedPort)
@@ -92,7 +92,7 @@ func TestFromFunc(t *testing.T) {
 			performable := action.FromFuncAndQuestions(
 				"connect to %s",
 				"not a function",
-				fixture.NewFakeQuestion("the URL", "https://example.com"),
+				fixture.NewFakeQuestion("URL", "https://example.com"),
 			)
 			require.ErrorIs(t, adam.AttemptsTo(performable), action.ErrTaskFuncNotFunction)
 		})
@@ -113,7 +113,7 @@ func TestFromFunc(t *testing.T) {
 				func(url string) screenplay.Performable {
 					return action.FromFunc("connect", func(_ *screenplay.Actor) error { _ = url; return nil })
 				},
-				fixture.NewFakeQuestion("the URL", "https://example.com"),
+				fixture.NewFakeQuestion("URL", "https://example.com"),
 			)
 			require.ErrorIs(t, adam.AttemptsTo(performable), action.ErrFirstParamNotActor)
 		})
@@ -127,7 +127,7 @@ func TestFromFunc(t *testing.T) {
 						return nil
 					})
 				},
-				fixture.NewFakeQuestion("the URL", "https://example.com"),
+				fixture.NewFakeQuestion("URL", "https://example.com"),
 			)
 			require.ErrorIs(t, adam.AttemptsTo(performable), action.ErrQuestionCountMismatch)
 		})
@@ -138,8 +138,8 @@ func TestFromFunc(t *testing.T) {
 				func(_ *screenplay.Actor, url string) screenplay.Performable {
 					return action.FromFunc("connect", func(_ *screenplay.Actor) error { _ = url; return nil })
 				},
-				fixture.NewFakeQuestion("the URL", "https://example.com"),
-				fixture.NewFakeQuestion("the port", 8080),
+				fixture.NewFakeQuestion("URL", "https://example.com"),
+				fixture.NewFakeQuestion("port", 8080),
 			)
 			require.ErrorIs(t, adam.AttemptsTo(performable), action.ErrQuestionCountMismatch)
 		})
@@ -148,7 +148,7 @@ func TestFromFunc(t *testing.T) {
 			performable := action.FromFuncAndQuestions(
 				"connect to %s",
 				func(_ *screenplay.Actor, url string) { _ = url },
-				fixture.NewFakeQuestion("the URL", "https://example.com"),
+				fixture.NewFakeQuestion("URL", "https://example.com"),
 			)
 			require.ErrorIs(t, adam.AttemptsTo(performable), action.ErrTaskFuncMustReturnOne)
 		})
@@ -157,7 +157,7 @@ func TestFromFunc(t *testing.T) {
 			performable := action.FromFuncAndQuestions(
 				"connect to %s",
 				func(_ *screenplay.Actor, url string) string { return url },
-				fixture.NewFakeQuestion("the URL", "https://example.com"),
+				fixture.NewFakeQuestion("URL", "https://example.com"),
 			)
 			require.ErrorIs(t, adam.AttemptsTo(performable), action.ErrTaskFuncMustReturnTask)
 		})
@@ -182,7 +182,7 @@ func TestFromFunc(t *testing.T) {
 					func(_ *screenplay.Actor, url string) screenplay.Performable {
 						return action.FromFunc("connect", func(_ *screenplay.Actor) error { _ = url; return nil })
 					},
-					fixture.NewFakeQuestion("the URL", struct{}{}),
+					fixture.NewFakeQuestion("URL", struct{}{}),
 				)
 				require.ErrorIs(t, adam.AttemptsTo(performable), action.ErrAnswerNotAssignable)
 			},
@@ -219,7 +219,7 @@ func TestFromFunc(t *testing.T) {
 						return assert.AnError
 					})
 				},
-				fixture.NewFakeQuestion("the URL", "https://example.com"),
+				fixture.NewFakeQuestion("URL", "https://example.com"),
 			)
 			require.ErrorIs(t, adam.AttemptsTo(performable), assert.AnError)
 		})

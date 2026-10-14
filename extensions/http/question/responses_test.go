@@ -18,7 +18,7 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-func TestResponsesQuestion(t *testing.T) {
+func TestResponses(t *testing.T) {
 	t.Run("returns all the responses received by the actor", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			_, err := w.Write([]byte("Hello World"))
@@ -54,7 +54,7 @@ func TestResponsesQuestion(t *testing.T) {
 
 		_, err := adam.AsksFor(question.Responses())
 
-		assert.Error(t, err)
+		require.ErrorIs(t, err, screenplay.ErrActorMissingAbility)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {

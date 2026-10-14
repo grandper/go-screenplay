@@ -8,7 +8,15 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-// Either executes one of the two provided actions or tasks.
+var (
+	// ErrNoPerformableProvided is returned when Either is performed without performables.
+	ErrNoPerformableProvided = errors.New("you must provide at least one performable")
+
+	// ErrNoAlternateProvided is returned when Either is performed without alternate performables.
+	ErrNoAlternateProvided = errors.New("you must provide at least one alternate performable")
+)
+
+// Either executes the provided actions or tasks, or the alternate ones.
 func Either(performables ...screenplay.Performable) *EitherAction {
 	return &EitherAction{
 		performables:          withoutNil(performables),
@@ -65,11 +73,11 @@ func performablesToStringSlice(performables []screenplay.Performable) []string {
 // PerformAs performs the task or the action as the provided actor.
 func (a *EitherAction) PerformAs(theActor *screenplay.Actor) error {
 	if len(a.performables) == 0 {
-		return errors.New("you must provide at least one performable")
+		return ErrNoPerformableProvided
 	}
 
 	if len(a.alternatePerformables) == 0 {
-		return errors.New("you must provide at least one alternate performable")
+		return ErrNoAlternateProvided
 	}
 
 	if err := theActor.AttemptsTo(a.performables...); err == nil {

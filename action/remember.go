@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
+
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
@@ -46,7 +48,7 @@ func (a *RememberAction[T]) AllowingNil() *RememberAction[T] {
 
 // String describes the action.
 func (a *RememberAction[T]) String() string {
-	return fmt.Sprintf("remember the %s as '%s'", a.question, a.key)
+	return fmt.Sprintf("remember the %s as %s", a.question, verdict.Describe(a.key))
 }
 
 // PerformAs performs the task or the action as the provided actor.

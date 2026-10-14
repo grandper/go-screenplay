@@ -75,14 +75,14 @@ func TestAddHeaderAction(t *testing.T) {
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		addHeader := action.AddHeader("Content-Type", "application/json")
-		assert.Equal(t, "add the header Content-Type = application/json", addHeader.String())
+		assert.Equal(t, "add the header \"Content-Type\" = \"application/json\"", addHeader.String())
 
 		addHeaders := action.AddHeaders(
 			"Content-Type", "application/json",
 			"Authorization", "Bearer 84e7750a-582f-4ed7-9510-6e181d530686")
 		assert.Equal(
 			t,
-			"add the headers Authorization = Bearer 84e7750a-582f-4ed7-9510-6e181d530686, Content-Type = application/json",
+			"add the headers \"Authorization\" = \"Bearer 84e7750a-582f-4ed7-9510-6e181d530686\", \"Content-Type\" = \"application/json\"",
 			addHeaders.String(),
 		)
 	})
@@ -90,9 +90,9 @@ func TestAddHeaderAction(t *testing.T) {
 	t.Run("can be protected from disclosure in logs", func(t *testing.T) {
 		addHeader := action.AddHeader("Authorization", "Bearer 84e7750a-582f-4ed7-9510-6e181d530686").
 			WhichShouldBeKeptSecret()
-		assert.Equal(t, "add the header Authorization = <secret>", addHeader.String())
+		assert.Equal(t, "add the header \"Authorization\" = <secret>", addHeader.String())
 
 		addHeaders := action.AddHeader("Authorization", "Bearer 84e7750a-582f-4ed7-9510-6e181d530686").Secretly()
-		assert.Equal(t, "add the header Authorization = <secret>", addHeaders.String())
+		assert.Equal(t, "add the header \"Authorization\" = <secret>", addHeaders.String())
 	})
 }

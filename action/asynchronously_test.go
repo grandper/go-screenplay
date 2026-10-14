@@ -105,11 +105,11 @@ func TestAsynchronouslyAction(t *testing.T) {
 		assert.ElementsMatch(t, []string{"do task 1", "do task 2"}, recorded())
 	})
 
-	t.Run("cancel on error collects the error", func(t *testing.T) {
+	t.Run("stopping on error collects the error", func(t *testing.T) {
 		reset()
 		adam := screenplay.ActorNamed("Adam")
 
-		require.NoError(t, adam.AttemptsTo(action.Asynchronously(doTask1AndFail).CancelOnError()))
+		require.NoError(t, adam.AttemptsTo(action.Asynchronously(doTask1AndFail).StoppingOnError()))
 
 		errs := asynchronousErrors(t, adam)
 		require.Len(t, errs, 1)
@@ -201,8 +201,8 @@ func TestAsynchronouslyAction(t *testing.T) {
 		)
 		assert.Equal(
 			t,
-			"asynchronously (canceling on error) do task 1, do task 2",
-			action.Asynchronously(doTask1, doTask2).CancelOnError().String(),
+			"asynchronously (stopping on error) do task 1, do task 2",
+			action.Asynchronously(doTask1, doTask2).StoppingOnError().String(),
 		)
 		assert.Equal(
 			t,
@@ -221,7 +221,7 @@ func TestAsynchronouslyAction(t *testing.T) {
 		// The sentence builders add the article once.
 		assert.Equal(
 			t,
-			"remember the asynchronous errors as 'errs'",
+			"remember the asynchronous errors as \"errs\"",
 			action.Remember(action.AsynchronousErrors()).As("errs").String(),
 		)
 	})

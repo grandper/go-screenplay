@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/fixture"
+	"github.com/grandper/go-screenplay/v2/question"
 	"github.com/grandper/go-screenplay/v2/question/data"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -86,7 +87,7 @@ func TestDataOfQuestion(t *testing.T) {
 
 		answer, err := adam.AsksFor(data.Of[int](textMessage))
 
-		require.ErrorIs(t, err, data.ErrFieldHasWrongType)
+		require.ErrorIs(t, err, question.ErrFieldHasWrongType)
 		assert.Zero(t, answer)
 	})
 
@@ -95,7 +96,7 @@ func TestDataOfQuestion(t *testing.T) {
 
 		answer, err := adam.AsksFor(data.Of[any](noData))
 
-		require.ErrorIs(t, err, data.ErrFieldNotFound)
+		require.ErrorIs(t, err, question.ErrFieldNotFound)
 		assert.Nil(t, answer)
 	})
 
@@ -104,7 +105,7 @@ func TestDataOfQuestion(t *testing.T) {
 
 		answer, err := adam.AsksFor(data.Of[any](notAStruct))
 
-		require.ErrorIs(t, err, data.ErrAnswerIsNotAStruct)
+		require.ErrorIs(t, err, question.ErrAnswerIsNotAStruct)
 		assert.Nil(t, answer)
 	})
 
@@ -113,7 +114,7 @@ func TestDataOfQuestion(t *testing.T) {
 
 		answer, err := adam.AsksFor(data.Of[any](nilAnswer))
 
-		require.ErrorIs(t, err, data.ErrAnswerIsNotAStruct)
+		require.ErrorIs(t, err, question.ErrAnswerIsNotAStruct)
 		assert.Nil(t, answer)
 	})
 

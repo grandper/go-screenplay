@@ -541,7 +541,7 @@ underneath. It honors whatever adapters you configured (with none attached it
 stays silent):
 ```go
 err := theActor.AttemptsTo(Log(HowManyBirdsAreInTheSky()))
-err := theActor.AttemptsTo(Log(Number.Of(ItemsInTheList)))
+err := theActor.AttemptsTo(Log(number.Of(ItemsInTheList)))
 ```
 
 ##### Silencing steps with `Silently`
@@ -555,7 +555,7 @@ adapter — and trims the noise of a verbose task:
 err := theActor.AttemptsTo(action.Silently(LogInAs("wanda", secret)))
 // narrated: Adam attempts to silently perform an action
 answer, err := theActor.AsksFor(question.Silently(TheAuthToken()))
-// narrated: Adam asks for a secret
+// narrated: Adam asks for the secret
 ```
 Only that one line is narrated: the wrapped action's own description, the
 wrapped question's description and its answer are never passed to an adapter.
@@ -675,12 +675,12 @@ errs, _ := theActor.AsksFor(AsynchronousErrors()) // errs is a []error
 ```
 Like `Concurrently`, several flavors of execution are available. By default (or
 with an explicit `WaitingForAll`) it waits for every action to complete before
-collecting the errors. Use `CancelOnError` to cancel the remaining actions as soon
+collecting the errors. Use `StoppingOnError` to stop the remaining actions as soon
 as one of them fails (a running action observes it with `actor.Context()`), or
 `IgnoringErrors` to discard the errors altogether:
 ```go
 err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).WaitingForAll())
-err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).CancelOnError())
+err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).StoppingOnError())
 err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).IgnoringErrors())
 ```
 You can also cap the number of actions running at the same time with `WithLimit`:
@@ -737,9 +737,10 @@ theActor.AttemptsTo(
 		Otherwise(GuessTheContentType()),
 )
 ```
-The condition can be either a **boolean expression** (`If`, or its alias `When`) or
-**what the answer to a question happens to be** (`IfThe`, or its alias `WhenThe`) — the
-screenplay-native condition, closed by a verb and one or more resolutions:
+The condition can be either a **boolean expression** (`If`, or `When`) or
+**what the answer to a question happens to be** (`IfThe`, or `WhenThe`) — the
+screenplay-native condition, closed by a verb and one or more resolutions. `When` and
+`WhenThe` behave like `If` and `IfThe` and are narrated with "when":
 ```go
 theActor.AttemptsTo(
 	Conditionally(RetryTheRequest()).
@@ -924,14 +925,14 @@ err := theActor.Should(see.The(Text.OfThe(PageTitle)).Should(match.Pattern(patte
 #### Checking numbers
 You can assess the value of numbers as follows:
 ```go
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.EqualTo(0)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.LessThan(1)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.AtMost(1)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.GreaterThan(1)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.AtLeast(1)))
+err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Should(be.EqualTo(0)))
+err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Should(be.LessThan(1)))
+err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Should(be.AtMost(1)))
+err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Should(be.GreaterThan(1)))
+err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Should(be.AtLeast(1)))
 tolerance := 25.0
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.CloseTo(101, tolerance)))
-err := theActor.Should(see.The(Number.Of(items.InThe(TodoList))).Should(be.Between(1, 5)))
+err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Should(be.CloseTo(101, tolerance)))
+err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Should(be.Between(1, 5)))
 ```
 `be.EqualTo` is exact on the type: a question answering with an `int64` needs
 `be.EqualTo(int64(200))`. Use `be.Zero[T]()` to check that a value equals its zero value
@@ -951,7 +952,7 @@ err := theActor.Should(see.The(items.InThe(TodoList)).Should(be.DeepEqualTo([]st
 err := theActor.Should(see.The(items.InThe(TodoList)).Should(be.Empty[[]string]()))
 err := theActor.Should(see.The(items.InThe(TodoList)).ShouldHave(length.Exactly[[]string](5)))
 err := theActor.Should(see.The(items.InThe(TodoList)).ShouldHave(length.Between[[]string](1, 5)))
-err := theActor.Should(see.The(Text.OfAll(items.InThe(TodoList))).Should(contain.TheItemMatching(pattern)))
+err := theActor.Should(see.The(Text.OfAll(items.InThe(TodoList))).Should(contain.AnItemMatching(pattern)))
 ```
 `contain.Element("...")` is a resolution on a `[]string`: the type of the slice is inferred
 from the element. Use `be.DeepEqualTo` to compare slices, maps and the structs holding them,
@@ -988,32 +989,42 @@ err := theActor.Should(see.The(first.Of(items.InThe(TodoList))).Should(be.EqualT
 err := theActor.Should(see.The(last.Of(items.InThe(TodoList))).Should(be.EqualTo("by the end of the year")))
 ```
 Wrapping a question that does not answer with a slice is a compile-time error. Both fail
-with `ErrAnswerIsEmpty` if the wrapped question answers with an empty slice.
+with `question.ErrAnswerIsEmpty` if the wrapped question answers with an empty slice.
 
-When a question answers with a struct, you may want to assert against one of its fields rather
-than the whole value. The `body`, `data`, and `header` questions wrap another question and answer
-with, respectively, the `Body`, `Data`, and `Header` field of the struct it returns. Go cannot
-express "a struct with a `Body` field" as a constraint, so the type of the field is given as the
-first type argument while the type of the wrapped question is inferred:
+When a question answers with a struct of your own, you may want to assert against one of its
+fields rather than the whole value. The `body`, `data`, and `header` questions wrap another
+question and answer with, respectively, the exported `Body`, `Data`, and `Header` field of the
+struct it returns. Go cannot express "a struct with a `Body` field" as a constraint, so the type
+of the field is given as the first type argument while the type of the wrapped question is
+inferred:
 ```go
-err := theActor.Should(see.The(body.Of[string](TheLastResponse)).Should(be.EqualTo("created")))
-err := theActor.Should(see.The(data.Of[string](last.Of(NATSMessages))).Should(be.EqualTo("payload")))
-err := theActor.Should(see.The(header.Of[string](last.Of(HTTPResponses))).Should(be.EqualTo("application/json")))
-body, err := theActor.AsksFor(body.Of[string](TheLastResponse)) // body is a string
-```
-Use `body.Of[any](...)` when the field may be of any type. They fail with `ErrAnswerIsNotAStruct`
-if the wrapped question does not answer with a struct (or a pointer to one), with
-`ErrFieldNotFound` if the struct has no matching field, and with `ErrFieldHasWrongType` if the
-field is not of the given type.
+type Order struct {
+    Body   string
+    Header string
+}
 
-When a question answers with a slice or a map, you may want to assert against the number of
-elements it contains. The `number` question wraps another question and answers with the count
-of elements in the slice or map it returns:
+err := theActor.Should(see.The(body.Of[string](TheLastOrder)).Should(be.EqualTo("two chairs")))
+err := theActor.Should(see.The(header.Of[string](TheLastOrder)).Should(be.EqualTo("urgent")))
+err := theActor.Should(see.The(data.Of[string](last.Of(NATSMessages))).Should(be.EqualTo("payload")))
+body, err := theActor.AsksFor(body.Of[string](TheLastOrder)) // body is a string
+```
+These questions read the fields of your own structs. The responses of the HTTP extension keep
+their fields unexported: read them with their getters (`Body()`, `Headers()`) and
+`status.CodeOf`, as described in the [HTTP extension](extensions/http/README.md).
+
+Use `body.Of[any](...)` when the field may be of any type. They fail with
+`question.ErrAnswerIsNotAStruct` if the wrapped question does not answer with a struct (or a
+pointer to one), with `question.ErrFieldNotFound` if the struct has no matching field, and with
+`question.ErrFieldHasWrongType` if the field is not of the given type.
+
+When a question answers with a slice, an array or a map, you may want to assert against the
+number of elements it contains. The `number` question wraps another question and answers with the
+count of elements in the slice, array or map it returns:
 ```go
 err := theActor.Should(see.The(number.Of(items.InThe(TodoList))).Should(be.EqualTo(2)))
 ```
 It answers with an `int` and fails with `ErrAnswerIsNotACollection` if the wrapped question does
-not answer with a slice or a map.
+not answer with a slice, an array or a map.
 
 #### Mistakes in a test never panic
 A sentence or a resolution can be written wrongly: a verb without a resolution, a pattern
@@ -1132,7 +1143,7 @@ it is always safe to call.
 
 ##### Context propagation and cancellation
 The actor's context is how cancellation and deadlines are propagated to the
-actions it performs. Give the actor a cancellable context (for example one derived
+actions it performs. Give the actor a cancelable context (for example one derived
 from `context.WithTimeout` or `context.WithCancel`, or the one provided by your
 test framework), and every action can observe it through `actor.Context()`:
 ```go
@@ -1143,7 +1154,7 @@ actor := screenplay.ActorNamed("Alice").WithContext(ctx)
 Actions are expected to respect this context. If an action does long-running work
 (a network call, a loop, polling, ...), it should check
 `actor.Context().Done()` periodically and stop early when the context is
-cancelled, returning `actor.Context().Err()`:
+canceled, returning `actor.Context().Err()`:
 ```go
 func (a *MyAction) PerformAs(actor *screenplay.Actor) error {
     for _, item := range a.items {
@@ -1164,8 +1175,8 @@ func (a *MyAction) PerformAs(actor *screenplay.Actor) error {
 Any operation that already accepts a `context.Context` (HTTP requests, database
 queries, ...) should be handed `actor.Context()` so that cancellation flows all
 the way down. This matters in particular for `Concurrently` with
-`StoppingOnError` and for `Asynchronously` with `CancelOnError`: the remaining
-actions are cancelled through the context, so they only actually stop if they are
+`StoppingOnError` and for `Asynchronously` with `StoppingOnError`: the remaining
+actions are canceled through the context, so they only actually stop if they are
 watching it.
 
 ## Using Gherkin-like syntax to write tests
@@ -1236,9 +1247,11 @@ checked when the action is performed: a value that is not a question fails with
 The quickest way to create a question is `question.FromFunc`. It wraps a plain
 function of type `func(theActor *screenplay.Actor) (T, error)` into a `Question[T]`,
 using the `description` you provide as the result of its `String` method. The answer
-type is inferred from the function:
+type is inferred from the function. Describe a question without its article:
+`see.The`, `AsksFor`, `Log` and `Remember` add "the" themselves, so the description
+"status code" is narrated "the status code":
 ```go
-theAnswer := question.FromFunc("the answer", func(theActor *screenplay.Actor) (int, error) {
+theAnswer := question.FromFunc("answer", func(theActor *screenplay.Actor) (int, error) {
     return 42, nil
 })
 answer, err := adam.AsksFor(theAnswer) // answer is an int
@@ -1252,7 +1265,7 @@ method and let the compiler check it implements the interface:
 type StatusCodeQuestion struct{}
 
 func (q *StatusCodeQuestion) AnsweredBy(actor *screenplay.Actor) (int, error) { ... }
-func (q *StatusCodeQuestion) String() string                                 { return "the status code" }
+func (q *StatusCodeQuestion) String() string                                 { return "status code" }
 
 var _ screenplay.Question[int] = (*StatusCodeQuestion)(nil)
 ```
@@ -1423,7 +1436,7 @@ err = anActor.Should(see.The(standard.OutputOf(last.Of(question.Responses()))).S
 ```
 Highlights: the `RunTheCommand` action (with `.InTheWorkingDirectory` and
 `.Interactively`), the `Type` action, and the `EnvironmentVariableNamed`,
-`errorcode.Of`, `standard.OutputOf`, and `standard.ErrorOf` questions.
+`exitcode.Of`, `standard.OutputOf`, and `standard.ErrorOf` questions.
 
 ### Filesystem — [`extensions/filesystem`](extensions/filesystem/README.md)
 Drives the file system. Give an actor the `UseTheFileSystem()` ability, then

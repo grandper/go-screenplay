@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/fixture"
+	"github.com/grandper/go-screenplay/v2/question"
 	"github.com/grandper/go-screenplay/v2/question/first"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -58,6 +59,7 @@ func TestFirstOfQuestion(t *testing.T) {
 		answer, err := adam.AsksFor(first.Of(emptyList))
 
 		require.ErrorIs(t, err, first.ErrAnswerIsEmpty)
+		require.ErrorIs(t, err, question.ErrAnswerIsEmpty)
 		assert.Empty(t, answer)
 	})
 

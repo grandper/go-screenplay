@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/grandper/go-screenplay/v2/internal/verdict"
+
 	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -87,13 +89,13 @@ func (a *AddHeadersAction) logHeaders() string {
 	headers := make([]string, 0, len(a.headers))
 	if a.secret {
 		for header := range a.headers {
-			headers = append(headers, header+" = <secret>")
+			headers = append(headers, verdict.Describe(header)+" = <secret>")
 		}
 		slices.Sort(headers)
 		return strings.Join(headers, ", ")
 	}
 	for header, value := range a.headers {
-		headers = append(headers, fmt.Sprintf("%s = %s", header, value))
+		headers = append(headers, fmt.Sprintf("%s = %s", verdict.Describe(header), verdict.Describe(value)))
 	}
 	slices.Sort(headers)
 	return strings.Join(headers, ", ")

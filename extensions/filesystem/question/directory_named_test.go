@@ -48,7 +48,7 @@ func TestDirectoryNamedQuestion(t *testing.T) {
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		directoryNamedFoobar := question.DirectoryNamed("foobar")
-		assert.Equal(t, "directory named 'foobar'", directoryNamedFoobar.String())
+		assert.Equal(t, "directory named \"foobar\"", directoryNamedFoobar.String())
 	})
 
 	t.Run("implements the question interface", func(t *testing.T) {

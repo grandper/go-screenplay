@@ -12,16 +12,24 @@ The symbols shown below live in the extension's sub-packages:
 | `ability` | `github.com/grandper/go-screenplay/v2/extensions/cli/ability` | `RunCLICommands`, `Command`, `Result` |
 | `action` | `github.com/grandper/go-screenplay/v2/extensions/cli/action` | `RunTheCommand`, `Type` |
 | `question` | `github.com/grandper/go-screenplay/v2/extensions/cli/question` | `EnvironmentVariableNamed`, `Responses` |
-| `errorcode` | `github.com/grandper/go-screenplay/v2/extensions/cli/question/errorcode` | `Of` |
+| `exitcode` | `github.com/grandper/go-screenplay/v2/extensions/cli/question/exitcode` | `Of` |
 | `standard` | `github.com/grandper/go-screenplay/v2/extensions/cli/question/standard` | `OutputOf`, `ErrorOf` |
 
 Assertions are written with the core screenplay packages (`action/see`,
 `resolution/be`, `resolution/contain`, `resolution/length`, `question/last`, ...).
 For readability the examples below drop the package qualifiers on the extension
 constructors; import the packages above and qualify them as `action.RunTheCommand(...)`,
-`ability.RunCLICommands()`, and so on (note that the extension's `action`/`question`
-packages share their name with the core ones, so you may need an import alias when you
-use both in the same file).
+`ability.RunCLICommands()`, and so on. The extension's `action`/`question` packages share
+their name with the core ones: when a file uses both, keep the core name and alias the
+extension package with the `cli` prefix:
+```go
+import (
+	"github.com/grandper/go-screenplay/v2/action"
+	cliaction "github.com/grandper/go-screenplay/v2/extensions/cli/action"
+)
+
+err := anActor.AttemptsTo(action.Eventually(cliaction.RunTheCommand("ls")))
+```
 
 ## The ability
 This extension introduces a single ability: running CLI commands. Give it to an actor
@@ -35,7 +43,7 @@ about them.
 An action or a question uses the ability in one chained statement, written in
 `PerformAs` or `AnsweredBy`, never in a test:
 ```go
-err := screenplay.UseAnAbilityOf(theActor).That(RunCLICommands()).Run(theActor.Context(), cmd)
+err := screenplay.UseAnAbilityOf(theActor).That(RunCLICommands()).ToRun(theActor.Context(), cmd)
 ```
 The argument of `That` carries the type; `That` returns the actor's own instance,
 or a nil pointer when the actor cannot run CLI commands, and the operation then
@@ -89,17 +97,17 @@ err := anActor.Should(see.The(EnvironmentVariableNamed("PATH")).Should(be.EqualT
 ### The responses
 `Responses()` answers with every `*ability.Result` recorded so far, in the order the
 commands were run. Because it answers with a slice, it composes with the core
-`first`/`last`/`number` questions, and with the `errorcode` and `standard` questions
+`first`/`last`/`number` questions, and with the `exitcode` and `standard` questions
 below to extract a specific field from a single response:
 ```go
 err := anActor.Should(see.The(Responses()).ShouldHave(length.Exactly[[]*ability.Result](2)))
 ```
 
 ### The exit code
-`errorcode.Of` wraps a question that answers with a `*Result` and answers with its
+`exitcode.Of` wraps a question that answers with a `*Result` and answers with its
 exit code (`0` means success):
 ```go
-err := anActor.Should(see.The(errorcode.Of(last.Of(Responses()))).Should(be.EqualTo(0)))
+err := anActor.Should(see.The(exitcode.Of(last.Of(Responses()))).Should(be.EqualTo(0)))
 ```
 
 ### The standard output

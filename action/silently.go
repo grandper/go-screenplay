@@ -18,7 +18,7 @@ import (
 //
 // A production configured with screenplay.WithForceAllNarration neutralizes
 // this decorator, so a scenario can be debugged with every step narrated again.
-func Silently(performable screenplay.Performable) screenplay.Performable {
+func Silently(performable screenplay.Performable) *SilentlyAction {
 	return &SilentlyAction{
 		performable: performable,
 	}

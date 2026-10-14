@@ -1,7 +1,7 @@
 package ability
 
-// SuccessStatusCode is the status code when the command returned successfully.
-const SuccessStatusCode = 0
+// SuccessExitCode is the exit code of a command that returned successfully.
+const SuccessExitCode = 0
 
 // Result contains the execution result.
 type Result struct {

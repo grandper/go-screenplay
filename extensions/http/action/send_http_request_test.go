@@ -138,12 +138,12 @@ func TestSendHTTPRequestAction(t *testing.T) {
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		sendRequest := action.SendHTTPRequest(http.MethodGet).To("https://www.google.com")
-		assert.Equal(t, "send a GET request to https://www.google.com", sendRequest.String())
+		assert.Equal(t, "send a GET request to \"https://www.google.com\"", sendRequest.String())
 
 		sendRequest = action.SendHTTPRequest(http.MethodPost).
 			To("https://www.google.com").
 			WithBody(strings.NewReader("hello world"))
-		assert.Equal(t, "send a POST request to https://www.google.com with body 'hello world'", sendRequest.String())
+		assert.Equal(t, "send a POST request to \"https://www.google.com\" with body \"hello world\"", sendRequest.String())
 	})
 
 	t.Run("can send request secretly", func(t *testing.T) {

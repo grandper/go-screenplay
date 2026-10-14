@@ -1,6 +1,7 @@
 package action_test
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -92,10 +93,17 @@ func TestCreate(t *testing.T) {
 		t.Run("implements the stringer interface", func(t *testing.T) {
 			filename := fixture.CreateFilename(t)
 			action1 := action.Create().TheFile(filename)
-			assert.Equal(t, "create the file "+filename, action1.String())
+			assert.Equal(t, fmt.Sprintf("create the file %q", filename), action1.String())
 
 			action2 := action.Create().TheTemporaryFile(filename)
-			assert.Equal(t, "create the temporary file "+filename, action2.String())
+			assert.Equal(t, fmt.Sprintf("create the temporary file %q", filename), action2.String())
+
+			assert.Equal(t, `create the file "notes.txt" containing the text "x"`,
+				action.Create().TheFile("notes.txt").ContainingTheText("x").String())
+			assert.Equal(t, `create the file "notes.txt" containing the bytes "x"`,
+				action.Create().TheFile("notes.txt").ContainingBytes([]byte("x")).String())
+			assert.Equal(t, `create the file "notes.txt" containing the content "x"`,
+				action.Create().TheFile("notes.txt").Containing(strings.NewReader("x")).String())
 		})
 	})
 
@@ -158,10 +166,10 @@ func TestCreate(t *testing.T) {
 		t.Run("implements the stringer interface", func(t *testing.T) {
 			dir := fixture.CreateDirectoryName(t)
 			action1 := action.Create().TheDirectory(dir)
-			assert.Equal(t, "create the directory "+dir, action1.String())
+			assert.Equal(t, fmt.Sprintf("create the directory %q", dir), action1.String())
 
 			action2 := action.Create().TheTemporaryDirectory(dir)
-			assert.Equal(t, "create the temporary directory "+dir, action2.String())
+			assert.Equal(t, fmt.Sprintf("create the temporary directory %q", dir), action2.String())
 		})
 	})
 

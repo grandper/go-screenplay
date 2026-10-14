@@ -58,14 +58,14 @@ func (a *EventuallyAction) PerformAs(theActor *screenplay.Actor) error {
 
 	if window.Interval <= 0 || window.Total <= 0 {
 		return fmt.Errorf(
-			"failed to eventually performed the action: %w",
+			"failed to eventually perform the action: %w",
 			ErrPollingPeriodAndTimeoutMustBePositive,
 		)
 	}
 
 	if !window.Valid() {
 		return fmt.Errorf(
-			"failed to eventually performed the action: %w",
+			"failed to eventually perform the action: %w",
 			ErrPollingPeriodMustBeLessThanOrEqualToTimeout,
 		)
 	}

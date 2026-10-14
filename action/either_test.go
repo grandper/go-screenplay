@@ -123,13 +123,13 @@ func TestEitherAction(t *testing.T) {
 
 	t.Run("returns an error when no action is provided", func(t *testing.T) {
 		reset()
-		require.Error(t, adam.AttemptsTo(action.Either().Or(doTheAlternativeOfTask1AndFail)))
+		require.ErrorIs(t, adam.AttemptsTo(action.Either().Or(doTheAlternativeOfTask1AndFail)), action.ErrNoPerformableProvided)
 		assert.Equal(t, []string{}, record)
 	})
 
 	t.Run("returns an error when no alternative action is provided", func(t *testing.T) {
 		reset()
-		require.Error(t, adam.AttemptsTo(action.Either(doTask1).Or()))
+		require.ErrorIs(t, adam.AttemptsTo(action.Either(doTask1).Or()), action.ErrNoAlternateProvided)
 		assert.Equal(t, []string{}, record)
 	})
 

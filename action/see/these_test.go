@@ -79,7 +79,7 @@ func TestThese(t *testing.T) {
 		t.Run("implements the stringer interface", func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t,
-				"see that all of these terms are met",
+				"see all of these met",
 				see.AllOfTheseMet(
 					term.That(statusCode).Should(be.EqualTo(200)),
 					term.That(logs).Should(contain.Substring("order placed")),
@@ -139,7 +139,7 @@ func TestThese(t *testing.T) {
 				term.That(missingLogs).Should(contain.Substring("order placed")),
 			))
 
-			require.EqualError(t, err, "Adam failed to see that at least one of these terms was met:\n"+
+			require.EqualError(t, err, "Adam failed to see at least one of these met:\n"+
 				"- the status code should be equal to 404: got 200\n"+
 				"- the logs should contain substring \"order placed\": failed to read the logs")
 			require.ErrorIs(t, err, errNoLogs)
@@ -153,7 +153,7 @@ func TestThese(t *testing.T) {
 		t.Run("implements the stringer interface", func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t,
-				"see that at least one of these terms is met",
+				"see at least one of these met",
 				see.AtLeastOneOfTheseMet(
 					term.That(statusCode).Should(be.EqualTo(404)),
 					term.That(logs).Should(contain.Substring("order placed")),
@@ -208,7 +208,7 @@ func TestThese(t *testing.T) {
 				term.That(logs).Should(contain.Substring("order placed")),
 			))
 
-			require.EqualError(t, err, `Adam failed to see that none of these terms was met: `+
+			require.EqualError(t, err, `Adam failed to see none of these met: `+
 				`"the logs should contain substring "order placed"" is met: got "order placed"`)
 		})
 
@@ -223,7 +223,7 @@ func TestThese(t *testing.T) {
 		t.Run("implements the stringer interface", func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t,
-				"see that none of these terms is met",
+				"see none of these met",
 				see.NoneOfTheseMet(
 					term.That(statusCode).Should(be.EqualTo(500)),
 					term.That(logs).Should(contain.Substring("panic")),
@@ -269,7 +269,7 @@ func TestThese(t *testing.T) {
 				see.ThatAllOfThe(helloAdam, missingWidget).Should(contain.Substring("hello"))), errNoWidget)
 
 			assert.Equal(t,
-				"see that all of these terms are met",
+				"see that all of the profile widget, login form should contain substring \"hello\"",
 				see.ThatAllOfThe(helloAdam, helloEve).Should(contain.Substring("hello")).String(),
 			)
 		})
@@ -285,7 +285,7 @@ func TestThese(t *testing.T) {
 				see.ThatAnyOfThe(helloAdam, helloEve).Should(contain.Substring("goodbye"))))
 
 			assert.Equal(t,
-				"see that at least one of these terms is met",
+				"see that any of the profile widget, login form should contain substring \"goodbye\"",
 				see.ThatAnyOfThe(helloAdam, goodbyeEve).Should(contain.Substring("goodbye")).String(),
 			)
 		})
@@ -301,7 +301,7 @@ func TestThese(t *testing.T) {
 				see.ThatNoneOfThe(helloAdam, missingWidget).Should(contain.Substring("error"))), errNoWidget)
 
 			assert.Equal(t,
-				"see that none of these terms is met",
+				"see that none of the profile widget, login form should contain substring \"error\"",
 				see.ThatNoneOfThe(helloAdam, helloEve).Should(contain.Substring("error")).String(),
 			)
 		})
@@ -346,10 +346,10 @@ func TestThese(t *testing.T) {
 			t.Parallel()
 
 			expected := []string{
-				"Adam attempts to see that all of these terms are met",
+				"Adam attempts to see all of these met",
 				"Adam attempts to see that the status code should be equal to 200",
 				`Adam attempts to see that the logs should contain substring "order placed"`,
-				"Adam attempts to see that all of these terms are met",
+				"Adam attempts to see all of these met",
 			}
 
 			assert.Equal(t, expected, narrated(see.AllOfTheseMet(
@@ -362,10 +362,10 @@ func TestThese(t *testing.T) {
 			t.Parallel()
 
 			expected := []string{
-				"Adam attempts to see that none of these terms is met",
+				"Adam attempts to see none of these met",
 				`Adam attempts to see that "the status code should be equal to 500" is not met`,
 				`Adam attempts to see that "the logs should contain substring "panic"" is not met`,
-				"Adam attempts to see that none of these terms is met",
+				"Adam attempts to see none of these met",
 			}
 
 			assert.Equal(t, expected, narrated(see.NoneOfTheseMet(
@@ -378,10 +378,10 @@ func TestThese(t *testing.T) {
 			t.Parallel()
 
 			expected := []string{
-				"Adam attempts to see that none of these terms is met",
+				`Adam attempts to see that none of the profile widget, login form should contain substring "error"`,
 				`Adam attempts to see that "the profile widget should contain substring "error"" is not met`,
 				`Adam attempts to see that "the login form should contain substring "error"" is not met`,
-				"Adam attempts to see that none of these terms is met",
+				`Adam attempts to see that none of the profile widget, login form should contain substring "error"`,
 			}
 
 			assert.Equal(t, expected, narrated(
@@ -392,10 +392,10 @@ func TestThese(t *testing.T) {
 			t.Parallel()
 
 			expected := []string{
-				"Adam attempts to see that all of these terms are met",
+				`Adam attempts to see that all of the profile widget, login form should contain substring "hello"`,
 				`Adam attempts to see that the profile widget should contain substring "hello"`,
 				`Adam attempts to see that the login form should contain substring "hello"`,
-				"Adam attempts to see that all of these terms are met",
+				`Adam attempts to see that all of the profile widget, login form should contain substring "hello"`,
 			}
 
 			assert.Equal(t, expected, narrated(

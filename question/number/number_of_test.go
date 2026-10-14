@@ -46,6 +46,16 @@ func TestNumberOfQuestion(t *testing.T) {
 		assert.Equal(t, 3, answer)
 	})
 
+	t.Run("returns the number of elements in an array", func(t *testing.T) {
+		t.Parallel()
+
+		weekdays := fixture.NewFakeQuestion("weekdays", [7]string{"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"})
+		answer, err := adam.AsksFor(number.Of(weekdays))
+
+		require.NoError(t, err)
+		assert.Equal(t, 7, answer)
+	})
+
 	t.Run("returns the number of entries in a map", func(t *testing.T) {
 		t.Parallel()
 
@@ -73,7 +83,7 @@ func TestNumberOfQuestion(t *testing.T) {
 		assert.Equal(t, 0, answer)
 	})
 
-	t.Run("fails when the answer is not a slice or a map", func(t *testing.T) {
+	t.Run("fails when the answer is not a slice, an array or a map", func(t *testing.T) {
 		t.Parallel()
 
 		answer, err := adam.AsksFor(number.Of(notACollection))

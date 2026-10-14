@@ -38,6 +38,6 @@ func TestRememberAction(t *testing.T) {
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		action1 := action.Remember(statusCode).As("statusCode")
-		assert.Equal(t, "remember the status code as 'statusCode'", action1.String())
+		assert.Equal(t, "remember the status code as \"statusCode\"", action1.String())
 	})
 }

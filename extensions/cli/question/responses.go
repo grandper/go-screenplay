@@ -6,7 +6,7 @@ import (
 )
 
 // Responses asks about all the responses recorded so far.
-func Responses() screenplay.Question[[]*ability.Result] {
+func Responses() *ResponsesQuestion {
 	return &ResponsesQuestion{}
 }
 
@@ -15,12 +15,12 @@ type ResponsesQuestion struct{}
 
 // String describes the question.
 func (q *ResponsesQuestion) String() string {
-	return "responses"
+	return "command results"
 }
 
 // AnsweredBy returns the answer that an actor provided to the question.
 func (q *ResponsesQuestion) AnsweredBy(theActor *screenplay.Actor) ([]*ability.Result, error) {
-	return screenplay.UseAnAbilityOf(theActor).That(ability.RunCLICommands()).Responses()
+	return screenplay.UseAnAbilityOf(theActor).That(ability.RunCLICommands()).ToRetrieveResponses()
 }
 
 // ResponsesQuestion implements the screenplay.Question interface.
