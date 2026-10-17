@@ -471,8 +471,9 @@ describes itself in the infinitive, so that it reads after any of them: "send a 
 to /birds", "see that the status code should be equal to 200".
 
 Narration is **backend independent**: the library does not force a logging
-library on you. It exposes a small `screenplay.Adapter` interface and ships two
-reference adapters — one over the standard `log` package and one over `log/slog`.
+library on you. It exposes a small `screenplay.Adapter` interface and ships three
+reference adapters — one over the standard `log` package, one over `log/slog`, and
+one that writes to a file.
 
 By default **nothing is narrated**: an actor with no adapter attached behaves
 exactly as it does without narration, so this feature is entirely opt-in.
@@ -518,10 +519,63 @@ kind, depth and error as attributes:
 logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 narrator := screenplay.NewNarrator(slogadapter.New(logger))
 ```
+The file adapter writes the same indented tree as the `log` adapter to a file.
+`fileadapter.New` opens the file right away, so it returns an error when the file
+cannot be opened, and `Close` closes it:
+```go
+import "github.com/grandper/go-screenplay/v2/narrator/fileadapter"
+
+adapter, err := fileadapter.New("narration.log")
+if err != nil {
+    t.Fatal(err)
+}
+t.Cleanup(func() { _ = adapter.Close() })
+
+narrator := screenplay.NewNarrator(adapter)
+```
+By default the file is overwritten, so it holds only the latest run. Pass
+`fileadapter.WithAppending()` to keep the earlier runs and add the narration at
+the end, and `fileadapter.WithTimestamps()` to prefix each line with the date and
+time:
+```go
+adapter, err := fileadapter.New(
+    "narration.log",
+    fileadapter.WithAppending(),
+    fileadapter.WithTimestamps(),
+)
+// narration.log keeps the earlier runs and receives:
+// 2026/10/17 09:12:03 Wanda attempts to request the list of birds
+// 2026/10/17 09:12:03     Wanda attempts to send a GET request to /birds
+```
+`fileadapter.WithOverwriting()` states the default explicitly. Passing it together
+with `WithAppending()` is a mistake: `New` opens nothing and returns an error
+wrapping `fileadapter.ErrConflictingOptions`:
+```go
+adapter, err := fileadapter.New(
+    "narration.log",
+    fileadapter.WithOverwriting(),
+    fileadapter.WithAppending(),
+)
+// err: conflicting options: overwriting and appending to narration.log
+```
+An error met while writing the narration is kept, and `Close` returns the first
+one.
+
 You can attach several adapters at once; every event is delivered to each of them:
 ```go
 narrator := screenplay.NewNarrator(logadapter.New(log.Default()))
 narrator.AttachAdapter(slogadapter.New(slog.Default()))
+```
+So to print the narrative and save it to a file at the same time, give the
+narrator both adapters:
+```go
+adapter, err := fileadapter.New("narration.log")
+if err != nil {
+    t.Fatal(err)
+}
+t.Cleanup(func() { _ = adapter.Close() })
+
+narrator := screenplay.NewNarrator(logadapter.New(log.Default()), adapter)
 ```
 
 ##### Writing a custom adapter
