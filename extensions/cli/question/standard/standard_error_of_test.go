@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
-	"github.com/grandper/go-screenplay/v2/extensions/cli/action"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/action/run"
 	"github.com/grandper/go-screenplay/v2/extensions/cli/question"
 	"github.com/grandper/go-screenplay/v2/extensions/cli/question/standard"
 	"github.com/grandper/go-screenplay/v2/fixture"
@@ -19,7 +19,7 @@ import (
 func TestErrorOfQuestion(t *testing.T) {
 	t.Run("returns the standard error of a result", func(t *testing.T) {
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
-		require.NoError(t, theActor.AttemptsTo(action.RunTheCommand("echo", "Hello World")))
+		require.NoError(t, theActor.AttemptsTo(run.TheCommand("echo", "Hello World")))
 
 		answer, err := standard.ErrorOf(last.Of(question.Responses())).AnsweredBy(theActor)
 

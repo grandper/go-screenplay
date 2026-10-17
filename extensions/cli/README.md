@@ -10,25 +10,28 @@ The symbols shown below live in the extension's sub-packages:
 | Package | Import path | Provides |
 |---------|-------------|----------|
 | `ability` | `github.com/grandper/go-screenplay/v2/extensions/cli/ability` | `RunCLICommands`, `Command`, `Result` |
-| `action` | `github.com/grandper/go-screenplay/v2/extensions/cli/action` | `RunTheCommand`, `Type` |
+| `action` | `github.com/grandper/go-screenplay/v2/extensions/cli/action` | `ErrEmptyCommandName` |
+| `run` | `github.com/grandper/go-screenplay/v2/extensions/cli/action/run` | `TheCommand` |
+| `enter` | `github.com/grandper/go-screenplay/v2/extensions/cli/action/enter` | `TheText` |
 | `question` | `github.com/grandper/go-screenplay/v2/extensions/cli/question` | `EnvironmentVariableNamed`, `Responses` |
 | `exitcode` | `github.com/grandper/go-screenplay/v2/extensions/cli/question/exitcode` | `Of` |
 | `standard` | `github.com/grandper/go-screenplay/v2/extensions/cli/question/standard` | `OutputOf`, `ErrorOf` |
 
 Assertions are written with the core screenplay packages (`action/see`,
 `resolution/be`, `resolution/contain`, `resolution/length`, `question/last`, ...).
-For readability the examples below drop the package qualifiers on the extension
-constructors; import the packages above and qualify them as `action.RunTheCommand(...)`,
-`ability.RunCLICommands()`, and so on. The extension's `action`/`question` packages share
-their name with the core ones: when a file uses both, keep the core name and alias the
+The actions are written with their package, which is their verb: `run.TheCommand(...)`
+reads "run the command". For readability the examples below drop the package
+qualifiers on the other extension constructors; import the packages above and qualify
+them as `ability.RunCLICommands()`, and so on. The extension's `question` package shares
+its name with the core one: when a file uses both, keep the core name and alias the
 extension package with the `cli` prefix:
 ```go
 import (
-	"github.com/grandper/go-screenplay/v2/action"
-	cliaction "github.com/grandper/go-screenplay/v2/extensions/cli/action"
+	"github.com/grandper/go-screenplay/v2/action/keep"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/action/run"
 )
 
-err := anActor.AttemptsTo(action.Eventually(cliaction.RunTheCommand("ls")))
+err := anActor.AttemptsTo(keep.TryingTo(run.TheCommand("ls")))
 ```
 
 ## The ability
@@ -52,38 +55,40 @@ reports `screenplay.ErrActorMissingAbility`.
 ## Actions
 
 ### Running a command
-Run a command with `RunTheCommand`, passing the program name and its arguments:
+Run a command with `run.TheCommand`, passing the program name and its arguments:
 ```go
-err := anActor.AttemptsTo(RunTheCommand("echo", "Hello World"))
+err := anActor.AttemptsTo(run.TheCommand("echo", "Hello World"))
+// Boby attempts to run the command "echo Hello World"
 ```
 Run it in a specific working directory:
 ```go
-err := anActor.AttemptsTo(RunTheCommand("ls").InTheWorkingDirectory("/home/boby"))
+err := anActor.AttemptsTo(run.TheCommand("ls").InTheWorkingDirectory("/home/boby"))
 ```
 Pass environment variables, added to the environment the test inherits, one at
 a time or as a map. A variable named like an inherited one overrides it:
 ```go
-err := anActor.AttemptsTo(RunTheCommand("printenv", "TOKEN").WithEnvVar("TOKEN", "s3cret"))
-err := anActor.AttemptsTo(RunTheCommand("printenv").WithEnv(map[string]string{
+err := anActor.AttemptsTo(run.TheCommand("printenv", "TOKEN").WithEnvVar("TOKEN", "s3cret"))
+err := anActor.AttemptsTo(run.TheCommand("printenv").WithEnv(map[string]string{
     "TOKEN": "s3cret",
     "DEBUG": "1",
 }))
 ```
-Run a command interactively so you can feed it input with the `Type` action:
+Run a command interactively so you can feed it input with the `enter.TheText` action:
 ```go
-err := anActor.AttemptsTo(RunTheCommand("isprime").Interactively())
+err := anActor.AttemptsTo(run.TheCommand("isprime").Interactively())
 ```
 
-### Typing input to a command
-Type input to a command started with `Interactively`. `Type` formats its argument
+### Entering input to a command
+Enter input to a command started with `Interactively`. `enter.TheText` formats its argument
 with `fmt.Sprintf`-style formatting:
 ```go
-err := anActor.AttemptsTo(Type("42"))
-err := anActor.AttemptsTo(Type("%s %s", "Hello", "World"))
+err := anActor.AttemptsTo(enter.TheText("42"))
+err := anActor.AttemptsTo(enter.TheText("%s %s", "Hello", "World"))
 ```
 Simulate pressing the Enter key after the input with `AndPressEnter`:
 ```go
-err := anActor.AttemptsTo(Type("42").AndPressEnter())
+err := anActor.AttemptsTo(enter.TheText("42").AndPressEnter())
+// Boby attempts to enter the text "42" and press enter
 ```
 
 ## Questions

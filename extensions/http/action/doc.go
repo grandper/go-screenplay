@@ -1,7 +1,14 @@
-// Package action holds the actions to drive REST APIs: sending requests and setting their headers.
+// Package action holds the errors of the actions that drive REST APIs. The
+// actions live in packages named after their verb:
+//
+//	send.GetRequest().To(url)                    extensions/http/action/send
+//	add.TheHeader("Accept", "application/json")  extensions/http/action/add
+//	set.TheHeader("Accept", "application/json")  extensions/http/action/set
+//
+// For example:
 //
 //	err := anActor.AttemptsTo(
-//		action.AddHeader("Accept", "application/json"),
-//		action.SendGetRequest().To("https://api.example.com/birds"),
+//		add.TheHeader("Accept", "application/json"),
+//		send.GetRequest().To("https://api.example.com/birds"),
 //	)
 package action

@@ -85,7 +85,7 @@ func (mhr *MakeHTTPRequestsAbility) checkRedirect(request *http.Request, via []*
 
 // MakeHTTPRequestsAbility is the ability to make HTTP requests.
 // It is safe for concurrent use: actions running in parallel (see
-// action.Concurrently) can add headers and send requests without racing.
+// proceed.ConcurrentlyTo) can add headers and send requests without racing.
 // Requests are sent through the ability's own client, never the process-wide
 // http.DefaultClient, and carry the actor's context so that a deadline or a
 // cancellation set on the actor stops a request in flight.

@@ -13,8 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/action"
+	"github.com/grandper/go-screenplay/v2/action/proceed"
 	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
-	httpaction "github.com/grandper/go-screenplay/v2/extensions/http/action"
+	"github.com/grandper/go-screenplay/v2/extensions/http/action/add"
+	"github.com/grandper/go-screenplay/v2/extensions/http/action/send"
 	"github.com/grandper/go-screenplay/v2/extensions/http/question"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -156,12 +158,12 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
 
-		err := adam.AttemptsTo(action.Concurrently(
-			httpaction.SendGetRequest().To(server.URL+"/orders"),
-			httpaction.AddHeader("Authorization", "Bearer tok-123"),
-			httpaction.SendGetRequest().To(server.URL+"/invoices"),
-			httpaction.AddHeader("Accept", "application/json"),
-			httpaction.SendGetRequest().To(server.URL+"/customers"),
+		err := adam.AttemptsTo(proceed.ConcurrentlyTo(
+			send.GetRequest().To(server.URL+"/orders"),
+			add.TheHeader("Authorization", "Bearer tok-123"),
+			send.GetRequest().To(server.URL+"/invoices"),
+			add.TheHeader("Accept", "application/json"),
+			send.GetRequest().To(server.URL+"/customers"),
 			action.FromFunc("read the responses", func(theActor *screenplay.Actor) error {
 				_, err := theActor.AsksFor(question.Responses())
 				return err
@@ -198,7 +200,7 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests()).WithContext(ctx)
 
 		start := time.Now()
-		err := adam.AttemptsTo(httpaction.SendGetRequest().To(server.URL))
+		err := adam.AttemptsTo(send.GetRequest().To(server.URL))
 		require.ErrorIs(t, err, context.DeadlineExceeded)
 		assert.Less(t, time.Since(start), 5*time.Second)
 	})
@@ -228,9 +230,9 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
 		require.NoError(t, adam.AttemptsTo(
-			httpaction.AddHeader("X-Api-Key", "secret-key"),
-			httpaction.SendGetRequest().To(server.URL+"/to-other-host"),
-			httpaction.SendGetRequest().To(server.URL+"/to-same-host"),
+			add.TheHeader("X-Api-Key", "secret-key"),
+			send.GetRequest().To(server.URL+"/to-other-host"),
+			send.GetRequest().To(server.URL+"/to-same-host"),
 		))
 
 		assert.Empty(t, otherHostHeader.Get("X-Api-Key"), "the session header must not reach another host")
@@ -245,7 +247,7 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		defer server.Close()
 
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
-		err := adam.AttemptsTo(httpaction.SendGetRequest().To(server.URL))
+		err := adam.AttemptsTo(send.GetRequest().To(server.URL))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "stopped after 10 redirects")
 	})
@@ -260,7 +262,7 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		defer server.Close()
 
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests().WithAtMost(3).Redirects())
-		err := adam.AttemptsTo(httpaction.SendGetRequest().To(server.URL))
+		err := adam.AttemptsTo(send.GetRequest().To(server.URL))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "stopped after 3 redirects")
 		assert.Equal(t, 3, redirects, "three requests reach the server before the limit stops the chain")
@@ -274,7 +276,7 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		defer server.Close()
 
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests().WithAtMost(0).Redirects())
-		err := adam.AttemptsTo(httpaction.SendGetRequest().To(server.URL))
+		err := adam.AttemptsTo(send.GetRequest().To(server.URL))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "stopped after 0 redirects")
 	})
@@ -293,7 +295,7 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		)
 
 		start := time.Now()
-		err := adam.AttemptsTo(httpaction.SendGetRequest().To(server.URL))
+		err := adam.AttemptsTo(send.GetRequest().To(server.URL))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Client.Timeout exceeded")
 		assert.Less(t, time.Since(start), 5*time.Second)
@@ -309,7 +311,7 @@ func TestMakeHTTPRequestsAbility(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam").WhoCan(
 			ability.MakeHTTPRequests().WithTimingOutAfter(5).Seconds().WithAtMost(2).Redirects(),
 		)
-		err := adam.AttemptsTo(httpaction.SendGetRequest().To(server.URL))
+		err := adam.AttemptsTo(send.GetRequest().To(server.URL))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "stopped after 2 redirects")
 	})

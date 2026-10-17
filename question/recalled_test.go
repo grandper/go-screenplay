@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/v2/action"
+	"github.com/grandper/go-screenplay/v2/action/remember"
 	"github.com/grandper/go-screenplay/v2/fixture"
 	"github.com/grandper/go-screenplay/v2/question"
 	"github.com/grandper/go-screenplay/v2/screenplay"
@@ -54,7 +54,7 @@ func TestRecalled(t *testing.T) {
 
 	t.Run("is the counterpart of the Remember action", func(t *testing.T) {
 		userID := fixture.NewFakeQuestion("user id", 1234)
-		require.NoError(t, adam.AttemptsTo(action.Remember(userID).As("userID")))
+		require.NoError(t, adam.AttemptsTo(remember.The(userID).As("userID")))
 
 		answer, err := adam.AsksFor(question.Recalled[int]("userID"))
 		require.NoError(t, err)

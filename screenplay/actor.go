@@ -19,7 +19,7 @@ var ErrActorMissingAbility = errors.New("actor does not have the required abilit
 //
 // An Actor is safe for concurrent use: its memory, abilities and cleanup tasks
 // are guarded by a mutex so that actions running in parallel (for example with
-// action.Concurrently or action.Asynchronously) can call Remember, Recall,
+// proceed.ConcurrentlyTo or proceed.AsynchronouslyTo) can call Remember, Recall,
 // Forget or use abilities without racing.
 type Actor struct {
 	*actorCore
@@ -131,7 +131,7 @@ func (a *Actor) narrates() bool {
 // Muted returns a view of the actor whose narration is muted: the steps it
 // performs emit nothing, unless its production forces all narration. The view
 // shares the actor's memory, abilities and cleanup tasks, so muting never
-// touches the actor itself nor any concurrent branch. It is how action.Silently
+// touches the actor itself nor any concurrent branch. It is how proceed.SilentlyTo
 // and question.Silently suppress narration.
 func (a *Actor) Muted() *Actor {
 	return &Actor{

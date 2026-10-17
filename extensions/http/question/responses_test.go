@@ -10,7 +10,7 @@ import (
 
 	"github.com/grandper/go-screenplay/v2/action/see"
 	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
-	"github.com/grandper/go-screenplay/v2/extensions/http/action"
+	"github.com/grandper/go-screenplay/v2/extensions/http/action/send"
 	"github.com/grandper/go-screenplay/v2/extensions/http/question"
 	"github.com/grandper/go-screenplay/v2/extensions/http/question/status"
 	"github.com/grandper/go-screenplay/v2/question/last"
@@ -26,8 +26,8 @@ func TestResponses(t *testing.T) {
 		}))
 		defer server.Close()
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
-		assert.NoError(t, adam.AttemptsTo(action.SendGetRequest().To(server.URL)))
-		assert.NoError(t, adam.AttemptsTo(action.SendGetRequest().To(server.URL)))
+		assert.NoError(t, adam.AttemptsTo(send.GetRequest().To(server.URL)))
+		assert.NoError(t, adam.AttemptsTo(send.GetRequest().To(server.URL)))
 
 		responses, err := adam.AsksFor(question.Responses())
 
@@ -42,7 +42,7 @@ func TestResponses(t *testing.T) {
 		}))
 		defer server.Close()
 		adam := screenplay.ActorNamed("Adam").WhoCan(ability.MakeHTTPRequests())
-		assert.NoError(t, adam.AttemptsTo(action.SendGetRequest().To(server.URL)))
+		assert.NoError(t, adam.AttemptsTo(send.GetRequest().To(server.URL)))
 		assert.NoError(
 			t,
 			adam.AttemptsTo(see.The(status.CodeOf(last.Of(question.Responses()))).Should(be.EqualTo(200))),

@@ -15,9 +15,9 @@ var ErrRecalledValueHasWrongType = errors.New("the recalled value has the wrong 
 
 // Recalled creates a question whose answer is the value stored in the actor's
 // memory under the given key, typed as T. It is the counterpart of
-// action.Remember: where Remember stores the answer of a question, Recalled
+// remember.The: where remember.The stores the answer of a question, Recalled
 // reads a stored value back as a question, so it can be checked with see.The,
-// wrapped in Eventually, or handed to any other component that expects a
+// waited for with wait.UntilThe, or handed to any other component that expects a
 // screenplay.Question.
 //
 // The answer is the stored value when it is a T, or the zero value of T (nil

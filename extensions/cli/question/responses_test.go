@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
-	"github.com/grandper/go-screenplay/v2/extensions/cli/action"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/action/run"
 	"github.com/grandper/go-screenplay/v2/extensions/cli/question"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -15,8 +15,8 @@ import (
 func TestResponses(t *testing.T) {
 	t.Run("returns all the responses", func(t *testing.T) {
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
-		require.NoError(t, theActor.AttemptsTo(action.RunTheCommand("echo", "Hello World")))
-		require.NoError(t, theActor.AttemptsTo(action.RunTheCommand("echo", "Goodbye World")))
+		require.NoError(t, theActor.AttemptsTo(run.TheCommand("echo", "Hello World")))
+		require.NoError(t, theActor.AttemptsTo(run.TheCommand("echo", "Goodbye World")))
 		responses, err := question.Responses().AnsweredBy(theActor)
 		require.NoError(t, err)
 		require.Len(t, responses, 2)

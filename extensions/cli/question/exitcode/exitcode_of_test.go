@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
-	"github.com/grandper/go-screenplay/v2/extensions/cli/action"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/action/run"
 	"github.com/grandper/go-screenplay/v2/extensions/cli/question"
 	"github.com/grandper/go-screenplay/v2/extensions/cli/question/exitcode"
 	"github.com/grandper/go-screenplay/v2/fixture"
@@ -19,7 +19,7 @@ import (
 func TestExitCodeOfQuestion(t *testing.T) {
 	t.Run("returns the exit code of a result", func(t *testing.T) {
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.RunCLICommands())
-		require.NoError(t, theActor.AttemptsTo(action.RunTheCommand("echo", "Hello World")))
+		require.NoError(t, theActor.AttemptsTo(run.TheCommand("echo", "Hello World")))
 
 		answer, err := exitcode.Of(last.Of(question.Responses())).AnsweredBy(theActor)
 

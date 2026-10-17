@@ -11,25 +11,31 @@ The symbols shown below live in the extension's sub-packages:
 | Package | Import path | Provides |
 |---------|-------------|----------|
 | `ability` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/ability` | `UseTheFileSystem` |
-| `action` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action` | `Create`, `Remove`, `AppendTheText`/`AppendTheBytes`/`AppendTheContent`, `OverwriteTo`, `ChangeDirectoryTo` |
+| `action` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action` | `ErrFilenameNotProvided`, `ErrDirectoryNameNotProvided`, and the other errors of the actions |
+| `create` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action/create` | `TheFile`, `TheTemporaryFile`, `TheDirectory`, `TheTemporaryDirectory` |
+| `remove` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action/remove` | `TheFile`, `TheDirectory` |
+| `write` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action/write` | `TheText`, `TheBytes`, `TheContent` |
+| `overwrite` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action/overwrite` | `TheFile` |
+| `change` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action/change` | `TheCurrentDirectoryTo` |
 | `question` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/question` | `FileNamed`, `DirectoryNamed`, `ContentOfTheFileNamed` |
 | `resolution` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/resolution` | `Exist` |
 | `fixture` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/question/fixture` | `CreateFakeExistingFile`, `CreateFakeMissingFile`, `CreateFakeExistingDirectory`, `CreateFakeMissingDirectory` |
 
 Assertions are written with the core screenplay packages (`action/see`,
-`resolution/be`, ...) alongside this extension's `resolution.Exist`. For readability
-the examples below drop the package qualifiers on the extension constructors; import the
-packages above and qualify them as `action.Create()`, `ability.UseTheFileSystem()`, and
-so on. The extension's `action`/`question`/`resolution` packages share their name with the
-core ones: when a file uses both, keep the core name and alias the extension package with
-the `filesystem` prefix:
+`resolution/be`, ...) alongside this extension's `resolution.Exist`. The actions are
+written with their package, which is their verb: `create.TheFile("notes.txt")` reads
+"create the file notes.txt". For readability the examples below drop the package
+qualifiers on the other extension constructors; import the packages above and qualify
+them as `ability.UseTheFileSystem()`, and so on. The extension's `question`/`resolution`
+packages share their name with the core ones: when a file uses both, keep the core name
+and alias the extension package with the `filesystem` prefix:
 ```go
 import (
-	"github.com/grandper/go-screenplay/v2/action"
-	filesystemaction "github.com/grandper/go-screenplay/v2/extensions/filesystem/action"
+	"github.com/grandper/go-screenplay/v2/action/keep"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/remove"
 )
 
-err := anActor.AttemptsTo(action.Eventually(filesystemaction.Remove().TheFile("notes.txt")))
+err := anActor.AttemptsTo(keep.TryingTo(remove.TheFile("notes.txt")))
 ```
 
 ## The ability
@@ -53,20 +59,20 @@ then reports `screenplay.ErrActorMissingAbility`.
 ### Create files and directories
 Create a file (the action fails if the file already exists):
 ```go
-err := anActor.AttemptsTo(Create().TheFile("foobar.txt"))
+err := anActor.AttemptsTo(create.TheFile("foobar.txt"))
 ```
 A file is created with mode 0600, readable and writable by its owner only, and
 no write ever follows a symbolic link: creating, appending to or overwriting a
 path that is a symbolic link fails.
 Provide the content at creation time from an `io.Reader`, a byte slice, or a string:
 ```go
-err := anActor.AttemptsTo(Create().TheFile("foobar.txt").Containing(strings.NewReader("Hello World")))
-err := anActor.AttemptsTo(Create().TheFile("foobar.txt").ContainingBytes([]byte("Hello World")))
-err := anActor.AttemptsTo(Create().TheFile("foobar.txt").ContainingTheText("Hello World"))
+err := anActor.AttemptsTo(create.TheFile("foobar.txt").Containing(strings.NewReader("Hello World")))
+err := anActor.AttemptsTo(create.TheFile("foobar.txt").ContainingBytes([]byte("Hello World")))
+err := anActor.AttemptsTo(create.TheFile("foobar.txt").ContainingTheText("Hello World"))
 ```
 Create a directory (the action fails if the directory already exists):
 ```go
-err := anActor.AttemptsTo(Create().TheDirectory("MyDocuments"))
+err := anActor.AttemptsTo(create.TheDirectory("MyDocuments"))
 ```
 
 ### Create temporary files and directories
@@ -74,61 +80,65 @@ Create a temporary file from a pattern. Because its name is generated (a `*` in 
 pattern is replaced with a random string), capture the final name with `AndSaveNameTo`:
 ```go
 var filename string
-err := anActor.AttemptsTo(Create().TheTemporaryFile("foobar-*.txt").AndSaveNameTo(&filename))
+err := anActor.AttemptsTo(create.TheTemporaryFile("foobar-*.txt").AndSaveNameTo(&filename))
 ```
 As with a regular file, you can provide the content from an `io.Reader`, a byte slice,
 or a string:
 ```go
 var filename string
-err := anActor.AttemptsTo(Create().TheTemporaryFile("foobar-*.txt").Containing(strings.NewReader("Hello World")).AndSaveNameTo(&filename))
-err := anActor.AttemptsTo(Create().TheTemporaryFile("foobar-*.txt").ContainingBytes([]byte("Hello World")).AndSaveNameTo(&filename))
-err := anActor.AttemptsTo(Create().TheTemporaryFile("foobar-*.txt").ContainingTheText("Hello World").AndSaveNameTo(&filename))
+err := anActor.AttemptsTo(create.TheTemporaryFile("foobar-*.txt").Containing(strings.NewReader("Hello World")).AndSaveNameTo(&filename))
+err := anActor.AttemptsTo(create.TheTemporaryFile("foobar-*.txt").ContainingBytes([]byte("Hello World")).AndSaveNameTo(&filename))
+err := anActor.AttemptsTo(create.TheTemporaryFile("foobar-*.txt").ContainingTheText("Hello World").AndSaveNameTo(&filename))
 ```
 Create a temporary directory the same way:
 ```go
 var dirname string
-err := anActor.AttemptsTo(Create().TheTemporaryDirectory("MyDocuments-*").AndSaveNameTo(&dirname))
+err := anActor.AttemptsTo(create.TheTemporaryDirectory("MyDocuments-*").AndSaveNameTo(&dirname))
 ```
 
-### Append to a file
-Append data to a file from an `io.Reader`, a byte slice, or a string:
+### Write at the end of a file
+Write data at the end of a file, without altering its existing content, from an
+`io.Reader`, a byte slice, or a string:
 ```go
-err := anActor.AttemptsTo(AppendTheContent(strings.NewReader("Hello World")).To("foobar.txt"))
-err := anActor.AttemptsTo(AppendTheBytes([]byte("Hello World")).To("foobar.txt"))
-err := anActor.AttemptsTo(AppendTheText("Hello World").To("foobar.txt"))
+err := anActor.AttemptsTo(write.TheContent(strings.NewReader("Hello World")).AtTheEndOf("foobar.txt"))
+err := anActor.AttemptsTo(write.TheBytes([]byte("Hello World")).AtTheEndOf("foobar.txt"))
+err := anActor.AttemptsTo(write.TheText("Hello World").AtTheEndOf("foobar.txt"))
+// Boby attempts to write the text "Hello World" at the end of "foobar.txt"
 ```
 
 ### Overwrite a file
 Replace the whole content of a file from an `io.Reader`, a byte slice, or a string:
 ```go
-err := anActor.AttemptsTo(OverwriteTo("foobar.txt").WithTheContent(strings.NewReader("Hello World")))
-err := anActor.AttemptsTo(OverwriteTo("foobar.txt").WithTheBytes([]byte("Hello World")))
-err := anActor.AttemptsTo(OverwriteTo("foobar.txt").WithTheText("Hello World"))
+err := anActor.AttemptsTo(overwrite.TheFile("foobar.txt").WithTheContent(strings.NewReader("Hello World")))
+err := anActor.AttemptsTo(overwrite.TheFile("foobar.txt").WithTheBytes([]byte("Hello World")))
+err := anActor.AttemptsTo(overwrite.TheFile("foobar.txt").WithTheText("Hello World"))
+// Boby attempts to overwrite the file "foobar.txt" with the text "Hello World"
 ```
 
 ### Remove a file or a directory
 ```go
-err := anActor.AttemptsTo(Remove().TheFile("foobar.txt"))
-err := anActor.AttemptsTo(Remove().TheDirectory("MyDocuments"))
+err := anActor.AttemptsTo(remove.TheFile("foobar.txt"))
+err := anActor.AttemptsTo(remove.TheDirectory("MyDocuments"))
 ```
 Removing a directory removes its content too. The action refuses to remove the
 root of the file system, the home directory, the current working directory and
 any directory that contains it:
 ```go
-err := anActor.AttemptsTo(Remove().TheDirectory(".."))
+err := anActor.AttemptsTo(remove.TheDirectory(".."))
 // Adam attempts to remove the directory "..": refused to remove a protected directory: ".." contains the current working directory
 ```
 
 ### Change the current directory
 ```go
-err := anActor.AttemptsTo(ChangeDirectoryTo("MyDocuments"))
+err := anActor.AttemptsTo(change.TheCurrentDirectoryTo("MyDocuments"))
+// Boby attempts to change the current directory to "MyDocuments"
 ```
 The change applies to this actor only. Later relative paths of this actor
 resolve against it, and the working directory of the process is never changed:
 ```go
 err := anActor.AttemptsTo(
-    ChangeDirectoryTo("MyDocuments"),
-    Create().TheFile("notes.txt"),      // creates MyDocuments/notes.txt
+    change.TheCurrentDirectoryTo("MyDocuments"),
+    create.TheFile("notes.txt"),      // creates MyDocuments/notes.txt
 )
 ```
 

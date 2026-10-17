@@ -10,7 +10,7 @@ import (
 )
 
 // retryParent is a minimal parent builder that embeds a WindowBuilder, the
-// way EventuallyAction does, so we can exercise the fluent API end to end.
+// way keep.TryingToAction does, so we can exercise the fluent API end to end.
 type retryParent struct {
 	*timing.WindowBuilder[retryParent]
 
@@ -40,7 +40,7 @@ func TestWindowBuilder(t *testing.T) {
 		assert.Same(t, parent, parent.For(1).Second())
 	})
 
-	t.Run("timeout wordings are all aliases", func(t *testing.T) {
+	t.Run("timeout wordings all set the total time", func(t *testing.T) {
 		wordings := map[string]func(*retryParent) *timing.DurationBuilder[retryParent]{
 			"For":                   func(p *retryParent) *timing.DurationBuilder[retryParent] { return p.For(5) },
 			"TryingFor":             func(p *retryParent) *timing.DurationBuilder[retryParent] { return p.TryingFor(5) },
@@ -60,7 +60,7 @@ func TestWindowBuilder(t *testing.T) {
 		}
 	})
 
-	t.Run("polling wordings are all aliases", func(t *testing.T) {
+	t.Run("polling wordings all set the polling interval", func(t *testing.T) {
 		wordings := map[string]func(*retryParent) *timing.DurationBuilder[retryParent]{
 			"Polling":      func(p *retryParent) *timing.DurationBuilder[retryParent] { return p.Polling(5) },
 			"PollingEvery": func(p *retryParent) *timing.DurationBuilder[retryParent] { return p.PollingEvery(5) },
@@ -77,5 +77,21 @@ func TestWindowBuilder(t *testing.T) {
 				assert.Zero(t, parent.window.Total)
 			})
 		}
+	})
+
+	t.Run("describes the window as it was written, in call order", func(t *testing.T) {
+		assert.Empty(t, newRetryParent().String())
+
+		parent := newRetryParent()
+		parent.For(5).Seconds().PollingEvery(500).Milliseconds()
+		assert.Equal(t, "for 5 seconds polling every 500 milliseconds", parent.String())
+
+		parent = newRetryParent()
+		parent.TryingEvery(1).Second().TryingForNoLongerThan(1).Minute()
+		assert.Equal(t, "trying every 1 second trying for no longer than 1 minute", parent.String())
+
+		parent = newRetryParent()
+		parent.Polling(10).Milliseconds().TryingFor(2).Seconds().WaitingFor(3).Seconds()
+		assert.Equal(t, "polling 10 milliseconds trying for 2 seconds waiting for 3 seconds", parent.String())
 	})
 }

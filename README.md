@@ -380,43 +380,51 @@ Now that we have seen the foundation of the Screenplay Pattern and that we know 
 you probably realize that we need a collection of `abilities`, `actions`, `questions`, and `resolutions`.
 In this section we will review what the library as already implemented for you.
 
-#### Pausing, Stopping, and Waiting for Answers to Questions
-You may want the test execution to stop until the user hit the `Enter` key (mainly for debugging reasons).
-In that case you can use the `Stop` action.
+#### Waiting, and Retrying an Action
+The actions of this section live in the packages `action/wait` and `action/keep`.
+
+You may want the test execution to wait until the user hits the `Enter` key (mainly for debugging reasons).
+In that case you can use `wait.UntilTheEnterKeyIsPressed`:
 ```go
-err := theActor.Will(Stop())
+err := theActor.Will(wait.UntilTheEnterKeyIsPressed())
+// Adam will wait until the enter key is pressed
 ```
-You can also make the execution stop until some resolution is valid:
+You can also make the actor wait until the answer to a question happens to be as stated:
 ```go
-err := theActor.Will(Stop().UntilThe(HomePage).HappensTo(contain.Substring("Hello World!")))
-err := theActor.Will(Stop().UntilThe(CashAccount.Balance()).HappensTo(be.EqualTo(2000)))
+err := theActor.Will(wait.UntilThe(HomePage).HappensTo(contain.Substring("Hello World!")))
+err := theActor.Will(wait.UntilThe(CashAccount.Balance()).HappensTo(be.EqualTo(2000)))
+// Adam will wait until the cash account balance happens to be equal to 2000
 ```
 
-You may also want to pause the execution for a given number of milliseconds or seconds:
+You may also want to wait for a given number of milliseconds or seconds:
 ```go
-err := theActor.AttemptsTo(PauseFor(10).Seconds().Because("the connection needs time to be setup"))
-err := theActor.AttemptsTo(PauseFor(500).Milliseconds().Because("of some obscure reason"))
+err := theActor.AttemptsTo(wait.For(10).Seconds().Because("the connection needs time to be set up"))
+err := theActor.AttemptsTo(wait.For(500).Milliseconds().Because("of some obscure reason"))
+// Adam attempts to wait for 500 milliseconds because of some obscure reason
 ```
-However, if you need to wait until something happens, you may want to use `Stop` instead to save time.
+However, if you need to wait until something happens, you may want to use `wait.UntilThe` instead to save time.
 
-Finally, if you expect an action to fail repeatedly until finally it succeeds, you should use `Eventually`.
+Finally, if you expect an action to fail repeatedly until finally it succeeds, you should use `keep.TryingTo`.
 ```go
-err := adam.Should(Eventually(see.The(Text.OfThe(PageTitle)).Should(contain.Substring("Hello World!"))))
-err := adam.AttemptsTo(Eventually(Click.OnThe(SaveButton)).TryingEvery(100).Milliseconds())
-err := adam.WasAbleTo(Eventually(CancelTheOrder).TryingFor(5).Seconds().PollingEvery(500).Milliseconds())
+err := adam.Should(keep.TryingTo(see.The(Text.OfThe(PageTitle)).Should(contain.Substring("Hello World!"))))
+err := adam.AttemptsTo(keep.TryingTo(Click.OnThe(SaveButton)).TryingEvery(100).Milliseconds())
+err := adam.WasAbleTo(keep.TryingTo(CancelTheOrder).For(5).Seconds().PollingEvery(500).Milliseconds())
+// Adam was able to keep trying to cancel the order for 5 seconds polling every 500 milliseconds
+// fails: Adam kept trying to cancel the order for 5s (10 tries) without success: the server is down
 ```
-`Eventually` bounds its retry loop with a `timing.Window`: the total time it keeps
+`keep.TryingTo` bounds its retry loop with a `timing.Window`: the total time it keeps
 trying and the interval it waits between two tries. Both are configured with a
 fluent, natural-language vocabulary. To set how long the actor keeps trying use
 `For`, `TryingFor`, `TryingForNoLongerThan`, or `WaitingFor`; to set how often it
 tries use `Polling`, `PollingEvery`, or `TryingEvery`. Each of them returns a
 `timing.DurationBuilder` so you then pick a unit (`Milliseconds`, `Seconds`, ...):
 ```go
-err := adam.WasAbleTo(Eventually(CancelTheOrder).WaitingFor(5).Seconds().Polling(500).Milliseconds())
+err := adam.WasAbleTo(keep.TryingTo(CancelTheOrder).WaitingFor(5).Seconds().Polling(500).Milliseconds())
 ```
+The window is narrated as it was written, after the action.
 
-When you do not set the window explicitly, `Eventually` falls back to the actor's
-default timeout and polling interval, and `Stop().UntilThe(...)` uses the default
+When you do not set the window explicitly, `keep.TryingTo` falls back to the actor's
+default timeout and polling interval, and `wait.UntilThe(...)` uses the default
 timeout as well. An actor created on its own uses the package defaults
 (`screenplay.DefaultTimeout`, 2s, and `screenplay.DefaultPolling`, 500ms). To
 change them for a whole scenario, configure the `Production` the actor's stage is
@@ -430,7 +438,7 @@ production := screenplay.NewProduction(
 stage := production.SetTheStage(screenplay.CastOfStandardActors())
 ```
 Every actor the production's stage creates then reports those values through
-`actor.Timeout()` and `actor.Polling()`, and every `Eventually`/`Stop` they run
+`actor.Timeout()` and `actor.Polling()`, and every `keep.TryingTo`/`wait.UntilThe` they run
 inherits them unless the action overrides the window itself.
 
 The production also bounds what one command output, one HTTP body or one file
@@ -534,47 +542,50 @@ func (a TestingAdapter) Narrate(event screenplay.Event) {
 The `fixture` package ships a ready-made `fixture.Recorder` that records every
 `screenplay.Event`, which is handy to assert on the narrative a scenario produces.
 
-##### The `Log` action
-The `Log` action answers a question and whispers its value as an aside — like
-ScreenPy's `Log`, it answers directly (no "asks for" line) and dumps the value
-underneath. It honors whatever adapters you configured (with none attached it
-stays silent):
+##### The `log.The` action
+The `log.The` action (package `action/log`) answers a question and whispers its
+value as an aside — like ScreenPy's `Log`, it answers directly (no "asks for"
+line) and dumps the value underneath. It honors whatever adapters you configured
+(with none attached it stays silent):
 ```go
-err := theActor.AttemptsTo(Log(HowManyBirdsAreInTheSky()))
-err := theActor.AttemptsTo(Log(number.Of(ItemsInTheList)))
+err := theActor.AttemptsTo(log.The(HowManyBirdsAreInTheSky()))
+err := theActor.AttemptsTo(log.The(number.Of(ItemsInTheList)))
+// Adam attempts to log the number of items in the list
 ```
+The package has the name of the standard `log` package: a file that imports
+both needs an alias for one of them.
 
-##### Silencing steps with `Silently`
-Wrap a performable with `action.Silently` (or a question with `question.Silently`)
+##### Silencing steps with `proceed.SilentlyTo`
+Wrap a performable with `proceed.SilentlyTo` (or a question with `question.Silently`)
 to mute the narration its actions would produce: the nested beats and asides it
 would emit never reach the adapters, collapsing a whole sub-tree into a single,
 opaque line. It keeps secrets out of the logs — an action that types a password
 or sets an authorization header can be silenced so its value never reaches an
 adapter — and trims the noise of a verbose task:
 ```go
-err := theActor.AttemptsTo(action.Silently(LogInAs("wanda", secret)))
-// narrated: Adam attempts to silently perform an action
+err := theActor.AttemptsTo(proceed.SilentlyTo(LogInAs("wanda", secret)))
+// narrated: Adam attempts to proceed silently to perform an action
 answer, err := theActor.AsksFor(question.Silently(TheAuthToken()))
 // narrated: Adam asks for the secret
 ```
 Only that one line is narrated: the wrapped action's own description, the
 wrapped question's description and its answer are never passed to an adapter.
 What remains visible is the error of a failed action, as returned by that
-action. `Silently` mutes a private view of the actor rather than the actor
-itself, so it is safe under `Concurrently`: a silenced branch never mutes another
+action. `proceed.SilentlyTo` mutes a private view of the actor rather than the actor
+itself, so it is safe under `proceed.ConcurrentlyTo`: a silenced branch never mutes another
 branch running at the same time.
 
 **What reaches the adapters.** The narration is the sentence the actor performs,
 values included: command arguments, typed text, URLs, request bodies, header
 values, logged answers, and the actual value of every unmet expectation
 ("got ..."). Point the adapters at a sink that may hold those values, or keep a
-value out of the narration with `action.Silently`, `question.Silently`, or the
+value out of the narration with `proceed.SilentlyTo`, `question.Silently`, or the
 `Secretly()` of header and request actions.
 
 ##### Forcing all narration
 When debugging, you often want to see every step — including the ones a
-`Silently` would hide. Build the production with `WithForceAllNarration` and
-every action and question narrates as usual, even the steps a `Silently` would
+`proceed.SilentlyTo` would hide. Build the production with `WithForceAllNarration` and
+every action and question narrates as usual, even the steps a `proceed.SilentlyTo` would
 otherwise mute:
 ```go
 production := screenplay.NewProduction(
@@ -585,29 +596,31 @@ production := screenplay.NewProduction(
 `production.ForceAllNarration()` reports whether it is set.
 
 #### Remembering answers to questions
-When you need to ask a question and reuse its answer later, the `Remember` action
-stores the answer in the actor's memory under a given key. You can then retrieve it
+When you need to ask a question and reuse its answer later, the `remember.The` action
+(package `action/remember`) stores the answer in the actor's memory under a given key. You can then retrieve it
 with `Recall` (see [Actor specific session data](#actor-specific-session-data)):
 ```go
-err := theActor.AttemptsTo(Remember(StatusCode()).As("statusCode"))
+err := theActor.AttemptsTo(remember.The(StatusCode()).As("statusCode"))
+// Adam attempts to remember the status code as "statusCode"
 statusCode := theActor.Recall[int]("statusCode").OrElse(0)
 ```
 By default the action fails if the question returns a `nil` answer. Use `AllowingNil`
 to store it anyway:
 ```go
-err := theActor.AttemptsTo(Remember(OptionalData()).As("data").AllowingNil())
+err := theActor.AttemptsTo(remember.The(OptionalData()).As("data").AllowingNil())
+// Adam attempts to remember the optional data as "data" allowing nil
 ```
-Like any other action, it can be combined with `Eventually` to retry until an answer
+Like any other action, it can be combined with `keep.TryingTo` to retry until an answer
 is available:
 ```go
-err := theActor.AttemptsTo(Eventually(Remember(UserProfile()).As("profile")).TryingFor(10).Seconds())
+err := theActor.AttemptsTo(keep.TryingTo(remember.The(UserProfile()).As("profile")).For(10).Seconds())
 ```
 
-The counterpart of `Remember` is the `question.Recalled[T]` question: it answers with the
+The counterpart of `remember.The` is the `question.Recalled[T]` question: it answers with the
 value stored under a key, typed as `T` (the zero value of `T` — `nil` for `any` — when
 nothing is stored). It fails with `ErrRecalledValueHasWrongType` when the stored value is
 not a `T`. Because it is a question, the remembered value can be checked with `see.The`,
-waited for with `Eventually`, asked for with a typed answer, or passed anywhere a question
+waited for with `wait.UntilThe`, asked for with a typed answer, or passed anywhere a question
 is expected:
 ```go
 err := theActor.Should(see.The(question.Recalled[int]("statusCode")).Should(be.EqualTo(200)))
@@ -631,65 +644,70 @@ err := theActor.AttemptsTo(maybeLogin, OpenTheDashboard())
 ```
 
 #### Doing actions concurrently
-When your actor needs to perform several actions in parallel, use `Concurrently`
-(or its alias `Simultaneously`):
+The actions of this section and of the next two live in the package `action/proceed`.
+The options (`StoppingOnError`, `WithLimit`, ...) are narrated after the actions, as
+they were written.
+
+When your actor needs to perform several actions in parallel, use `proceed.ConcurrentlyTo`
+(or `proceed.SimultaneouslyTo`, which behaves the same and is narrated "simultaneously"):
 ```go
-err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat(), DoSomethingElse()))
+err := theActor.AttemptsTo(proceed.ConcurrentlyTo(UploadTheInvoice(), SendTheReceipt(), ArchiveTheOrder()))
+// Adam attempts to proceed concurrently to upload the invoice, send the receipt, archive the order
 ```
 By default the actor waits for every action to complete and returns all the errors
 that occurred, joined together with `errors.Join`. Calling `WaitingForAll` is optional
 and makes this default explicit:
 ```go
-err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat()).WaitingForAll())
+err := theActor.AttemptsTo(proceed.ConcurrentlyTo(DoThis(), DoThat()).WaitingForAll())
 ```
 Use `StoppingOnError` to cancel the remaining actions as soon as one of them fails.
 An action still running is canceled through the actor's context: it observes the
 cancellation with `actor.Context()`, as described in "Working with contexts". An
 action not started yet is skipped:
 ```go
-err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat()).StoppingOnError())
+err := theActor.AttemptsTo(proceed.ConcurrentlyTo(DoThis(), DoThat()).StoppingOnError())
 ```
 Use `IgnoringErrors` to run every action and discard the errors that occurred:
 ```go
-err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat()).IgnoringErrors())
+err := theActor.AttemptsTo(proceed.ConcurrentlyTo(DoThis(), DoThat()).IgnoringErrors())
 ```
 Finally, you can cap the number of actions running at the same time with `WithLimit`:
 ```go
-err := theActor.AttemptsTo(Concurrently(DoThis(), DoThat(), DoSomethingElse()).WithLimit(2).WaitingForAll())
+err := theActor.AttemptsTo(proceed.ConcurrentlyTo(DoThis(), DoThat(), DoSomethingElse()).WithLimit(2).WaitingForAll())
 ```
 
 #### Doing actions asynchronously
 When you want the actor to keep going without waiting for the actions to finish,
-use `Asynchronously`. Contrary to `Concurrently`, `AttemptsTo` returns immediately
+use `proceed.AsynchronouslyTo`. Contrary to `proceed.ConcurrentlyTo`, `AttemptsTo` returns immediately
 and the actions keep running in the background:
 ```go
-err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()))
+err := theActor.AttemptsTo(proceed.AsynchronouslyTo(DoThis(), DoThat()))
 ```
 Because the actor does not wait, the errors are not returned by `AttemptsTo`. They
 are collected instead, and you can investigate them later with the
-`AsynchronousErrors` question. Answering it waits for every pending asynchronous
+`asynchronous.Errors` question (package `question/asynchronous`). Answering it waits for every pending asynchronous
 action to complete and returns the slice of non-nil errors they produced:
 ```go
-theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()))
-errs, _ := theActor.AsksFor(AsynchronousErrors()) // errs is a []error
+theActor.AttemptsTo(proceed.AsynchronouslyTo(DoThis(), DoThat()))
+errs, _ := theActor.AsksFor(asynchronous.Errors()) // errs is a []error
 ```
-Like `Concurrently`, several flavors of execution are available. By default (or
+Like `proceed.ConcurrentlyTo`, several flavors of execution are available. By default (or
 with an explicit `WaitingForAll`) it waits for every action to complete before
 collecting the errors. Use `StoppingOnError` to stop the remaining actions as soon
 as one of them fails (a running action observes it with `actor.Context()`), or
 `IgnoringErrors` to discard the errors altogether:
 ```go
-err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).WaitingForAll())
-err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).StoppingOnError())
-err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat()).IgnoringErrors())
+err := theActor.AttemptsTo(proceed.AsynchronouslyTo(DoThis(), DoThat()).WaitingForAll())
+err := theActor.AttemptsTo(proceed.AsynchronouslyTo(DoThis(), DoThat()).StoppingOnError())
+err := theActor.AttemptsTo(proceed.AsynchronouslyTo(DoThis(), DoThat()).IgnoringErrors())
 ```
 You can also cap the number of actions running at the same time with `WithLimit`:
 ```go
-err := theActor.AttemptsTo(Asynchronously(DoThis(), DoThat(), DoSomethingElse()).WithLimit(2).WaitingForAll())
+err := theActor.AttemptsTo(proceed.AsynchronouslyTo(DoThis(), DoThat(), DoSomethingElse()).WithLimit(2).WaitingForAll())
 ```
 
 #### Thread safety
-When you use `Concurrently` or `Asynchronously`, several actions run in parallel
+When you use `proceed.ConcurrentlyTo` or `proceed.AsynchronouslyTo`, several actions run in parallel
 while sharing the **same** actor. The actor is safe for concurrent use: its
 memory (`Remember`, `Recall`, `Forget`) and its abilities (`Can`/`WhoCan`,
 `HasAbilityTo`, `UseAnAbilityOf(...).That(...)`) are guarded by an internal
@@ -720,19 +738,19 @@ go test -race ./...
 
 #### Trying an action or doing an alternate actions
 Sometimes you want the actor to try to do an action, and in case of failure do another one.
-You can achieve this using `Either`:
+You can achieve this using `proceed.EitherTo`:
 ```go
-theActor.Will(Either(DoAction()).Or(DoDifferentAction()))
-theActor.Will(Either(DoAction()).Otherwise(DoDifferentAction()))
+theActor.Will(proceed.EitherTo(RestoreTheSession()).Or(LogInAs("wanda")))
+// Adam will proceed either to restore the session or log in as wanda
 ```
 
 #### Performing an action conditionally
-Whereas `Either` falls back when an action *fails*, `Conditionally` chooses which
+Whereas `proceed.EitherTo` falls back when an action *fails*, `proceed.To` chooses which
 branch to run based on a *condition being true*. Wrap the action (or actions) with
-`Conditionally` and attach the condition; only one branch is ever performed:
+`proceed.To` and attach the condition; only one branch is ever performed:
 ```go
 theActor.AttemptsTo(
-	Conditionally(AddHeader("content-type", "application/json")).
+	proceed.To(add.TheHeader("content-type", "application/json")).
 		If(theActor.Knows("hostname")).
 		Otherwise(GuessTheContentType()),
 )
@@ -743,33 +761,34 @@ screenplay-native condition, closed by a verb and one or more resolutions. `When
 `WhenThe` behave like `If` and `IfThe` and are narrated with "when":
 ```go
 theActor.AttemptsTo(
-	Conditionally(RetryTheRequest()).
+	proceed.To(RetryTheRequest()).
 		IfThe(StatusCode).HappensTo(be.AtLeast(500)).
 		Otherwise(ReadTheResponse()),
 )
 ```
-This reads as *"conditionally retry the request if the status code happens to be at least
+This reads as *"proceed to retry the request if the status code happens to be at least
 500, otherwise read the response"*, which is also what the actor narrates. See
 [The verbs of a condition](#the-verbs-of-a-condition) for the full list.
 Both forms have a negation, `Unless` and `UnlessThe`:
 ```go
-theActor.AttemptsTo(Conditionally(Log(TheLastResponse)).Unless(response.IsOK()))
-theActor.AttemptsTo(Conditionally(LogTheResponse()).UnlessThe(StatusCode).HappensTo(be.EqualTo(200)))
+theActor.AttemptsTo(proceed.To(log.The(TheLastResponse)).Unless(response.IsOK()))
+theActor.AttemptsTo(proceed.To(LogTheResponse()).UnlessThe(StatusCode).HappensTo(be.EqualTo(200)))
+// Adam attempts to proceed to log the response unless the status code happens to be equal to 200
 ```
 The `Otherwise` branch is optional. When it is omitted and the condition does not hold,
-the actor does nothing and no error is returned. A boolean condition is evaluated
+the actor does nothing and no error is returned. Without any condition,
+`proceed.To(x)` simply performs `x`. A boolean condition is evaluated
 eagerly (where it is written); use the question form when the condition must
 be evaluated at the moment the action is performed.
 
 #### Choosing one action out of many
-`Choose` is the multi-way generalization of `Conditionally`: it performs the first branch
+`choose.To` (package `action/choose`) is the multi-way generalization of `proceed.To`: it performs the first branch
 whose condition holds. Each branch is a `To(action)` closed by its condition — `When` for
 a boolean, `WhenThe` for what the answer to a question happens to be (the multi-way
 `If`/`IfThe`) — and the fallback is a `To(action)` closed by `Otherwise()`:
 ```go
 theActor.AttemptsTo(
-	Choose().
-		To(Log("success")).WhenThe(StatusCode).HappensTo(be.EqualTo(200)).
+	choose.To(Log("success")).WhenThe(StatusCode).HappensTo(be.EqualTo(200)).
 		To(FollowTheRedirect()).WhenThe(StatusCode).HappensTo(be.EqualTo(404)).
 		To(RetryTheRequest()).When(retriesLeft > 0).
 		To(AbortTheRequest()).Otherwise(),
@@ -778,12 +797,13 @@ theActor.AttemptsTo(
 This reads as *"choose to log success when the status code happens to be equal to 200, to
 follow the redirect when the status code happens to be equal to 404, to retry the request
 when …, or to abort the request otherwise"*. Only the first matching branch runs; there is no fall-through.
+The fallback can also be closed by `Default()`, which is narrated "default".
 
-When every branch switches on the **same** value, `ChooseBasedOnThe` names the question
+When every branch switches on the **same** value, `choose.BasedOnThe` names the question
 once and answers it a single time. Each branch is then closed by `WhenIt()` and a verb:
 ```go
 theActor.AttemptsTo(
-	ChooseBasedOnThe(StatusCode).
+	choose.BasedOnThe(StatusCode).
 		To(Log("success")).WhenIt().HappensTo(be.EqualTo(200)).
 		To(FollowTheRedirect()).WhenIt().HappensToBeAnyOf(be.EqualTo(301), be.EqualTo(302)).
 		To(RetryTheRequest()).WhenIt().HappensTo(be.AtLeast(500)).
@@ -872,8 +892,8 @@ The same verbs close the terms built with `term.That`.
 #### The verbs of a condition
 "Should" states an expectation, so it does not read well in a condition, which states a
 fact: nobody says "if the status code should be at least 500". The sentences that state a
-fact — `Conditionally(...).IfThe`, `WhenThe` and `UnlessThe`, `Choose().WhenThe`,
-`ChooseBasedOnThe(...).WhenIt`, and `Stop().UntilThe` — are closed by the "happens to"
+fact — `proceed.To(...).IfThe`, `WhenThe` and `UnlessThe`, `choose.To(...).WhenThe`,
+`choose.BasedOnThe(...).WhenIt`, and `wait.UntilThe` — are closed by the "happens to"
 verbs. They take the same resolutions as the "should" verbs, and each has a singular and a
 plural form so that the sentence agrees with its subject:
 
@@ -888,13 +908,13 @@ plural form so that the sentence agrees with its subject:
 | `HappensToBeAnyOf` | `HappenToBeAnyOf` | at least one resolution holds |
 
 ```go
-theActor.AttemptsTo(Conditionally(RetryTheRequest()).IfThe(StatusCode).HappensTo(be.AtLeast(500)))
-theActor.AttemptsTo(Conditionally(AskForANewPassword()).IfThe(Password).DoesNotHappenToHave(length.AtLeast[string](12)))
-theActor.AttemptsTo(Stop().UntilThe(Logs).HappenTo(contain.Substring("ready")))
+theActor.AttemptsTo(proceed.To(RetryTheRequest()).IfThe(StatusCode).HappensTo(be.AtLeast(500)))
+theActor.AttemptsTo(proceed.To(AskForANewPassword()).IfThe(Password).DoesNotHappenToHave(length.AtLeast[string](12)))
+theActor.AttemptsTo(wait.UntilThe(Logs).HappenTo(contain.Substring("ready")))
 ```
 These read *"if the status code happens to be at least 500"*, *"if the password does not
-happen to have length at least 12"* and *"stop until the logs happen to contain substring
-ready"*. `ChooseBasedOnThe(...).WhenIt()` only offers the singular forms, because its
+happen to have length at least 12"* and *"wait until the logs happen to contain substring
+ready"*. `choose.BasedOnThe(...).WhenIt()` only offers the singular forms, because its
 subject is "it".
 
 #### Checking texts
@@ -1047,8 +1067,8 @@ check for them with `errors.Is`:
 | `screenplay.ErrInvalidResolution` | a resolution was built wrongly: `match.PatternString("A-(")`, `match.Pattern(nil)`, `be.Between(10, 1)`, `be.CloseTo(3.0, -0.1)`, `be.Empty[int]()`, `length.Exactly[int](1)`, `length.Exactly[string](-1)`, `resolution.FromFunc[int]("...", nil)` |
 | `term.ErrInvalidTerm` | a sentence was built wrongly: a verb without a resolution, a `nil` resolution, a `nil` question, or a `nil` term |
 
-The extensions follow the same rule. For example, the HTTP actions `AddHeaders` and
-`SetHeaders` report an empty key or an incomplete list of key-value pairs with an error
+The extensions follow the same rule. For example, the HTTP actions `add.TheHeaders` and
+`set.TheHeaders` report an empty key or an incomplete list of key-value pairs with an error
 wrapping their `ErrInvalidHeaders`, when the actor performs them.
 
 A mistake fails the action **whatever the verb**. This matters for the negative verbs: an
@@ -1062,7 +1082,7 @@ err := theActor.Should(see.The(OrderID()).ShouldNot(broken)) // fails too: nothi
 ```
 The same holds everywhere a question meets a resolution. `see.AllOfTheseMet`,
 `see.AtLeastOneOfTheseMet` and `see.NoneOfTheseMet` report a wrongly built term before
-judging any of them, `Conditionally` and `Choose` perform no branch, and `Stop().UntilThe`
+judging any of them, `proceed.To` and `choose.To` perform no branch, and `wait.UntilThe`
 fails at once rather than waiting for its timeout.
 
 A resolution of your own reports that it was built wrongly the same way: its `Inspect`
@@ -1174,8 +1194,8 @@ func (a *MyAction) PerformAs(actor *screenplay.Actor) error {
 ```
 Any operation that already accepts a `context.Context` (HTTP requests, database
 queries, ...) should be handed `actor.Context()` so that cancellation flows all
-the way down. This matters in particular for `Concurrently` with
-`StoppingOnError` and for `Asynchronously` with `StoppingOnError`: the remaining
+the way down. This matters in particular for `proceed.ConcurrentlyTo` with
+`StoppingOnError` and for `proceed.AsynchronouslyTo` with `StoppingOnError`: the remaining
 actions are canceled through the context, so they only actually stop if they are
 watching it.
 
@@ -1248,7 +1268,7 @@ The quickest way to create a question is `question.FromFunc`. It wraps a plain
 function of type `func(theActor *screenplay.Actor) (T, error)` into a `Question[T]`,
 using the `description` you provide as the result of its `String` method. The answer
 type is inferred from the function. Describe a question without its article:
-`see.The`, `AsksFor`, `Log` and `Remember` add "the" themselves, so the description
+`see.The`, `AsksFor`, `log.The` and `remember.The` add "the" themselves, so the description
 "status code" is narrated "the status code":
 ```go
 theAnswer := question.FromFunc("answer", func(theActor *screenplay.Actor) (int, error) {
@@ -1273,9 +1293,9 @@ A question that wraps another one takes it as a `screenplay.Question[T]` — eit
 precise `T` it needs (`status.CodeOf` takes a `Question[*HTTPResponse]`) or with a type
 parameter of its own when it works for any answer (`question.Silently[T]`). The same goes
 for an action that holds a question: make it generic over the answer type, as
-`Remember`, `Log`, and `ChooseBasedOnThe` are, or let a generic function or method capture
-the typed question, as `see.The`, `Conditionally(...).IfThe`, `Choose().WhenThe`, and
-`Stop().UntilThe` do.
+`remember.The`, `log.The`, and `choose.BasedOnThe` are, or let a generic function or method capture
+the typed question, as `see.The`, `proceed.To(...).IfThe`, `choose.To(...).WhenThe`, and
+`wait.UntilThe` do.
 
 ### Creating your own Resolution
 The quickest way to create a resolution is `resolution.FromFunc` (see
@@ -1339,8 +1359,8 @@ func (a *MyAction) Polling() *timing.DurationBuilder[MyAction] {
 
 Its `String` method describes the duration and matches the unit to the amount,
 so it reads `1 second` but `20 seconds`. This lets an action delegate its own
-description to the builder — for example `PauseFor(1).Second().Because("...")`
-prints `... for 1 second because ...` while `PauseFor(20).Milliseconds()` prints
+description to the builder — for example `wait.For(1).Second().Because("...")`
+prints `... for 1 second because ...` while `wait.For(20).Milliseconds()` prints
 `... for 20 milliseconds ...`.
 
 `Window` bundles the two durations that bound a retry loop: the `Total` time
@@ -1375,7 +1395,9 @@ func NewMyAction() *MyAction {
 
 // enables: NewMyAction().TryingFor(5).Seconds().PollingEvery(500).Milliseconds()
 ```
-This is exactly how `Eventually` configures its timeout and polling period: it
+The `String` method of `WindowBuilder[T]` describes the window as it was
+written, in call order: `trying for 5 seconds polling every 500 milliseconds`.
+This is exactly how `keep.TryingTo` configures its timeout and polling period: it
 stores them in a `Window` and embeds a `WindowBuilder`, which is how the
 same wording drives two different durations.
 
@@ -1415,41 +1437,41 @@ requests and ask about the responses:
 anActor := screenplay.ActorNamed("Wanda").WhoCan(ability.MakeHTTPRequests())
 
 err := anActor.AttemptsTo(
-	action.AddHeader("Accept", "application/json"),
-	action.SendGetRequest().To("https://api.example.com/birds"),
+	add.TheHeader("Accept", "application/json"),
+	send.GetRequest().To("https://api.example.com/birds"),
 )
 err = anActor.Should(see.The(status.CodeOf(last.Of(question.Responses()))).Should(be.EqualTo(200)))
 ```
-Highlights: `SendHTTPRequest`/`SendGetRequest`/`SendPostRequest`/… with `.To`,
-`.WithBody`, `.WithAuth`/`.WithCredential` and `.Secretly`; the `AddHeader`,
-`AddHeaders`, `SetHeader`, `SetHeaders` actions; and the `Responses` and
+Highlights: `send.RequestWithMethod`/`send.GetRequest`/`send.PostRequest`/… with `.To`,
+`.WithBody`, `.WithAuth`/`.WithCredential` and `.Secretly`; the `add.TheHeader`,
+`add.TheHeaders`, `set.TheHeader`, `set.TheHeaders` actions; and the `Responses` and
 `status.CodeOf` questions.
 
 ### CLI — [`extensions/cli`](extensions/cli/README.md)
 Drives command-line programs. Give an actor the `RunCLICommands()` ability, then
-run commands, type input, and assert on the result:
+run commands, enter input, and assert on the result:
 ```go
 anActor := screenplay.ActorNamed("Boby").WhoCan(ability.RunCLICommands())
 
-err := anActor.AttemptsTo(action.RunTheCommand("echo", "Hello World"))
+err := anActor.AttemptsTo(run.TheCommand("echo", "Hello World"))
 err = anActor.Should(see.The(standard.OutputOf(last.Of(question.Responses()))).Should(contain.TheBytes([]byte("Hello World"))))
 ```
-Highlights: the `RunTheCommand` action (with `.InTheWorkingDirectory` and
-`.Interactively`), the `Type` action, and the `EnvironmentVariableNamed`,
+Highlights: the `run.TheCommand` action (with `.InTheWorkingDirectory` and
+`.Interactively`), the `enter.TheText` action, and the `EnvironmentVariableNamed`,
 `exitcode.Of`, `standard.OutputOf`, and `standard.ErrorOf` questions.
 
 ### Filesystem — [`extensions/filesystem`](extensions/filesystem/README.md)
 Drives the file system. Give an actor the `UseTheFileSystem()` ability, then
-create, append to, overwrite, and remove files and directories, and assert on
+create, write at the end of, overwrite, and remove files and directories, and assert on
 their existence and content:
 ```go
 anActor := screenplay.ActorNamed("Boby").WhoCan(ability.UseTheFileSystem())
 
-err := anActor.AttemptsTo(action.Create().TheFile("notes.txt").ContainingTheText("Hello World"))
+err := anActor.AttemptsTo(create.TheFile("notes.txt").ContainingTheText("Hello World"))
 err = anActor.Should(see.The(question.ContentOfTheFileNamed("notes.txt")).Should(be.DeepEqualTo([]byte("Hello World"))))
 ```
-Highlights: the `Create`, `Remove`, `AppendTheText`/`AppendTheBytes`/`AppendTheContent`,
-`OverwriteTo`, and `ChangeDirectoryTo` actions; the `FileNamed`, `DirectoryNamed`,
+Highlights: the `create.TheFile`, `remove.TheFile`, `write.TheText`/`write.TheBytes`/`write.TheContent`,
+`overwrite.TheFile`, and `change.TheCurrentDirectoryTo` actions; the `FileNamed`, `DirectoryNamed`,
 and `ContentOfTheFileNamed` questions; and the `Exist` resolution.
 
 ## References

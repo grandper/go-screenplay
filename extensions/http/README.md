@@ -10,24 +10,28 @@ The symbols shown below live in the extension's sub-packages:
 | Package | Import path | Provides |
 |---------|-------------|----------|
 | `ability` | `github.com/grandper/go-screenplay/v2/extensions/http/ability` | `MakeHTTPRequests`, `HTTPResponse`, `Credential` |
-| `action` | `github.com/grandper/go-screenplay/v2/extensions/http/action` | `SendHTTPRequest` (and the per-method shortcuts), `AddHeader`, `AddHeaders`, `SetHeader`, `SetHeaders` |
+| `action` | `github.com/grandper/go-screenplay/v2/extensions/http/action` | `ErrInvalidHeaders` |
+| `send` | `github.com/grandper/go-screenplay/v2/extensions/http/action/send` | `RequestWithMethod` (and the per-method shortcuts `GetRequest`, `PostRequest`, ...) |
+| `add` | `github.com/grandper/go-screenplay/v2/extensions/http/action/add` | `TheHeader`, `TheHeaders` |
+| `set` | `github.com/grandper/go-screenplay/v2/extensions/http/action/set` | `TheHeader`, `TheHeaders` |
 | `question` | `github.com/grandper/go-screenplay/v2/extensions/http/question` | `Responses` |
 | `status` | `github.com/grandper/go-screenplay/v2/extensions/http/question/status` | `CodeOf` |
 
 Assertions are written with the core screenplay packages (`action/see`,
-`resolution/be`, `resolution/contain`, `question/last`, ...). For readability the
-examples below drop the package qualifiers on the extension constructors; import the
-packages above and qualify them as `action.SendGetRequest()`, `ability.MakeHTTPRequests()`,
-and so on. The extension's `action`/`question` packages share their name with the core ones:
-when a file uses both, keep the core name and alias the extension package with the `http`
+`resolution/be`, `resolution/contain`, `question/last`, ...). The actions are written
+with their package, which is their verb: `send.GetRequest()` reads "send GET request".
+For readability the examples below drop the package qualifiers on the other extension
+constructors; import the packages above and qualify them as `ability.MakeHTTPRequests()`,
+and so on. The extension's `question` package shares its name with the core one: when a
+file uses both, keep the core name and alias the extension package with the `http`
 prefix:
 ```go
 import (
-	"github.com/grandper/go-screenplay/v2/action"
-	httpaction "github.com/grandper/go-screenplay/v2/extensions/http/action"
+	"github.com/grandper/go-screenplay/v2/action/keep"
+	"github.com/grandper/go-screenplay/v2/extensions/http/action/send"
 )
 
-err := anActor.AttemptsTo(action.Eventually(httpaction.SendGetRequest().To(url)))
+err := anActor.AttemptsTo(keep.TryingTo(send.GetRequest().To(url)))
 ```
 
 ## The ability
@@ -50,14 +54,14 @@ anActor := screenplay.ActorNamed("Wanda").WhoCan(
 bounded only by the deadline of the actor's context (see `WithContext`). A request
 that outlasts the timeout fails:
 ```go
-err := anActor.AttemptsTo(SendGetRequest().To("https://slow.example.com/report"))
+err := anActor.AttemptsTo(send.GetRequest().To("https://slow.example.com/report"))
 // Get "https://slow.example.com/report": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 `WithAtMost(n).Redirects()` bounds the number of consecutive redirects followed
 before a request fails. Without it, ten redirects are followed, as `net/http` does
 by default; zero makes every redirect fail:
 ```go
-err := anActor.AttemptsTo(SendGetRequest().To("https://www.example.com/loop"))
+err := anActor.AttemptsTo(send.GetRequest().To("https://www.example.com/loop"))
 // Get "https://www.example.com/loop": stopped after 3 redirects
 ```
 
@@ -76,24 +80,25 @@ then reports `screenplay.ErrActorMissingAbility`.
 Add a header (keeping any header already set), or set the headers (replacing the
 whole set) for every subsequent request of the session:
 ```go
-err := anActor.AttemptsTo(AddHeader("Content-Type", "application/json"))
-err := anActor.AttemptsTo(AddHeaders(
+err := anActor.AttemptsTo(add.TheHeader("Content-Type", "application/json"))
+// Wanda attempts to add the header "Content-Type" = "application/json"
+err := anActor.AttemptsTo(add.TheHeaders(
     "Content-Type", "application/json",
     "Authorization", "Bearer 84e7750a-582f-4ed7-9510-6e181d530686"))
-err := anActor.AttemptsTo(SetHeader("Content-Type", "application/json"))
-err := anActor.AttemptsTo(SetHeaders(
+err := anActor.AttemptsTo(set.TheHeader("Content-Type", "application/json"))
+err := anActor.AttemptsTo(set.TheHeaders(
     "Content-Type", "application/json",
     "Authorization", "Bearer 84e7750a-582f-4ed7-9510-6e181d530686"))
 ```
-`AddHeaders` and `SetHeaders` take an even number of arguments, read as
+`add.TheHeaders` and `set.TheHeaders` take an even number of arguments, read as
 `key, value, key, value, ...`.
 
 Nothing panics when the headers are written wrongly. An empty key, no header at all, or a
 key without its value is reported when the actor performs the action, with an error wrapping
 `ErrInvalidHeaders`:
 ```go
-err := anActor.AttemptsTo(AddHeaders("Content-Type"))
-// invalid headers: AddHeaders should receive a list of key-value pairs
+err := anActor.AttemptsTo(add.TheHeaders("Content-Type"))
+// invalid headers: add.TheHeaders should receive a list of key-value pairs
 ```
 
 Headers are sent with every request of the actor. When a server redirects to another
@@ -102,41 +107,41 @@ host, the headers added through the ability are not forwarded to it.
 If a header holds a secret you do not want in the narration, mark the action secret
 with `Secretly` (or its longer alias `WhichShouldBeKeptSecret`):
 ```go
-err := anActor.AttemptsTo(AddHeader("Authorization", "Bearer "+token).Secretly())
-err := anActor.AttemptsTo(SetHeader("Authorization", "Bearer "+token).WhichShouldBeKeptSecret())
+err := anActor.AttemptsTo(add.TheHeader("Authorization", "Bearer "+token).Secretly())
+err := anActor.AttemptsTo(set.TheHeader("Authorization", "Bearer "+token).WhichShouldBeKeptSecret())
 ```
 
 ### Sending requests
-Send a request with `SendHTTPRequest`, choosing the method, the URL (`To`), and
+Send a request with `send.RequestWithMethod`, choosing the method, the URL (`To`), and
 optionally a body (`WithBody`):
 ```go
-err := anActor.AttemptsTo(SendHTTPRequest(http.MethodGet).To("http://www.example.com"))
-err := anActor.AttemptsTo(SendHTTPRequest(http.MethodPost).To("http://www.example.com").WithBody(body))
+err := anActor.AttemptsTo(send.RequestWithMethod(http.MethodGet).To("http://www.example.com"))
+err := anActor.AttemptsTo(send.RequestWithMethod(http.MethodPost).To("http://www.example.com").WithBody(body))
 ```
 For readability there is a shortcut per method:
 ```go
-err := anActor.AttemptsTo(SendDeleteRequest().To("http://www.example.com"))
-err := anActor.AttemptsTo(SendGetRequest().To("http://www.example.com"))
-err := anActor.AttemptsTo(SendHeadRequest().To("http://www.example.com"))
-err := anActor.AttemptsTo(SendOptionsRequest().To("http://www.example.com"))
-err := anActor.AttemptsTo(SendPatchRequest().To("http://www.example.com").WithBody(body))
-err := anActor.AttemptsTo(SendPostRequest().To("http://www.example.com").WithBody(body))
-err := anActor.AttemptsTo(SendPutRequest().To("http://www.example.com").WithBody(body))
+err := anActor.AttemptsTo(send.DeleteRequest().To("http://www.example.com"))
+err := anActor.AttemptsTo(send.GetRequest().To("http://www.example.com"))
+err := anActor.AttemptsTo(send.HeadRequest().To("http://www.example.com"))
+err := anActor.AttemptsTo(send.OptionsRequest().To("http://www.example.com"))
+err := anActor.AttemptsTo(send.PatchRequest().To("http://www.example.com").WithBody(body))
+err := anActor.AttemptsTo(send.PostRequest().To("http://www.example.com").WithBody(body))
+err := anActor.AttemptsTo(send.PutRequest().To("http://www.example.com").WithBody(body))
 ```
 `WithBody` takes an `io.Reader`. It buffers the reader so the request can be
 described in the narration and sent (and re-sent) without the body being consumed.
 
 Use basic authentication with `WithCredential` (or its alias `WithAuth`):
 ```go
-err := anActor.AttemptsTo(SendGetRequest().To("http://www.example.com").WithCredential("username", "password"))
-err := anActor.AttemptsTo(SendGetRequest().To("http://www.example.com").WithAuth("username", "password"))
+err := anActor.AttemptsTo(send.GetRequest().To("http://www.example.com").WithCredential("username", "password"))
+err := anActor.AttemptsTo(send.GetRequest().To("http://www.example.com").WithAuth("username", "password"))
 ```
 A request can be sent secretly, so neither its URL nor its body appear in the
 narration. When a secret request fails, its error keeps the cause but drops the
 URL, so a token carried in the query string never reaches the logs:
 ```go
-err := anActor.AttemptsTo(SendPostRequest().To("http://www.example.com").WithBody(body).Secretly())
-err := anActor.AttemptsTo(SendPostRequest().To("http://www.example.com").WithBody(body).WhichShouldBeKeptSecret())
+err := anActor.AttemptsTo(send.PostRequest().To("http://www.example.com").WithBody(body).Secretly())
+err := anActor.AttemptsTo(send.PostRequest().To("http://www.example.com").WithBody(body).WhichShouldBeKeptSecret())
 // narrated: Adam attempts to send a secret HTTP request
 // on failure: Adam attempts to send a secret HTTP request: failed to send a secret HTTP request: dial tcp 127.0.0.1:1: connect: connection refused
 ```
@@ -176,10 +181,10 @@ following requests:
 ```go
 anActor := screenplay.ActorNamed("Wanda").WhoCan(MakeHTTPRequests())
 
-err := anActor.AttemptsTo(SendPostRequest().To(loginURL).WithAuth(username, password))
+err := anActor.AttemptsTo(send.PostRequest().To(loginURL).WithAuth(username, password))
 
 response, _ := anActor.AsksFor(last.Of(Responses()))
 bearerToken := response.Body()
 
-err = anActor.AttemptsTo(AddHeader("Authorization", "Bearer "+bearerToken).Secretly())
+err = anActor.AttemptsTo(add.TheHeader("Authorization", "Bearer "+bearerToken).Secretly())
 ```

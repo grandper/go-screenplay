@@ -12,7 +12,7 @@
 //	answer, err := actor.AsksFor(theAnswer) // answer is an int
 //
 // Recalled answers with a value the actor remembers, typed as asked. It is the
-// counterpart of the action.Remember action:
+// counterpart of the remember.The action:
 //
 //	err := actor.Should(see.The(question.Recalled[int]("status code")).Should(be.EqualTo(200)))
 //

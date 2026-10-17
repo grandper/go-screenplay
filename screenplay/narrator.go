@@ -74,7 +74,7 @@ type Adapter interface {
 // The zero value is a valid, silent narrator (no adapters attached).
 //
 // A Narrator is safe for concurrent use: the actions that run performables from
-// several goroutines (action.Concurrently, action.Asynchronously) all narrate
+// several goroutines (proceed.ConcurrentlyTo, proceed.AsynchronouslyTo) all narrate
 // through the same microphone.
 type Narrator struct {
 	mutex    sync.Mutex
