@@ -212,12 +212,9 @@ type ShareBuilder struct {
 // With completes the share by copying the value into the target actor's memory.
 // It does nothing when the source actor remembers nothing under the key.
 func (s *ShareBuilder) With(target *Actor) {
-	value := s.source.recollect(s.key)
-	if value == nil {
-		return
-	}
-
-	target.store(s.key, value)
+	s.source.Recall[any](s.key).IfPresent(func(value any) {
+		target.store(s.key, value)
+	})
 }
 
 // Forget removes a value from the actor's memory.

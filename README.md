@@ -220,12 +220,12 @@ sameAdam := stage.ActorNamed("adam") // returns the same actor
 ```
 You can retrieve the actor currently in the spotlight at any time:
 ```go
-actor, err := stage.TheActorInTheSpotlight()
+actor, err := stage.TheActorInTheSpotlight().OrElseError(screenplay.ErrNoActorInTheSpotlight)
 ```
 To check whether any actor is currently on stage before accessing the spotlight:
 ```go
 if stage.AnActorIsOnStage() {
-	actor, _ := stage.TheActorInTheSpotlight()
+	actor := stage.TheActorInTheSpotlight().OrElse(nil)
 	// use actor
 }
 ```

@@ -3,8 +3,8 @@ package question
 import (
 	"errors"
 	"fmt"
-	"os"
 
+	"github.com/grandper/go-monad"
 	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
 	"github.com/grandper/go-screenplay/v2/internal/verdict"
 	"github.com/grandper/go-screenplay/v2/screenplay"
@@ -32,11 +32,7 @@ func (q *EnvironmentVariableNamedQuestion) AnsweredBy(theActor *screenplay.Actor
 	if _, err := screenplay.UseAnAbilityOf(theActor).That(ability.RunCLICommands()).ToRetrieveResponses(); err != nil {
 		return "", err
 	}
-	value, exist := os.LookupEnv(q.environmentVariableName)
-	if !exist {
-		return "", ErrEnvironmentVariableNotFound
-	}
-	return value, nil
+	return monad.GetStringFromEnv(q.environmentVariableName).OrElseError(ErrEnvironmentVariableNotFound)
 }
 
 // String describes the question.

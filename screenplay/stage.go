@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"sync"
+
+	"github.com/grandper/go-monad"
 )
 
 var (
@@ -18,7 +20,7 @@ type Stage struct {
 	cast       Cast
 	production *Production
 	actors     map[string]*Actor
-	spotlight  *Actor
+	spotlight  monad.Option[*Actor]
 }
 
 // SetTheStage creates a new stage with the given cast.
@@ -45,21 +47,20 @@ func (s *Stage) ActorNamed(name string) *Actor {
 		s.actors[key] = actor
 	}
 
-	s.spotlight = actor
+	s.spotlight = monad.Some(actor)
 
 	return actor
 }
 
-// TheActorInTheSpotlight returns the actor currently in the spotlight.
-func (s *Stage) TheActorInTheSpotlight() (*Actor, error) {
+// TheActorInTheSpotlight returns the actor currently in the spotlight, absent
+// when no actor is on stage:
+//
+//	actor, err := stage.TheActorInTheSpotlight().OrElseError(screenplay.ErrNoActorInTheSpotlight)
+func (s *Stage) TheActorInTheSpotlight() monad.Option[*Actor] {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if s.spotlight == nil {
-		return nil, ErrNoActorInTheSpotlight
-	}
-
-	return s.spotlight, nil
+	return s.spotlight
 }
 
 // AnActorIsOnStage reports whether an actor is currently in the spotlight.
@@ -67,7 +68,7 @@ func (s *Stage) AnActorIsOnStage() bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	return s.spotlight != nil
+	return s.spotlight.IsPresent()
 }
 
 // DrawTheCurtain makes all actors exit the stage.
@@ -77,7 +78,7 @@ func (s *Stage) DrawTheCurtain() error {
 	s.mutex.Lock()
 	actors := s.actors
 	s.actors = map[string]*Actor{}
-	s.spotlight = nil
+	s.spotlight = monad.None[*Actor]()
 	s.mutex.Unlock()
 
 	var errs []error

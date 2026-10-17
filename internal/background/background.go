@@ -41,25 +41,20 @@ func ErrorsOf(actor *screenplay.Actor) *Errors {
 	creation.Lock()
 	defer creation.Unlock()
 
-	if collector := actor.Recall[*Errors](errorsKey).OrElse(nil); collector != nil {
+	return actor.Recall[*Errors](errorsKey).OrElseGet(func() *Errors {
+		collector := newErrors()
+		actor.Remember(errorsKey, collector)
+
 		return collector
-	}
-
-	collector := newErrors()
-	actor.Remember(errorsKey, collector)
-
-	return collector
+	})
 }
 
 // CollectedBy waits for every pending background action of the actor to
 // complete and returns the errors they produced.
 func CollectedBy(actor *screenplay.Actor) []error {
-	collector := actor.Recall[*Errors](errorsKey).OrElse(nil)
-	if collector == nil {
-		return []error{}
-	}
-
-	return collector.collected()
+	return actor.Recall[*Errors](errorsKey).
+		Map((*Errors).collected).
+		OrElse([]error{})
 }
 
 // Track registers a new pending background action.

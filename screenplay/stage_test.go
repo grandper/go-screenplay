@@ -65,7 +65,7 @@ func TestStage(t *testing.T) {
 			stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
 			adam := stage.ActorNamed("Adam")
 
-			spotlight, err := stage.TheActorInTheSpotlight()
+			spotlight, err := stage.TheActorInTheSpotlight().OrElseError(screenplay.ErrNoActorInTheSpotlight)
 			require.NoError(t, err)
 			assert.Same(t, adam, spotlight)
 		})
@@ -77,7 +77,7 @@ func TestStage(t *testing.T) {
 			stage.ActorNamed("Adam")
 			bob := stage.ActorNamed("Bob")
 
-			spotlight, err := stage.TheActorInTheSpotlight()
+			spotlight, err := stage.TheActorInTheSpotlight().OrElseError(screenplay.ErrNoActorInTheSpotlight)
 			require.NoError(t, err)
 			assert.Same(t, bob, spotlight)
 		})
@@ -89,7 +89,7 @@ func TestStage(t *testing.T) {
 
 			stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
 
-			_, err := stage.TheActorInTheSpotlight()
+			_, err := stage.TheActorInTheSpotlight().OrElseError(screenplay.ErrNoActorInTheSpotlight)
 			assert.ErrorIs(t, err, screenplay.ErrNoActorInTheSpotlight)
 		})
 	})
@@ -133,7 +133,7 @@ func TestStage(t *testing.T) {
 
 			require.NoError(t, stage.DrawTheCurtain())
 
-			_, err := stage.TheActorInTheSpotlight()
+			_, err := stage.TheActorInTheSpotlight().OrElseError(screenplay.ErrNoActorInTheSpotlight)
 			assert.ErrorIs(t, err, screenplay.ErrNoActorInTheSpotlight)
 		})
 
@@ -145,7 +145,7 @@ func TestStage(t *testing.T) {
 			require.NoError(t, stage.DrawTheCurtain())
 
 			bob := stage.ActorNamed("Bob")
-			spotlight, err := stage.TheActorInTheSpotlight()
+			spotlight, err := stage.TheActorInTheSpotlight().OrElseError(screenplay.ErrNoActorInTheSpotlight)
 			require.NoError(t, err)
 			assert.Same(t, bob, spotlight)
 		})
@@ -162,7 +162,7 @@ func TestStage(t *testing.T) {
 				defer group.Done()
 				stage.ActorNamed("Adam")
 				stage.ActorNamed("Wanda")
-				_, _ = stage.TheActorInTheSpotlight()
+				_ = stage.TheActorInTheSpotlight()
 				_ = stage.AnActorIsOnStage()
 			}()
 		}
