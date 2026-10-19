@@ -8,10 +8,10 @@ import (
 
 	"github.com/grandper/go-screenplay/v2/action"
 	"github.com/grandper/go-screenplay/v2/action/choose"
+	"github.com/grandper/go-screenplay/v2/action/see/term"
 	"github.com/grandper/go-screenplay/v2/resolution/be"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 	"github.com/grandper/go-screenplay/v2/screenplay/fixture"
-	"github.com/grandper/go-screenplay/v2/term"
 )
 
 func TestBasedOnThe(t *testing.T) {

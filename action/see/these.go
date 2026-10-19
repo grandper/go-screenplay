@@ -2,8 +2,8 @@ package see
 
 import (
 	impl "github.com/grandper/go-screenplay/v2/action/internal/see"
+	"github.com/grandper/go-screenplay/v2/action/see/term"
 	"github.com/grandper/go-screenplay/v2/screenplay"
-	"github.com/grandper/go-screenplay/v2/term"
 )
 
 // AllOfTheseMet creates an action to see that every term is met. The terms may

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/action/see"
+	"github.com/grandper/go-screenplay/v2/action/see/term"
 	"github.com/grandper/go-screenplay/v2/resolution/be"
 	"github.com/grandper/go-screenplay/v2/resolution/contain"
 	resolutionfixture "github.com/grandper/go-screenplay/v2/resolution/fixture"
@@ -15,7 +16,6 @@ import (
 	"github.com/grandper/go-screenplay/v2/resolution/match"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 	"github.com/grandper/go-screenplay/v2/screenplay/fixture"
-	"github.com/grandper/go-screenplay/v2/term"
 )
 
 func TestSeeTheAction(t *testing.T) {

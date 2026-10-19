@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/grandper/go-screenplay/v2/action/timing"
 	"github.com/grandper/go-screenplay/v2/screenplay"
-	"github.com/grandper/go-screenplay/v2/timing"
 )
 
 // ErrReasonNotProvided is returned when a wait is performed without a reason.

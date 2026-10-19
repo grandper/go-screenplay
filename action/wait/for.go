@@ -2,7 +2,7 @@ package wait
 
 import (
 	impl "github.com/grandper/go-screenplay/v2/action/internal/wait"
-	"github.com/grandper/go-screenplay/v2/timing"
+	"github.com/grandper/go-screenplay/v2/action/timing"
 )
 
 // ErrReasonNotProvided is returned when a wait is performed without a reason.

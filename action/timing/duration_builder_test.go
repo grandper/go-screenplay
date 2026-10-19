@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/v2/timing"
+	"github.com/grandper/go-screenplay/v2/action/timing"
 )
 
 // fakeParent is a stand-in parent builder used to verify that the fluent chain

@@ -9,8 +9,8 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/grandper/go-screenplay/v2/action/timing"
 	"github.com/grandper/go-screenplay/v2/screenplay"
-	"github.com/grandper/go-screenplay/v2/timing"
 )
 
 // defaultMaxRedirects is the number of consecutive redirects followed before a

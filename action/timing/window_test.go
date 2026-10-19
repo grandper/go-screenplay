@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/v2/timing"
+	"github.com/grandper/go-screenplay/v2/action/timing"
 )
 
 func TestWindow(t *testing.T) {

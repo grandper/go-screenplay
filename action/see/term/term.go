@@ -1,9 +1,9 @@
 package term
 
 import (
+	impl "github.com/grandper/go-screenplay/v2/action/internal/see/term"
 	"github.com/grandper/go-screenplay/v2/internal/sentence"
 	"github.com/grandper/go-screenplay/v2/screenplay"
-	impl "github.com/grandper/go-screenplay/v2/term/internal/term"
 )
 
 // ErrInvalidTerm is wrapped by the error an action returns when a sentence was

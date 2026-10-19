@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/grandper/go-screenplay/v2/action/see/term"
 	"github.com/grandper/go-screenplay/v2/internal/sentence"
 	"github.com/grandper/go-screenplay/v2/screenplay"
-	"github.com/grandper/go-screenplay/v2/term"
 )
 
 // quantifier tells how many of the terms of a theseAction should be met.

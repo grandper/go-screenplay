@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grandper/go-screenplay/v2/timing"
+	"github.com/grandper/go-screenplay/v2/action/timing"
 )
 
 // retryParent is a minimal parent builder that embeds a WindowBuilder, the
