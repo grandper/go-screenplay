@@ -11,9 +11,9 @@ import (
 	"github.com/grandper/go-screenplay/v2/extensions/cli/action/run"
 	"github.com/grandper/go-screenplay/v2/extensions/cli/question"
 	"github.com/grandper/go-screenplay/v2/extensions/cli/question/exitcode"
-	"github.com/grandper/go-screenplay/v2/fixture"
 	"github.com/grandper/go-screenplay/v2/question/last"
 	"github.com/grandper/go-screenplay/v2/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay/fixture"
 )
 
 func TestExitCodeOfQuestion(t *testing.T) {

@@ -13,8 +13,8 @@ import (
 	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
 	impl "github.com/grandper/go-screenplay/v2/extensions/http/internal/ability"
 	"github.com/grandper/go-screenplay/v2/extensions/http/question/status"
-	"github.com/grandper/go-screenplay/v2/fixture"
 	"github.com/grandper/go-screenplay/v2/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay/fixture"
 )
 
 func TestCodeOfQuestion(t *testing.T) {

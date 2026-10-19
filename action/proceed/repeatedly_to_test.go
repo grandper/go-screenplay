@@ -10,10 +10,10 @@ import (
 
 	"github.com/grandper/go-screenplay/v2/action"
 	"github.com/grandper/go-screenplay/v2/action/proceed"
-	"github.com/grandper/go-screenplay/v2/fixture"
 	"github.com/grandper/go-screenplay/v2/question"
 	"github.com/grandper/go-screenplay/v2/resolution/be"
 	"github.com/grandper/go-screenplay/v2/screenplay"
+	"github.com/grandper/go-screenplay/v2/screenplay/fixture"
 	"github.com/grandper/go-screenplay/v2/term"
 )
 

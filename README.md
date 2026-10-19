@@ -602,7 +602,7 @@ func (a TestingAdapter) Narrate(event screenplay.Event) {
     a.t.Logf("%s%s", strings.Repeat("  ", event.Depth), event.Message)
 }
 ```
-The `fixture` package ships a ready-made `fixture.Recorder` that records every
+The `screenplay/fixture` package ships a ready-made `fixture.Recorder` that records every
 `screenplay.Event`, which is handy to assert on the narrative a scenario produces.
 
 ##### The `log.The` action
