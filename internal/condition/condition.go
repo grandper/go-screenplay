@@ -1,5 +1,6 @@
 // Package condition holds the condition that guards a branch of the flow
-// actions: proceed.To(...).IfThe(...) and choose.To(...).WhenThe(...).
+// actions: proceed.To(...).IfThe(...) and choose.To(...).WhenThe(...), and the
+// condition that keeps a proceed.RepeatedlyTo(...) loop going.
 package condition
 
 import (
@@ -8,7 +9,8 @@ import (
 )
 
 // Condition reports whether a guarded branch should run, and describes itself.
-// Keyword introduces the description: "if", "when" or "unless".
+// Keyword introduces the description: "if", "when", "unless", "while" or
+// "until".
 type Condition struct {
 	Keyword     string
 	Description string

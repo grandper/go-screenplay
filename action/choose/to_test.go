@@ -180,8 +180,16 @@ func TestTo(t *testing.T) {
 	t.Run("supports the Default wording for the fallback", func(t *testing.T) {
 		withOtherwise := choose.To(doTask).When(false).To(doTheAlternative).Otherwise()
 		withDefault := choose.To(doTask).When(false).To(doTheAlternative).Default()
-		assert.Equal(t, "choose to do the task when the first condition holds, or to do the alternative otherwise", withOtherwise.String())
-		assert.Equal(t, "choose to do the task when the first condition holds, or to do the alternative default", withDefault.String())
+		assert.Equal(
+			t,
+			"choose to do the task when the first condition holds, or to do the alternative otherwise",
+			withOtherwise.String(),
+		)
+		assert.Equal(
+			t,
+			"choose to do the task when the first condition holds, or to do the alternative default",
+			withDefault.String(),
+		)
 
 		reset()
 		require.NoError(t, adam.AttemptsTo(withDefault))

@@ -68,7 +68,7 @@ func New(path string, options ...Option) (*Adapter, error) {
 		flags = os.O_CREATE | os.O_WRONLY | os.O_APPEND
 	}
 
-	file, err := os.OpenFile(path, flags, 0o644)
+	file, err := os.OpenFile(path, flags, 0o644) //nolint:gosec // a narration file is meant to be read by anyone
 	if err != nil {
 		return nil, err
 	}

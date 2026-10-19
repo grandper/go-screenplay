@@ -3,7 +3,6 @@ package fileadapter_test
 import (
 	"os"
 	"path/filepath"
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -102,7 +101,7 @@ func TestFileAdapter(t *testing.T) {
 		content, err := os.ReadFile(path)
 		require.NoError(t, err)
 		assert.Regexp(t,
-			regexp.MustCompile(`^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}     Adam sends a GET request to /orders/42\n$`),
+			`^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}     Adam sends a GET request to /orders/42\n$`,
 			string(content))
 	})
 

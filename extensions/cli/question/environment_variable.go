@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/grandper/go-monad"
+
 	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
 	"github.com/grandper/go-screenplay/v2/internal/verdict"
 	"github.com/grandper/go-screenplay/v2/screenplay"

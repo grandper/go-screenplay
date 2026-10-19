@@ -143,7 +143,11 @@ func TestRequest(t *testing.T) {
 		sendRequest = send.RequestWithMethod(http.MethodPost).
 			To("https://www.google.com").
 			WithBody(strings.NewReader("hello world"))
-		assert.Equal(t, "send a POST request to \"https://www.google.com\" with body \"hello world\"", sendRequest.String())
+		assert.Equal(
+			t,
+			"send a POST request to \"https://www.google.com\" with body \"hello world\"",
+			sendRequest.String(),
+		)
 	})
 
 	t.Run("can send request secretly", func(t *testing.T) {

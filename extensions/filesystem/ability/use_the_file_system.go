@@ -384,7 +384,11 @@ func (a *UseTheFileSystemAbility) refuseProtectedDirectory(name, dir string) err
 		return fmt.Errorf("%w: %s is the current working directory", ErrProtectedDirectory, verdict.Describe(name))
 	}
 	if strings.HasPrefix(current, dir+string(filepath.Separator)) {
-		return fmt.Errorf("%w: %s contains the current working directory", ErrProtectedDirectory, verdict.Describe(name))
+		return fmt.Errorf(
+			"%w: %s contains the current working directory",
+			ErrProtectedDirectory,
+			verdict.Describe(name),
+		)
 	}
 
 	processDirectory, err := os.Getwd()
@@ -392,10 +396,18 @@ func (a *UseTheFileSystemAbility) refuseProtectedDirectory(name, dir string) err
 		return err
 	}
 	if dir == processDirectory {
-		return fmt.Errorf("%w: %s is the working directory of the process", ErrProtectedDirectory, verdict.Describe(name))
+		return fmt.Errorf(
+			"%w: %s is the working directory of the process",
+			ErrProtectedDirectory,
+			verdict.Describe(name),
+		)
 	}
 	if strings.HasPrefix(processDirectory, dir+string(filepath.Separator)) {
-		return fmt.Errorf("%w: %s contains the working directory of the process", ErrProtectedDirectory, verdict.Describe(name))
+		return fmt.Errorf(
+			"%w: %s contains the working directory of the process",
+			ErrProtectedDirectory,
+			verdict.Describe(name),
+		)
 	}
 
 	return nil

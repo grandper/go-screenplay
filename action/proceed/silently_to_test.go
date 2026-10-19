@@ -126,7 +126,11 @@ func TestSilentlyTo(t *testing.T) {
 	})
 
 	t.Run("implements the performable interface", func(t *testing.T) {
-		assert.Implements(t, (*screenplay.Performable)(nil), proceed.SilentlyTo(fixture.NewFakePerformable("log in", nil)))
+		assert.Implements(
+			t,
+			(*screenplay.Performable)(nil),
+			proceed.SilentlyTo(fixture.NewFakePerformable("log in", nil)),
+		)
 	})
 
 	t.Run("fails instead of panicking when the performable is nil", func(t *testing.T) {

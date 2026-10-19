@@ -124,7 +124,11 @@ func TestEitherTo(t *testing.T) {
 
 	t.Run("returns an error when no action is provided", func(t *testing.T) {
 		reset()
-		require.ErrorIs(t, adam.AttemptsTo(proceed.EitherTo().Or(doTheAlternativeOfTask1AndFail)), proceed.ErrNoPerformableProvided)
+		require.ErrorIs(
+			t,
+			adam.AttemptsTo(proceed.EitherTo().Or(doTheAlternativeOfTask1AndFail)),
+			proceed.ErrNoPerformableProvided,
+		)
 		assert.Equal(t, []string{}, record)
 	})
 
@@ -147,5 +151,4 @@ func TestEitherTo(t *testing.T) {
 			action2.String(),
 		)
 	})
-
 }

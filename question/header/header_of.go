@@ -52,7 +52,13 @@ func (q *OfQuestion[F, T]) AnsweredBy(actor *screenplay.Actor) (F, error) {
 
 	typed, isAnF := field.Interface().(F)
 	if !isAnF {
-		return zero, fmt.Errorf("%w: Header: %s holds a %s, not a %T", question.ErrFieldHasWrongType, q.question, field.Type(), zero)
+		return zero, fmt.Errorf(
+			"%w: Header: %s holds a %s, not a %T",
+			question.ErrFieldHasWrongType,
+			q.question,
+			field.Type(),
+			zero,
+		)
 	}
 
 	return typed, nil

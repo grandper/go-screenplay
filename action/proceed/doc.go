@@ -1,8 +1,13 @@
 // Package proceed holds the actions that control how other actions are
-// performed: on a condition, with a fallback, silently, in parallel or in the
-// background.
+// performed: on a condition, in a loop, with a fallback, silently, in parallel
+// or in the background.
 //
 //	proceed.To(action).IfThe(question).HappensTo(...)  performs an action when a condition holds
+//	proceed.RepeatedlyTo(action).WhileThe(question)... repeats an action while a condition holds
+//	proceed.RepeatedlyTo(action).UntilThe(question)... repeats an action until a condition holds
+//	proceed.RepeatedlyTo(action).Exactly(n).Times()    repeats an action a fixed number of times
+//	proceed.ThroughThe(question).AndForEach(body)      performs an action for each item of an answer
+//	proceed.Through(items...).AndForEach(body)         performs an action for each item written in the statement
 //	proceed.EitherTo(action).Or(alternative)           falls back when an action fails
 //	proceed.SilentlyTo(action)                         mutes the narration of an action
 //	proceed.ConcurrentlyTo(actions...)                 performs actions in parallel and waits for them

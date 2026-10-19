@@ -86,7 +86,11 @@ func TestTheCurrentDirectoryTo(t *testing.T) {
 
 		t.Run("fail if the directory does not exist", func(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
-			require.ErrorIs(t, adam.AttemptsTo(change.TheCurrentDirectoryTo("")), filesystemaction.ErrDirectoryNameNotProvided)
+			require.ErrorIs(
+				t,
+				adam.AttemptsTo(change.TheCurrentDirectoryTo("")),
+				filesystemaction.ErrDirectoryNameNotProvided,
+			)
 		})
 
 		t.Run("fails when the actor has not the ability to use the file system", func(t *testing.T) {

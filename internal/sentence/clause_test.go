@@ -93,7 +93,10 @@ func TestClause(t *testing.T) {
 	t.Run("judges a value against at least one resolution of ShouldAnyOf", func(t *testing.T) {
 		t.Parallel()
 
-		clause := sentence.NewClause(sentence.ShouldAnyOf, []screenplay.Resolution[int]{be.EqualTo(200), be.EqualTo(201)})
+		clause := sentence.NewClause(
+			sentence.ShouldAnyOf,
+			[]screenplay.Resolution[int]{be.EqualTo(200), be.EqualTo(201)},
+		)
 
 		met, err := clause.Judge("the status code", 201)
 		require.NoError(t, err)

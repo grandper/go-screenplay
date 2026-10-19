@@ -36,7 +36,10 @@ func TheHeaders(args ...string) *TheHeadersAction {
 	numArgs := len(args)
 	if numArgs == 0 {
 		return &TheHeadersAction{
-			err: fmt.Errorf("%w: set.TheHeaders should receive at least one key and its value", action.ErrInvalidHeaders),
+			err: fmt.Errorf(
+				"%w: set.TheHeaders should receive at least one key and its value",
+				action.ErrInvalidHeaders,
+			),
 		}
 	}
 	if numArgs%2 != 0 {

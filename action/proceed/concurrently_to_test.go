@@ -202,14 +202,21 @@ func TestConcurrentlyTo(t *testing.T) {
 		reset()
 		require.NoError(t, adam.AttemptsTo(proceed.SimultaneouslyTo(doTask1, doTask2)))
 		assert.Equal(t, []string{"do task 1", "do task 2"}, sortedRecord())
-		assert.Equal(t, "proceed simultaneously to do task 1, do task 2", proceed.SimultaneouslyTo(doTask1, doTask2).String())
+		assert.Equal(
+			t,
+			"proceed simultaneously to do task 1, do task 2",
+			proceed.SimultaneouslyTo(doTask1, doTask2).String(),
+		)
 	})
 
 	t.Run("ignores nil performables instead of panicking", func(t *testing.T) {
 		recorder := fixture.NewRecorder()
 		narratedAdam := narratedActor(recorder)
 
-		require.NoError(t, narratedAdam.AttemptsTo(proceed.ConcurrentlyTo(fixture.NewFakePerformable("retry", nil), nil)))
+		require.NoError(
+			t,
+			narratedAdam.AttemptsTo(proceed.ConcurrentlyTo(fixture.NewFakePerformable("retry", nil), nil)),
+		)
 		assert.Contains(t, recorder.Messages(), "Adam attempts to proceed concurrently to retry")
 
 		require.NoError(
