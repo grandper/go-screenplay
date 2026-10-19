@@ -835,6 +835,86 @@ the actor does nothing and no error is returned. Without any condition,
 eagerly (where it is written); use the question form when the condition must
 be evaluated at the moment the action is performed.
 
+#### Repeating an action
+`proceed.RepeatedlyTo` (package `action/proceed`) repeats an action, and the clause that closes it says how many
+passes it makes. `WhileThe` repeats the action while the answer to a question happens to
+be as stated, and `UntilThe` repeats it until it does. The condition is tested before each
+pass, so the action may never be performed:
+```go
+err := theActor.AttemptsTo(
+	proceed.RepeatedlyTo(TakeAMessage()).WhileThe(QueueLength).HappensTo(be.GreaterThan(0)),
+)
+// Adam attempts to proceed repeatedly to take a message while the queue length happens to be greater than 0
+//     Adam attempts to take a message
+//     Adam attempts to take a message
+
+err := theActor.AttemptsTo(
+	proceed.RepeatedlyTo(PollTheJob()).UntilThe(JobStatus).HappensTo(be.EqualTo("done")),
+)
+// Adam attempts to proceed repeatedly to poll the job until the job status happens to be equal to "done"
+```
+When no action has to run between two tests, `wait.UntilThe(JobStatus).HappensTo(...)`
+already says it.
+
+`AtLeastOnce` performs the action once before the condition is first tested, as a
+do-while loop does. It comes before the condition, so that the sentence keeps its meaning:
+```go
+err := theActor.AttemptsTo(
+	proceed.RepeatedlyTo(SendTheRequest()).AtLeastOnce().UntilThe(StatusCode).HappensTo(be.EqualTo(200)),
+)
+// Adam attempts to proceed repeatedly to send the request at least once until the status code happens to be equal to 200
+```
+`Exactly(n).Times()` repeats the action a fixed number of times:
+```go
+err := theActor.AttemptsTo(proceed.RepeatedlyTo(AddTheBookToTheCart()).Exactly(3).Times())
+// Adam attempts to proceed repeatedly to add the book to the cart exactly 3 times
+//     Adam attempts to add the book to the cart
+//     Adam attempts to add the book to the cart
+//     Adam attempts to add the book to the cart
+// fails: Adam failed to proceed repeatedly to add the book to the cart exactly 3 times on the 2nd pass: the book is out of stock
+```
+When the action needs the index of the pass, give `RepeatedlyTo` a function of the index
+instead of an action, as `for index := range 3` does in Go. The index starts at 0, the
+function may return any type of action, and the loop is narrated with the name of the
+function:
+```go
+func UploadThePart(index int) *UploadThePartAction { ... }
+
+err := theActor.AttemptsTo(proceed.RepeatedlyTo(UploadThePart).Exactly(3).Times())
+// Adam attempts to proceed repeatedly to upload the part exactly 3 times
+//     Adam attempts to upload the part 0
+//     Adam attempts to upload the part 1
+//     Adam attempts to upload the part 2
+```
+The function of the index works with every clause: `Exactly`, `WhileThe`, `UntilThe` and
+`AtLeastOnce`. Any other body builds, and fails with `screenplay.ErrInvalidResolution` when
+the loop is performed.
+
+`proceed.RepeatedlyTo` is not `keep.TryingTo`: `keep.TryingTo` retries a failing action and
+stops at its first success, while `proceed.RepeatedlyTo` repeats an action that succeeds and
+stops at its first failure, with an error that names the pass.
+
+#### Going through a collection
+`proceed.ThroughThe` performs an action for each item of the answer to a question. The
+body is a function from the item to an action, so a constructor such as `remove.TheFile`
+works without a wrapper:
+```go
+err := theActor.AttemptsTo(proceed.ThroughThe(TemporaryFiles).AndForEach(remove.TheFile))
+// Adam attempts to proceed through the temporary files
+//     Adam attempts to remove the file "a.tmp"
+//     Adam attempts to remove the file "b.tmp"
+// fails: Adam failed to proceed through the temporary files on the 2nd pass, for "b.tmp": file "b.tmp" does not exist
+```
+The question is answered when the action is performed, and the type of the items comes
+from it, so the compiler checks the body. `proceed.Through` goes through items written in
+the statement, typically a Go slice built elsewhere:
+```go
+err := theActor.AttemptsTo(proceed.Through(endpoints...).AndForEach(CheckTheEndpoint))
+// Adam attempts to proceed through "/health", "/ready"
+//     Adam attempts to check the endpoint /health
+//     Adam attempts to check the endpoint /ready
+```
+
 #### Choosing one action out of many
 `choose.To` (package `action/choose`) is the multi-way generalization of `proceed.To`: it performs the first branch
 whose condition holds. Each branch is a `To(action)` closed by its condition — `When` for
@@ -946,8 +1026,9 @@ The same verbs close the terms built with `term.That`.
 #### The verbs of a condition
 "Should" states an expectation, so it does not read well in a condition, which states a
 fact: nobody says "if the status code should be at least 500". The sentences that state a
-fact — `proceed.To(...).IfThe`, `WhenThe` and `UnlessThe`, `choose.To(...).WhenThe`,
-`choose.BasedOnThe(...).WhenIt`, and `wait.UntilThe` — are closed by the "happens to"
+fact — `proceed.To(...).IfThe`, `WhenThe` and `UnlessThe`, `proceed.RepeatedlyTo(...).WhileThe`
+and `UntilThe`, `choose.To(...).WhenThe`, `choose.BasedOnThe(...).WhenIt`, and
+`wait.UntilThe` — are closed by the "happens to"
 verbs. They take the same resolutions as the "should" verbs, and each has a singular and a
 plural form so that the sentence agrees with its subject:
 
@@ -1118,7 +1199,7 @@ check for them with `errors.Is`:
 
 | Error | Reported when |
 | --- | --- |
-| `screenplay.ErrInvalidResolution` | a resolution was built wrongly: `match.PatternString("A-(")`, `match.Pattern(nil)`, `be.Between(10, 1)`, `be.CloseTo(3.0, -0.1)`, `be.Empty[int]()`, `length.Exactly[int](1)`, `length.Exactly[string](-1)`, `resolution.FromFunc[int]("...", nil)` |
+| `screenplay.ErrInvalidResolution` | a resolution was built wrongly: `match.PatternString("A-(")`, `match.Pattern(nil)`, `be.Between(10, 1)`, `be.CloseTo(3.0, -0.1)`, `be.Empty[int]()`, `length.Exactly[int](1)`, `length.Exactly[string](-1)`, `resolution.FromFunc[int]("...", nil)`, `proceed.RepeatedlyTo(...).Exactly(-1)`, a `proceed.RepeatedlyTo` body that is neither an action nor a function of the index |
 | `term.ErrInvalidTerm` | a sentence was built wrongly: a verb without a resolution, a `nil` resolution, a `nil` question, or a `nil` term |
 
 The extensions follow the same rule. For example, the HTTP actions `add.TheHeaders` and
