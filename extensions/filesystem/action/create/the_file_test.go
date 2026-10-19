@@ -12,7 +12,7 @@ import (
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/create"
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/fixture"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/fixture"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 

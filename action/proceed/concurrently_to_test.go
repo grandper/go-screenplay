@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/action"
+	impl "github.com/grandper/go-screenplay/v2/action/internal/proceed"
 	"github.com/grandper/go-screenplay/v2/action/proceed"
 	"github.com/grandper/go-screenplay/v2/fixture"
 	"github.com/grandper/go-screenplay/v2/screenplay"
@@ -239,10 +240,10 @@ func TestConcurrentlyTo(t *testing.T) {
 	})
 
 	t.Run("narrates each of its performables", func(t *testing.T) {
-		for name, mode := range map[string]func(*proceed.ConcurrentlyToAction) *proceed.ConcurrentlyToAction{
-			"waiting for all":   (*proceed.ConcurrentlyToAction).WaitingForAll,
-			"ignoring errors":   (*proceed.ConcurrentlyToAction).IgnoringErrors,
-			"stopping on error": (*proceed.ConcurrentlyToAction).StoppingOnError,
+		for name, mode := range map[string]func(*impl.ConcurrentlyToAction) *impl.ConcurrentlyToAction{
+			"waiting for all":   (*impl.ConcurrentlyToAction).WaitingForAll,
+			"ignoring errors":   (*impl.ConcurrentlyToAction).IgnoringErrors,
+			"stopping on error": (*impl.ConcurrentlyToAction).StoppingOnError,
 		} {
 			t.Run(name, func(t *testing.T) {
 				recorder := fixture.NewRecorder()

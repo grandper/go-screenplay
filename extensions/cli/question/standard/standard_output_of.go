@@ -8,19 +8,19 @@ import (
 )
 
 // OutputOf creates a question whose answer is the standard output of the result answered by the wrapped question.
-func OutputOf(question screenplay.Question[*ability.Result]) *OutputOfQuestion {
-	return &OutputOfQuestion{
+func OutputOf(question screenplay.Question[*ability.Result]) screenplay.Question[[]byte] {
+	return &outputOfQuestion{
 		question: question,
 	}
 }
 
-// OutputOfQuestion is a question whose answer is the standard output of the answer of the wrapped question.
-type OutputOfQuestion struct {
+// outputOfQuestion is a question whose answer is the standard output of the answer of the wrapped question.
+type outputOfQuestion struct {
 	question screenplay.Question[*ability.Result]
 }
 
 // AnsweredBy returns the standard output of the result answered by the wrapped question.
-func (q *OutputOfQuestion) AnsweredBy(actor *screenplay.Actor) ([]byte, error) {
+func (q *outputOfQuestion) AnsweredBy(actor *screenplay.Actor) ([]byte, error) {
 	result, err := q.question.AnsweredBy(actor)
 	if err != nil {
 		return nil, err
@@ -34,9 +34,9 @@ func (q *OutputOfQuestion) AnsweredBy(actor *screenplay.Actor) ([]byte, error) {
 }
 
 // String describes the question.
-func (q *OutputOfQuestion) String() string {
+func (q *outputOfQuestion) String() string {
 	return "standard output of " + q.question.String()
 }
 
-// OutputOfQuestion implements the screenplay.Question interface.
-var _ screenplay.Question[[]byte] = (*OutputOfQuestion)(nil)
+// outputOfQuestion implements the screenplay.Question interface.
+var _ screenplay.Question[[]byte] = (*outputOfQuestion)(nil)

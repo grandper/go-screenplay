@@ -1,0 +1,30 @@
+package ability
+
+// Result contains the execution result.
+type Result struct {
+	exitCode int
+	stdOut   []byte
+	stdErr   []byte
+	err      error
+}
+
+// ExitCode returns the exit code of the command.
+func (r *Result) ExitCode() int {
+	return r.exitCode
+}
+
+// StdOut returns the standard output of the command.
+func (r *Result) StdOut() []byte {
+	return r.stdOut
+}
+
+// StdErr returns the standard error of the command.
+func (r *Result) StdErr() []byte {
+	return r.stdErr
+}
+
+// Err returns the error returned by Wait, if any.
+// For non-zero exit codes this will be an *exec.ExitError.
+func (r *Result) Err() error {
+	return r.err
+}

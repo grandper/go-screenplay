@@ -12,19 +12,19 @@ import (
 var ErrResponseIsNil = errors.New("the answer of the question is a nil HTTP response")
 
 // CodeOf creates a question whose answer is the status code of the HTTP response answered by the wrapped question.
-func CodeOf(question screenplay.Question[*ability.HTTPResponse]) *CodeOfQuestion {
-	return &CodeOfQuestion{
+func CodeOf(question screenplay.Question[*ability.HTTPResponse]) screenplay.Question[int] {
+	return &codeOfQuestion{
 		question: question,
 	}
 }
 
-// CodeOfQuestion is a question whose answer is the status code of the answer of the wrapped question.
-type CodeOfQuestion struct {
+// codeOfQuestion is a question whose answer is the status code of the answer of the wrapped question.
+type codeOfQuestion struct {
 	question screenplay.Question[*ability.HTTPResponse]
 }
 
 // AnsweredBy returns the status code of the HTTP response answered by the wrapped question.
-func (q *CodeOfQuestion) AnsweredBy(actor *screenplay.Actor) (int, error) {
+func (q *codeOfQuestion) AnsweredBy(actor *screenplay.Actor) (int, error) {
 	response, err := q.question.AnsweredBy(actor)
 	if err != nil {
 		return 0, err
@@ -38,9 +38,9 @@ func (q *CodeOfQuestion) AnsweredBy(actor *screenplay.Actor) (int, error) {
 }
 
 // String describes the question.
-func (q *CodeOfQuestion) String() string {
+func (q *codeOfQuestion) String() string {
 	return "status code of " + q.question.String()
 }
 
-// CodeOfQuestion implements the screenplay.Question interface.
-var _ screenplay.Question[int] = (*CodeOfQuestion)(nil)
+// codeOfQuestion implements the screenplay.Question interface.
+var _ screenplay.Question[int] = (*codeOfQuestion)(nil)

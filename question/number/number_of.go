@@ -16,19 +16,19 @@ var ErrAnswerIsNotACollection = errors.New("the answer of the question is not a 
 // array or map answered by the wrapped question. A single type parameter cannot
 // range over slices, arrays and maps, so the collection type is left
 // unconstrained and checked when the question is answered.
-func Of[C any](question screenplay.Question[C]) *OfQuestion[C] {
-	return &OfQuestion[C]{
+func Of[C any](question screenplay.Question[C]) screenplay.Question[int] {
+	return &ofQuestion[C]{
 		question: question,
 	}
 }
 
-// OfQuestion is a question whose answer is the number of elements in the answer of the wrapped question.
-type OfQuestion[C any] struct {
+// ofQuestion is a question whose answer is the number of elements in the answer of the wrapped question.
+type ofQuestion[C any] struct {
 	question screenplay.Question[C]
 }
 
 // AnsweredBy returns the number of elements in the slice, array or map answered by the wrapped question.
-func (q *OfQuestion[C]) AnsweredBy(actor *screenplay.Actor) (int, error) {
+func (q *ofQuestion[C]) AnsweredBy(actor *screenplay.Actor) (int, error) {
 	answer, err := q.question.AnsweredBy(actor)
 	if err != nil {
 		return 0, err
@@ -44,9 +44,9 @@ func (q *OfQuestion[C]) AnsweredBy(actor *screenplay.Actor) (int, error) {
 }
 
 // String describes the question.
-func (q *OfQuestion[C]) String() string {
+func (q *ofQuestion[C]) String() string {
 	return "number of " + q.question.String()
 }
 
-// OfQuestion implements the screenplay.Question interface.
-var _ screenplay.Question[int] = (*OfQuestion[any])(nil)
+// ofQuestion implements the screenplay.Question interface.
+var _ screenplay.Question[int] = (*ofQuestion[any])(nil)

@@ -3,37 +3,37 @@ package remove
 import (
 	"fmt"
 
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action"
-	"github.com/grandper/go-screenplay/v2/internal/verdict"
+	impl "github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/verdict"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // TheFile removes a file:
 //
 //	remove.TheFile("draft.txt")
-func TheFile(fileName string) *TheFileAction {
-	return &TheFileAction{filename: fileName}
+func TheFile(fileName string) screenplay.Performable {
+	return &theFileAction{filename: fileName}
 }
 
 // TheDirectory removes a directory.
-func TheDirectory(directoryName string) *TheDirectoryAction {
-	return &TheDirectoryAction{directoryName: directoryName}
+func TheDirectory(directoryName string) screenplay.Performable {
+	return &theDirectoryAction{directoryName: directoryName}
 }
 
-// TheFileAction is an action that removes a file.
-type TheFileAction struct {
+// theFileAction is an action that removes a file.
+type theFileAction struct {
 	filename string
 }
 
 // String describes the action.
-func (a *TheFileAction) String() string {
+func (a *theFileAction) String() string {
 	return fmt.Sprintf("remove the file %s", verdict.Describe(a.filename))
 }
 
 // PerformAs removes the file.
-func (a *TheFileAction) PerformAs(actor *screenplay.Actor) error {
-	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(ability.UseTheFileSystem())
+func (a *theFileAction) PerformAs(actor *screenplay.Actor) error {
+	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(impl.UseTheFileSystem())
 	if a.filename == "" {
 		return action.ErrFilenameNotProvided
 	}
@@ -47,22 +47,22 @@ func (a *TheFileAction) PerformAs(actor *screenplay.Actor) error {
 	return useTheFileSystem.ToRemoveFile(a.filename)
 }
 
-// TheFileAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = (*TheFileAction)(nil)
+// theFileAction implements the screenplay.Performable interface.
+var _ screenplay.Performable = (*theFileAction)(nil)
 
-// TheDirectoryAction is an action that removes a directory.
-type TheDirectoryAction struct {
+// theDirectoryAction is an action that removes a directory.
+type theDirectoryAction struct {
 	directoryName string
 }
 
 // String describes the action.
-func (a *TheDirectoryAction) String() string {
+func (a *theDirectoryAction) String() string {
 	return fmt.Sprintf("remove the directory %s", verdict.Describe(a.directoryName))
 }
 
 // PerformAs removes the directory.
-func (a *TheDirectoryAction) PerformAs(actor *screenplay.Actor) error {
-	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(ability.UseTheFileSystem())
+func (a *theDirectoryAction) PerformAs(actor *screenplay.Actor) error {
+	useTheFileSystem := screenplay.UseAnAbilityOf(actor).That(impl.UseTheFileSystem())
 	if a.directoryName == "" {
 		return action.ErrDirectoryNameNotProvided
 	}
@@ -76,5 +76,5 @@ func (a *TheDirectoryAction) PerformAs(actor *screenplay.Actor) error {
 	return useTheFileSystem.ToRemoveDirectory(a.directoryName)
 }
 
-// TheDirectoryAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = (*TheDirectoryAction)(nil)
+// theDirectoryAction implements the screenplay.Performable interface.
+var _ screenplay.Performable = (*theDirectoryAction)(nil)

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/extensions/http/ability"
+	impl "github.com/grandper/go-screenplay/v2/extensions/http/internal/ability"
 	"github.com/grandper/go-screenplay/v2/extensions/http/question/status"
 	"github.com/grandper/go-screenplay/v2/fixture"
 	"github.com/grandper/go-screenplay/v2/screenplay"
@@ -21,7 +22,7 @@ func TestCodeOfQuestion(t *testing.T) {
 
 	adam := screenplay.ActorNamed("Adam")
 
-	httpResponse, setupErr := ability.NewHTTPResponseFrom(&http.Response{
+	httpResponse, setupErr := impl.NewHTTPResponseFrom(&http.Response{
 		StatusCode: http.StatusOK,
 		Header:     http.Header{},
 		Body:       io.NopCloser(strings.NewReader("Hello World")),

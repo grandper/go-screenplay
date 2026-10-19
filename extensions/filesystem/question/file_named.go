@@ -3,27 +3,27 @@ package question
 import (
 	"fmt"
 
-	"github.com/grandper/go-screenplay/v2/internal/verdict"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/verdict"
 
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
+	impl "github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // FileNamed returns a file with the provided name.
-func FileNamed(filePath string) *FileNamedQuestion {
-	return &FileNamedQuestion{
+func FileNamed(filePath string) screenplay.Question[*File] {
+	return &fileNamedQuestion{
 		filePath: filePath,
 	}
 }
 
-// FileNamedQuestion returns a file with the provided name.
-type FileNamedQuestion struct {
+// fileNamedQuestion returns a file with the provided name.
+type fileNamedQuestion struct {
 	filePath string
 }
 
 // AnsweredBy returns the answer that an actor provided to the question.
-func (q *FileNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (*File, error) {
-	useTheFileSystem := screenplay.UseAnAbilityOf(theActor).That(ability.UseTheFileSystem())
+func (q *fileNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (*File, error) {
+	useTheFileSystem := screenplay.UseAnAbilityOf(theActor).That(impl.UseTheFileSystem())
 	exists, err := useTheFileSystem.ToTellIfTheFileExists(q.filePath)
 	if err != nil {
 		return nil, err
@@ -32,9 +32,9 @@ func (q *FileNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (*File, error
 }
 
 // String describes the question.
-func (q *FileNamedQuestion) String() string {
+func (q *fileNamedQuestion) String() string {
 	return fmt.Sprintf("file named %s", verdict.Describe(q.filePath))
 }
 
-// FileNamedQuestion implements the screenplay.Question interface.
-var _ screenplay.Question[*File] = (*FileNamedQuestion)(nil)
+// fileNamedQuestion implements the screenplay.Question interface.
+var _ screenplay.Question[*File] = (*fileNamedQuestion)(nil)

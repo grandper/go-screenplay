@@ -3,27 +3,27 @@ package question
 import (
 	"fmt"
 
-	"github.com/grandper/go-screenplay/v2/internal/verdict"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/verdict"
 
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
+	impl "github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
 // DirectoryNamed returns a directory with the provided name.
-func DirectoryNamed(directoryPath string) *DirectoryNamedQuestion {
-	return &DirectoryNamedQuestion{
+func DirectoryNamed(directoryPath string) screenplay.Question[*Directory] {
+	return &directoryNamedQuestion{
 		directoryPath: directoryPath,
 	}
 }
 
-// DirectoryNamedQuestion returns a directory with the provided name.
-type DirectoryNamedQuestion struct {
+// directoryNamedQuestion returns a directory with the provided name.
+type directoryNamedQuestion struct {
 	directoryPath string
 }
 
 // AnsweredBy returns the answer that an actor provided to the question.
-func (q *DirectoryNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (*Directory, error) {
-	useTheFileSystem := screenplay.UseAnAbilityOf(theActor).That(ability.UseTheFileSystem())
+func (q *directoryNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (*Directory, error) {
+	useTheFileSystem := screenplay.UseAnAbilityOf(theActor).That(impl.UseTheFileSystem())
 	exists, err := useTheFileSystem.ToTellIfTheDirectoryExists(q.directoryPath)
 	if err != nil {
 		return nil, err
@@ -32,9 +32,9 @@ func (q *DirectoryNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (*Direct
 }
 
 // String describes the question.
-func (q *DirectoryNamedQuestion) String() string {
+func (q *directoryNamedQuestion) String() string {
 	return fmt.Sprintf("directory named %s", verdict.Describe(q.directoryPath))
 }
 
-// DirectoryNamedQuestion implements the screenplay.Question interface.
-var _ screenplay.Question[*Directory] = (*DirectoryNamedQuestion)(nil)
+// directoryNamedQuestion implements the screenplay.Question interface.
+var _ screenplay.Question[*Directory] = (*directoryNamedQuestion)(nil)

@@ -95,7 +95,7 @@ func TestSeeTheAction(t *testing.T) {
 		anything := resolutionfixture.NewFakeResolution[string]("anything", true)
 
 		for _, testCase := range []struct {
-			action *see.TheAction
+			action screenplay.Performable
 			reads  string
 			passes bool
 		}{

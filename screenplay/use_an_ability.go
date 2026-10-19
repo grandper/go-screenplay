@@ -5,7 +5,7 @@ import "reflect"
 // UseAnAbilityOf starts using an ability of the actor inside an action or a
 // question; it is written in PerformAs or AnsweredBy, never in a test:
 //
-//	err := screenplay.UseAnAbilityOf(theActor).That(ability.MakeHTTPRequests()).ToSend(ctx, method, url, body, nil)
+//	err := screenplay.UseAnAbilityOf(theActor).That(UseTerminalCommands()).Run("ls")
 func UseAnAbilityOf(actor *Actor) UseAnAbilityBuilder {
 	return UseAnAbilityBuilder{actor: actor}
 }

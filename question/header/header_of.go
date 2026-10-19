@@ -16,19 +16,19 @@ import (
 //	header.Of[string](TheLastResponse)
 //
 // Use header.Of[any](...) to accept a field of any type.
-func Of[F any, T any](question screenplay.Question[T]) *OfQuestion[F, T] {
-	return &OfQuestion[F, T]{
+func Of[F any, T any](question screenplay.Question[T]) screenplay.Question[F] {
+	return &ofQuestion[F, T]{
 		question: question,
 	}
 }
 
-// OfQuestion is a question whose answer is the Header field of the answer of the wrapped question.
-type OfQuestion[F any, T any] struct {
+// ofQuestion is a question whose answer is the Header field of the answer of the wrapped question.
+type ofQuestion[F any, T any] struct {
 	question screenplay.Question[T]
 }
 
 // AnsweredBy returns the Header field of the struct answered by the wrapped question.
-func (q *OfQuestion[F, T]) AnsweredBy(actor *screenplay.Actor) (F, error) {
+func (q *ofQuestion[F, T]) AnsweredBy(actor *screenplay.Actor) (F, error) {
 	var zero F
 
 	answer, err := q.question.AnsweredBy(actor)
@@ -65,9 +65,9 @@ func (q *OfQuestion[F, T]) AnsweredBy(actor *screenplay.Actor) (F, error) {
 }
 
 // String describes the question.
-func (q *OfQuestion[F, T]) String() string {
+func (q *ofQuestion[F, T]) String() string {
 	return "header of " + q.question.String()
 }
 
-// OfQuestion implements the screenplay.Question interface.
-var _ screenplay.Question[any] = (*OfQuestion[any, any])(nil)
+// ofQuestion implements the screenplay.Question interface.
+var _ screenplay.Question[any] = (*ofQuestion[any, any])(nil)

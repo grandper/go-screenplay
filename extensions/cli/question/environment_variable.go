@@ -6,8 +6,8 @@ import (
 
 	"github.com/grandper/go-monad"
 
-	"github.com/grandper/go-screenplay/v2/extensions/cli/ability"
-	"github.com/grandper/go-screenplay/v2/internal/verdict"
+	impl "github.com/grandper/go-screenplay/v2/extensions/cli/internal/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/cli/internal/verdict"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
@@ -17,29 +17,29 @@ var (
 )
 
 // EnvironmentVariableNamed represents an environment variable.
-func EnvironmentVariableNamed(environmentVariableName string) *EnvironmentVariableNamedQuestion {
-	return &EnvironmentVariableNamedQuestion{
+func EnvironmentVariableNamed(environmentVariableName string) screenplay.Question[string] {
+	return &environmentVariableNamedQuestion{
 		environmentVariableName: environmentVariableName,
 	}
 }
 
-// EnvironmentVariableNamedQuestion represents an environment variable data.
-type EnvironmentVariableNamedQuestion struct {
+// environmentVariableNamedQuestion represents an environment variable data.
+type environmentVariableNamedQuestion struct {
 	environmentVariableName string
 }
 
 // AnsweredBy returns the answer that an actor provided to the question.
-func (q *EnvironmentVariableNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (string, error) {
-	if _, err := screenplay.UseAnAbilityOf(theActor).That(ability.RunCLICommands()).ToRetrieveResponses(); err != nil {
+func (q *environmentVariableNamedQuestion) AnsweredBy(theActor *screenplay.Actor) (string, error) {
+	if _, err := screenplay.UseAnAbilityOf(theActor).That(impl.RunCLICommands()).ToRetrieveResponses(); err != nil {
 		return "", err
 	}
 	return monad.GetStringFromEnv(q.environmentVariableName).OrElseError(ErrEnvironmentVariableNotFound)
 }
 
 // String describes the question.
-func (q *EnvironmentVariableNamedQuestion) String() string {
+func (q *environmentVariableNamedQuestion) String() string {
 	return fmt.Sprintf("environment variable named %s", verdict.Describe(q.environmentVariableName))
 }
 
-// EnvironmentVariableNamedQuestion implements the screenplay.Question interface.
-var _ screenplay.Question[string] = (*EnvironmentVariableNamedQuestion)(nil)
+// environmentVariableNamedQuestion implements the screenplay.Question interface.
+var _ screenplay.Question[string] = (*environmentVariableNamedQuestion)(nil)

@@ -254,6 +254,15 @@ can be used as follows:
 ```go
 action := create.Folder().Named("my_folder")
 ```
+The actions of the library are built the same way. Their builders live in an
+`internal` package: a test chains through them, but never names them:
+```go
+err := bob.AttemptsTo(wait.UntilThe(logs).HappenTo(contain.Substring("ready")))
+// Bob attempts to wait until the logs happen to contain substring "ready"
+
+var waiting *wait.UntilTheBuilder[string]
+// undefined: wait.UntilTheBuilder
+```
 Now if we want to perform that action we can simply do one of the followings:
 ```go
 bob := screenplay.ActorNamed("Bob")
@@ -1564,6 +1573,19 @@ You can find several extensions in the folder `extensions`. Each one bundles a n
 ability together with the actions, questions, and resolutions that go with it, so
 you can drive a specific kind of system-under-test with the same screenplay
 vocabulary. Every extension has its own README with the full list of what it ships.
+
+An extension keeps its implementation in `internal` folders inside its own folder
+(`action/internal` for its actions, `internal` for what its actions and questions
+share), so the folder holds everything the extension needs. A test gives the ability to an actor and performs
+the actions; it cannot call an operation of the ability, which would never be narrated:
+```go
+adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
+err := adam.AttemptsTo(remove.TheDirectory("orders"))
+// Adam attempts to remove the directory "orders"
+
+ability.UseTheFileSystem().ToRemoveDirectory("orders")
+// ability.UseTheFileSystem().ToRemoveDirectory undefined (type screenplay.Ability has no field or method ToRemoveDirectory)
+```
 
 ### HTTP — [`extensions/http`](extensions/http/README.md)
 Drives REST APIs. Give an actor the `MakeHTTPRequests()` ability, then send

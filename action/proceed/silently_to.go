@@ -19,21 +19,21 @@ import (
 //
 // A production configured with screenplay.WithForceAllNarration neutralizes
 // this decorator, so a scenario can be debugged with every step narrated again.
-func SilentlyTo(performable screenplay.Performable) *SilentlyToAction {
-	return &SilentlyToAction{
+func SilentlyTo(performable screenplay.Performable) screenplay.Performable {
+	return &silentlyToAction{
 		performable: performable,
 	}
 }
 
-// SilentlyToAction is a performable that mutes the narration produced while the
+// silentlyToAction is a performable that mutes the narration produced while the
 // wrapped performable runs.
-type SilentlyToAction struct {
+type silentlyToAction struct {
 	performable screenplay.Performable
 }
 
 // String describes the action without describing the wrapped performable, so
 // that a value the wrapped performable carries is never narrated.
-func (a *SilentlyToAction) String() string {
+func (a *silentlyToAction) String() string {
 	return "proceed silently to perform an action"
 }
 
@@ -42,7 +42,7 @@ func (a *SilentlyToAction) String() string {
 // itself untouched, so a SilentlyTo running in one concurrent branch never
 // mutes another. When the actor's narrator cannot be muted (see
 // screenplay.WithForceAllNarration), the steps narrate as usual.
-func (a *SilentlyToAction) PerformAs(theActor *screenplay.Actor) error {
+func (a *silentlyToAction) PerformAs(theActor *screenplay.Actor) error {
 	if a.performable == nil {
 		return errors.New("the performable given to SilentlyTo is nil")
 	}
@@ -50,5 +50,5 @@ func (a *SilentlyToAction) PerformAs(theActor *screenplay.Actor) error {
 	return a.performable.PerformAs(theActor.Muted())
 }
 
-// SilentlyToAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = (*SilentlyToAction)(nil)
+// silentlyToAction implements the screenplay.Performable interface.
+var _ screenplay.Performable = (*silentlyToAction)(nil)

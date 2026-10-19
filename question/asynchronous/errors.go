@@ -8,24 +8,24 @@ import (
 // Errors asks for all the non-nil errors produced by the actions launched with
 // proceed.AsynchronouslyTo. Answering the question waits for every pending
 // asynchronous action to complete before returning the collected errors.
-func Errors() *ErrorsQuestion {
-	return &ErrorsQuestion{}
+func Errors() screenplay.Question[[]error] {
+	return &errorsQuestion{}
 }
 
-// ErrorsQuestion is a question whose answer is the slice of errors produced by
+// errorsQuestion is a question whose answer is the slice of errors produced by
 // the actions launched with proceed.AsynchronouslyTo.
-type ErrorsQuestion struct{}
+type errorsQuestion struct{}
 
 // AnsweredBy waits for every pending asynchronous action to complete and returns
 // the slice of non-nil errors they produced.
-func (q *ErrorsQuestion) AnsweredBy(actor *screenplay.Actor) ([]error, error) {
+func (q *errorsQuestion) AnsweredBy(actor *screenplay.Actor) ([]error, error) {
 	return background.CollectedBy(actor), nil
 }
 
 // String describes the question.
-func (q *ErrorsQuestion) String() string {
+func (q *errorsQuestion) String() string {
 	return "asynchronous errors"
 }
 
-// ErrorsQuestion implements the screenplay.Question interface.
-var _ screenplay.Question[[]error] = (*ErrorsQuestion)(nil)
+// errorsQuestion implements the screenplay.Question interface.
+var _ screenplay.Question[[]error] = (*errorsQuestion)(nil)

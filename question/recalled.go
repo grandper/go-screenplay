@@ -26,25 +26,25 @@ var ErrRecalledValueHasWrongType = errors.New("the recalled value has the wrong 
 //
 //	statusCode, err := actor.AsksFor(question.Recalled[int]("statusCode"))
 //	anything, err := actor.AsksFor(question.Recalled[any]("statusCode"))
-func Recalled[T any](key string) *RecalledQuestion[T] {
-	return &RecalledQuestion[T]{
+func Recalled[T any](key string) screenplay.Question[T] {
+	return &recalledQuestion[T]{
 		key: key,
 	}
 }
 
-// RecalledQuestion is a question answered by a value stored in the actor's memory.
-type RecalledQuestion[T any] struct {
+// recalledQuestion is a question answered by a value stored in the actor's memory.
+type recalledQuestion[T any] struct {
 	key string
 }
 
 // String describes the question.
-func (q *RecalledQuestion[T]) String() string {
+func (q *recalledQuestion[T]) String() string {
 	return fmt.Sprintf("recalled %s", verdict.Describe(q.key))
 }
 
 // AnsweredBy returns the value the actor remembers under the question's key,
 // or the zero value of T when the actor remembers nothing under it.
-func (q *RecalledQuestion[T]) AnsweredBy(actor *screenplay.Actor) (T, error) {
+func (q *recalledQuestion[T]) AnsweredBy(actor *screenplay.Actor) (T, error) {
 	var zero T
 
 	value := actor.Recall[any](q.key).OrElse(nil)
@@ -60,5 +60,5 @@ func (q *RecalledQuestion[T]) AnsweredBy(actor *screenplay.Actor) (T, error) {
 	return answer, nil
 }
 
-// RecalledQuestion implements the screenplay.Question interface.
-var _ screenplay.Question[any] = (*RecalledQuestion[any])(nil)
+// recalledQuestion implements the screenplay.Question interface.
+var _ screenplay.Question[any] = (*recalledQuestion[any])(nil)

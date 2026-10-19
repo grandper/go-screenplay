@@ -65,14 +65,15 @@ err := anActor.AttemptsTo(send.GetRequest().To("https://www.example.com/loop"))
 // Get "https://www.example.com/loop": stopped after 3 redirects
 ```
 
-An action or a question uses the ability in one chained statement, written in
-`PerformAs` or `AnsweredBy`, never in a test:
+The settings are the only methods a test can call on the ability. Its operations live
+in `extensions/http/internal/ability`, so only an action or a question of the extension
+uses them, in one statement written in `PerformAs` or `AnsweredBy` that reads "the
+ability of the actor to add the header":
 ```go
-err := screenplay.UseAnAbilityOf(theActor).That(MakeHTTPRequests()).ToAddTheHeader("Accept", "application/json")
+err := impl.TheAbilityOf(theActor).ToAddTheHeader("Accept", "application/json")
 ```
-The argument of `That` carries the type; `That` returns the actor's own instance,
-or a nil pointer when the actor cannot make HTTP requests, and the operation
-then reports `screenplay.ErrActorMissingAbility`.
+`TheAbilityOf` never fails: when the actor cannot make HTTP requests, the operation
+reports `screenplay.ErrActorMissingAbility`.
 
 ## Actions
 

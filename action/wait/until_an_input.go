@@ -10,55 +10,55 @@ import (
 
 // UntilTheEnterKeyIsPressed makes an actor wait until the 'enter' key is
 // pressed, so that a test can be paused while debugging it.
-func UntilTheEnterKeyIsPressed() *UntilTheEnterKeyIsPressedAction {
-	return &UntilTheEnterKeyIsPressedAction{}
+func UntilTheEnterKeyIsPressed() screenplay.Performable {
+	return &untilTheEnterKeyIsPressedAction{}
 }
 
-// UntilTheEnterKeyIsPressedAction is an action that makes an actor wait until
+// untilTheEnterKeyIsPressedAction is an action that makes an actor wait until
 // the 'enter' key is pressed.
-type UntilTheEnterKeyIsPressedAction struct{}
+type untilTheEnterKeyIsPressedAction struct{}
 
 // String describes the action.
-func (a *UntilTheEnterKeyIsPressedAction) String() string {
+func (a *untilTheEnterKeyIsPressedAction) String() string {
 	return "wait until the enter key is pressed"
 }
 
 // PerformAs blocks until a line is read from the standard input, or until the
 // actor's context ends.
-func (a *UntilTheEnterKeyIsPressedAction) PerformAs(actor *screenplay.Actor) error {
+func (a *untilTheEnterKeyIsPressedAction) PerformAs(actor *screenplay.Actor) error {
 	return waitForAnInput(actor, os.Stdin)
 }
 
-// UntilTheEnterKeyIsPressedAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = (*UntilTheEnterKeyIsPressedAction)(nil)
+// untilTheEnterKeyIsPressedAction implements the screenplay.Performable interface.
+var _ screenplay.Performable = (*untilTheEnterKeyIsPressedAction)(nil)
 
 // UntilAnInputIsProvidedBy makes an actor wait until a line is read from the
 // reader.
-func UntilAnInputIsProvidedBy(reader io.Reader) *UntilAnInputIsProvidedByAction {
-	return &UntilAnInputIsProvidedByAction{
+func UntilAnInputIsProvidedBy(reader io.Reader) screenplay.Performable {
+	return &untilAnInputIsProvidedByAction{
 		reader: reader,
 	}
 }
 
-// UntilAnInputIsProvidedByAction is an action that makes an actor wait until a
+// untilAnInputIsProvidedByAction is an action that makes an actor wait until a
 // line is read from a reader.
-type UntilAnInputIsProvidedByAction struct {
+type untilAnInputIsProvidedByAction struct {
 	reader io.Reader
 }
 
 // String describes the action. A reader has no name to narrate.
-func (a *UntilAnInputIsProvidedByAction) String() string {
+func (a *untilAnInputIsProvidedByAction) String() string {
 	return "wait until an input is provided"
 }
 
 // PerformAs blocks until a line is read from the reader, or until the actor's
 // context ends.
-func (a *UntilAnInputIsProvidedByAction) PerformAs(actor *screenplay.Actor) error {
+func (a *untilAnInputIsProvidedByAction) PerformAs(actor *screenplay.Actor) error {
 	return waitForAnInput(actor, a.reader)
 }
 
-// UntilAnInputIsProvidedByAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = (*UntilAnInputIsProvidedByAction)(nil)
+// untilAnInputIsProvidedByAction implements the screenplay.Performable interface.
+var _ screenplay.Performable = (*untilAnInputIsProvidedByAction)(nil)
 
 // waitForAnInput blocks until a line is read from the reader, or until the
 // actor's context ends. The prompt is written to the standard error of the

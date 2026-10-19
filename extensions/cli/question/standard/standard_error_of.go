@@ -8,19 +8,19 @@ import (
 )
 
 // ErrorOf creates a question whose answer is the standard error of the result answered by the wrapped question.
-func ErrorOf(question screenplay.Question[*ability.Result]) *ErrorOfQuestion {
-	return &ErrorOfQuestion{
+func ErrorOf(question screenplay.Question[*ability.Result]) screenplay.Question[[]byte] {
+	return &errorOfQuestion{
 		question: question,
 	}
 }
 
-// ErrorOfQuestion is a question whose answer is the standard error of the answer of the wrapped question.
-type ErrorOfQuestion struct {
+// errorOfQuestion is a question whose answer is the standard error of the answer of the wrapped question.
+type errorOfQuestion struct {
 	question screenplay.Question[*ability.Result]
 }
 
 // AnsweredBy returns the standard error of the result answered by the wrapped question.
-func (q *ErrorOfQuestion) AnsweredBy(actor *screenplay.Actor) ([]byte, error) {
+func (q *errorOfQuestion) AnsweredBy(actor *screenplay.Actor) ([]byte, error) {
 	result, err := q.question.AnsweredBy(actor)
 	if err != nil {
 		return nil, err
@@ -34,9 +34,9 @@ func (q *ErrorOfQuestion) AnsweredBy(actor *screenplay.Actor) ([]byte, error) {
 }
 
 // String describes the question.
-func (q *ErrorOfQuestion) String() string {
+func (q *errorOfQuestion) String() string {
 	return "standard error of " + q.question.String()
 }
 
-// ErrorOfQuestion implements the screenplay.Question interface.
-var _ screenplay.Question[[]byte] = (*ErrorOfQuestion)(nil)
+// errorOfQuestion implements the screenplay.Question interface.
+var _ screenplay.Question[[]byte] = (*errorOfQuestion)(nil)

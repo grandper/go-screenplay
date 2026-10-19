@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/grandper/go-screenplay/v2/internal/verdict"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/verdict"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 

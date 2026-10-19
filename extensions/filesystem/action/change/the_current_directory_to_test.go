@@ -14,7 +14,8 @@ import (
 	filesystemaction "github.com/grandper/go-screenplay/v2/extensions/filesystem/action"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/change"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/create"
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/fixture"
+	impl "github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/fixture"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
@@ -28,9 +29,9 @@ func TestTheCurrentDirectoryTo(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
 			require.NoError(t, adam.AttemptsTo(change.TheCurrentDirectoryTo(dir)))
 
-			var useTheFileSystem *ability.UseTheFileSystemAbility
+			var useTheFileSystem *impl.UseTheFileSystemAbility
 			err = adam.AttemptsTo(action.FromFunc("use the ability", func(theActor *screenplay.Actor) error {
-				useTheFileSystem = screenplay.UseAnAbilityOf(theActor).That(ability.UseTheFileSystem())
+				useTheFileSystem = screenplay.UseAnAbilityOf(theActor).That(impl.UseTheFileSystem())
 
 				return nil
 			}))

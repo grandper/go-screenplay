@@ -18,34 +18,34 @@ import (
 //
 // A production configured with screenplay.WithForceAllNarration neutralizes
 // this decorator, so a scenario can be debugged with every step narrated again.
-func Silently[T any](q screenplay.Question[T]) *SilentlyQuestion[T] {
-	return &SilentlyQuestion[T]{
+func Silently[T any](q screenplay.Question[T]) screenplay.Question[T] {
+	return &silentlyQuestion[T]{
 		question: q,
 	}
 }
 
-// SilentlyQuestion is a question that mutes the narration produced while the
+// silentlyQuestion is a question that mutes the narration produced while the
 // wrapped question is answered.
-type SilentlyQuestion[T any] struct {
+type silentlyQuestion[T any] struct {
 	question screenplay.Question[T]
 }
 
 // String describes the question without describing the wrapped question, so
 // that a value the wrapped question carries is never narrated.
-func (q *SilentlyQuestion[T]) String() string {
+func (q *silentlyQuestion[T]) String() string {
 	return "secret"
 }
 
 // KeepsItsAnswerSecret marks the question as one whose answer must not be
 // narrated. The actor checks for this method before revealing an answer.
-func (q *SilentlyQuestion[T]) KeepsItsAnswerSecret() {}
+func (q *silentlyQuestion[T]) KeepsItsAnswerSecret() {}
 
 // AnsweredBy answers the wrapped question through a muted view of the actor, so
 // the narration it would produce is dropped. The view leaves the actor itself
 // untouched, so a Silently running in one concurrent branch never mutes
 // another. When the actor's narrator cannot be muted (see
 // screenplay.WithForceAllNarration), the steps narrate as usual.
-func (q *SilentlyQuestion[T]) AnsweredBy(actor *screenplay.Actor) (T, error) {
+func (q *silentlyQuestion[T]) AnsweredBy(actor *screenplay.Actor) (T, error) {
 	if q.question == nil {
 		var zero T
 
@@ -55,5 +55,5 @@ func (q *SilentlyQuestion[T]) AnsweredBy(actor *screenplay.Actor) (T, error) {
 	return q.question.AnsweredBy(actor.Muted())
 }
 
-// SilentlyQuestion implements the screenplay.Question interface.
-var _ screenplay.Question[any] = (*SilentlyQuestion[any])(nil)
+// silentlyQuestion implements the screenplay.Question interface.
+var _ screenplay.Question[any] = (*silentlyQuestion[any])(nil)

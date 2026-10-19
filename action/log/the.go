@@ -8,27 +8,27 @@ import "github.com/grandper/go-screenplay/v2/screenplay"
 //	log.The(statusCode)
 //
 // It performs screenplay.Log, which holds the narration.
-func The[T any](question screenplay.Question[T]) *TheAction[T] {
-	return &TheAction[T]{
+func The[T any](question screenplay.Question[T]) screenplay.Performable {
+	return &theAction[T]{
 		log: screenplay.Log(question),
 	}
 }
 
-// TheAction is an action that narrates the answer to a question.
-type TheAction[T any] struct {
-	log *screenplay.LogAction[T]
+// theAction is an action that narrates the answer to a question.
+type theAction[T any] struct {
+	log screenplay.Performable
 }
 
 // String describes the action.
-func (a *TheAction[T]) String() string {
+func (a *theAction[T]) String() string {
 	return a.log.String()
 }
 
 // PerformAs answers the question and, when the actor is narrating, whispers its
 // value as an aside. It returns any error the question produced.
-func (a *TheAction[T]) PerformAs(actor *screenplay.Actor) error {
+func (a *theAction[T]) PerformAs(actor *screenplay.Actor) error {
 	return a.log.PerformAs(actor)
 }
 
-// TheAction implements the screenplay.Performable interface.
-var _ screenplay.Performable = (*TheAction[any])(nil)
+// theAction implements the screenplay.Performable interface.
+var _ screenplay.Performable = (*theAction[any])(nil)

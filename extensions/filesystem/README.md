@@ -45,10 +45,12 @@ with `WhoCan`:
 anActor := screenplay.ActorNamed("Boby").WhoCan(UseTheFileSystem())
 ```
 
-An action or a question uses the ability in one chained statement, written in
-`PerformAs` or `AnsweredBy`, never in a test:
+`UseTheFileSystem()` returns a `screenplay.Ability`: a test gives it to an actor, and
+cannot call its operations. The ability lives in `extensions/filesystem/internal/ability`,
+so only an action or a question of the extension uses it, in one chained statement
+written in `PerformAs` or `AnsweredBy`:
 ```go
-err := screenplay.UseAnAbilityOf(theActor).That(UseTheFileSystem()).ToCreateFile("notes.txt")
+err := screenplay.UseAnAbilityOf(theActor).That(impl.UseTheFileSystem()).ToCreateFile("notes.txt")
 ```
 The argument of `That` carries the type; `That` returns the actor's own instance,
 or a nil pointer when the actor cannot use the file system, and the operation

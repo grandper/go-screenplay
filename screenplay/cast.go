@@ -17,7 +17,7 @@ func CastOfStandardActors() Cast {
 // abilities with And:
 //
 //	SetTheStage(CastWhereEveryoneCan(MakeHTTPRequests).And(UseDatabase))
-func CastWhereEveryoneCan[A Ability](newAbility func() A) *standardCast {
+func CastWhereEveryoneCan[A Ability](newAbility func() A) *standardCast { //nolint:revive // chained by a generic And
 	return (&standardCast{}).And(newAbility)
 }
 

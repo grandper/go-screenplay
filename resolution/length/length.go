@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/grandper/go-screenplay/v2/internal/sized"
 	"github.com/grandper/go-screenplay/v2/internal/verdict"
 	"github.com/grandper/go-screenplay/v2/resolution"
+	"github.com/grandper/go-screenplay/v2/resolution/internal/sized"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
