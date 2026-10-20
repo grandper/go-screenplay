@@ -126,8 +126,9 @@ test gives abilities to actors and performs actions; it does not use abilities
 itself.
 
 You can also check whether an actor has an ability without using it, with
-`actor.HasAbilityTo(UseADatabase())`, and add abilities after creation with
-`actor.Can(...)` (an alias of `WhoCan`).
+`actor.HasAbilityTo(UseADatabase())`, count its abilities with `actor.NumAbilities()`,
+and add abilities after creation with `actor.Can(...)` (an alias of `WhoCan`).
+`actor.Name()` returns the name the actor was given.
 
 Finally, abilities all implement a `Forget() error` interface that is
 used to clean up the of what is inside the ability (e.g., closing
@@ -136,8 +137,29 @@ sessions). This method is automatically called when you use
 err := neo.Exit()
 ```
 
+### Cleanup tasks
+An actor can be given tasks to perform when it exits the stage, for example to
+remove what a scenario created. Ordered cleanup tasks are performed in order, and
+the first one that fails stops the others. Independent cleanup tasks are all
+performed, even when some of them fail:
+```go
+adam.HasOrderedCleanupTasks(DeleteTheOrder(), DeleteTheCustomer())
+adam.HasIndependentCleanupTasks(remove.TheFile("invoice.pdf"), remove.TheFile("receipt.pdf"))
+
+err := adam.Exit()
+// Adam attempts to remove the file "invoice.pdf"
+// Adam attempts to remove the file "receipt.pdf"
+// Adam attempts to delete the order
+// Adam attempts to delete the customer
+```
+`WithOrderedCleanupTasks` and `WithIndependentCleanupTasks` are aliases of the two
+methods. `Exit` performs the independent tasks first, then the ordered ones, each
+through `AttemptsTo` so that they are narrated like any other action, and then
+forgets the abilities. When a cleanup task fails, `Exit` returns the errors joined
+together and the abilities are not forgotten.
+
 ### Actor specific session data
-Sometimes we need to store information in a step or task and reuse it in a subsequent one.
+Sometimes we need to store information in an action or a task and reuse it in a subsequent one.
 To do so, each actor can call the `Remember` and `Recall` methods to store and retrieve
 data in a key-value store.
 ```go
@@ -398,6 +420,12 @@ In that case you can use `wait.UntilTheEnterKeyIsPressed`:
 err := theActor.Will(wait.UntilTheEnterKeyIsPressed())
 // Adam will wait until the enter key is pressed
 ```
+`wait.UntilAnInputIsProvidedBy` does the same with any `io.Reader` instead of the
+standard input. Both stop waiting when the actor's context ends:
+```go
+err := theActor.Will(wait.UntilAnInputIsProvidedBy(console))
+// Adam will wait until an input is provided
+```
 You can also make the actor wait until the answer to a question happens to be as stated:
 ```go
 err := theActor.Will(wait.UntilThe(HomePage).HappensTo(contain.Substring("Hello World!")))
@@ -411,6 +439,9 @@ err := theActor.AttemptsTo(wait.For(10).Seconds().Because("the connection needs 
 err := theActor.AttemptsTo(wait.For(500).Milliseconds().Because("of some obscure reason"))
 // Adam attempts to wait for 500 milliseconds because of some obscure reason
 ```
+The reason is required: a hard wait performed without `Because` fails with
+`wait.ErrReasonNotProvided`. The units are `Milliseconds`, `Seconds` and `Minutes`,
+and their singular forms `Millisecond`, `Second` and `Minute`.
 However, if you need to wait until something happens, you may want to use `wait.UntilThe` instead to save time.
 
 Finally, if you expect an action to fail repeatedly until finally it succeeds, you should use `keep.TryingTo`.
@@ -431,6 +462,12 @@ tries use `Polling`, `PollingEvery`, or `TryingEvery`. Each of them returns a
 err := adam.WasAbleTo(keep.TryingTo(CancelTheOrder).WaitingFor(5).Seconds().Polling(500).Milliseconds())
 ```
 The window is narrated as it was written, after the action.
+
+A window whose polling interval is longer than its timeout fails with
+`keep.ErrPollingPeriodMustBeLessThanOrEqualToTimeout`, and a window with a zero or
+negative duration fails with `keep.ErrPollingPeriodAndTimeoutMustBePositive`. When the
+timeout is reached while the first attempt is still running, `keep.TryingTo` fails with
+`keep.ErrNoAttemptCompleted`.
 
 When you do not set the window explicitly, `keep.TryingTo` falls back to the actor's
 default timeout and polling interval, and `wait.UntilThe(...)` uses the default
@@ -522,7 +559,7 @@ import (
 
 narrator := screenplay.NewNarrator(logadapter.New(log.Default()))
 ```
-The `slog` adapter emits one structured record per step, preserving the actor,
+The `slog` adapter emits one structured record per narrated line, preserving the actor,
 kind, depth and error as attributes:
 ```go
 logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -603,7 +640,42 @@ func (a TestingAdapter) Narrate(event screenplay.Event) {
 }
 ```
 The `screenplay/fixture` package ships a ready-made `fixture.Recorder` that records every
-`screenplay.Event`, which is handy to assert on the narrative a scenario produces.
+`screenplay.Event`, which is handy to assert on the narrative a scenario produces (see
+[Testing your own actions, questions and resolutions](#testing-your-own-actions-questions-and-resolutions)).
+
+##### What an adapter receives
+Every narrated line reaches the adapters as a `screenplay.Event`:
+```go
+type Event struct {
+	Kind    Kind   // KindAct, KindScene, KindBeat or KindAside
+	Level   Level  // LevelDebug, LevelInfo, LevelWarn or LevelError
+	Phase   Phase  // PhaseBegin or PhaseEnd
+	Depth   int    // nesting depth, for indentation
+	Actor   string // name of the actor, if any
+	Message string // the narrated sentence: "Wanda attempts to send a GET request to /birds"
+	Answer  any    // for a question: the answer that was given
+	Err     error  // non-nil when the action failed
+}
+```
+An action or a question is a *beat*. It is announced with `PhaseBegin` before it runs and
+reported with `PhaseEnd` once it finishes, with `LevelError` and the error when it fails.
+The actions it performs in between are one level deeper. An *aside* is a one-shot comment,
+such as the value logged by `log.The`. `Kind` describes itself as `act`, `scene`, `beat` or
+`aside`.
+
+##### Acts and scenes
+The narrator can also announce the grouping boundaries of a test suite: an *act* for a
+suite, and a *scene* for a smaller group such as a scenario. They are one-shot events of
+kind `KindAct` and `KindScene`, which an adapter can render as headings:
+```go
+narrator.AnnouncesTheAct("Bird watching")
+narrator.SetsTheScene("Wanda lists the birds")
+```
+`production.Narrator()` returns the narrator of a production (or `nil` when it has none).
+The narrator also exposes the methods the actor narrates through: `StatesTheFact` for a
+beat, `RevealsTheAnswer` for the answer to a question, and `WhispersTheAside` for an aside.
+An action of your own never needs them: the actor narrates every action it performs and
+every question it asks.
 
 ##### The `log.The` action
 The `log.The` action (package `action/log`) answers a question and whispers its
@@ -616,9 +688,14 @@ err := theActor.AttemptsTo(log.The(number.Of(ItemsInTheList)))
 // Adam attempts to log the number of items in the list
 ```
 The package has the name of the standard `log` package: a file that imports
-both needs an alias for one of them.
+both needs an alias for one of them. `log.The` performs `screenplay.Log`, which
+can be used directly in such a file:
+```go
+err := theActor.AttemptsTo(screenplay.Log(number.Of(ItemsInTheList)))
+// Adam attempts to log the number of items in the list
+```
 
-##### Silencing steps with `proceed.SilentlyTo`
+##### Silencing actions with `proceed.SilentlyTo`
 Wrap a performable with `proceed.SilentlyTo` (or a question with `question.Silently`)
 to mute the narration its actions would produce: the nested beats and asides it
 would emit never reach the adapters, collapsing a whole sub-tree into a single,
@@ -638,6 +715,15 @@ action. `proceed.SilentlyTo` mutes a private view of the actor rather than the a
 itself, so it is safe under `proceed.ConcurrentlyTo`: a silenced branch never mutes another
 branch running at the same time.
 
+That view is `actor.Muted()`. It shares the actor's memory, abilities and cleanup tasks, and
+the actions it performs narrate nothing. An action of your own can use it to perform a
+sub-action without narrating it:
+```go
+func (a *LogInAction) PerformAs(actor *screenplay.Actor) error {
+	return actor.Muted().AttemptsTo(TypeThePassword(a.password))
+}
+```
+
 **What reaches the adapters.** The narration is the sentence the actor performs,
 values included: command arguments, typed text, URLs, request bodies, header
 values, logged answers, and the actual value of every unmet expectation
@@ -646,9 +732,9 @@ value out of the narration with `proceed.SilentlyTo`, `question.Silently`, or th
 `Secretly()` of header and request actions.
 
 ##### Forcing all narration
-When debugging, you often want to see every step — including the ones a
+When debugging, you often want to see every action and question — including the ones a
 `proceed.SilentlyTo` would hide. Build the production with `WithForceAllNarration` and
-every action and question narrates as usual, even the steps a `proceed.SilentlyTo` would
+every action and question narrates as usual, even the ones a `proceed.SilentlyTo` would
 otherwise mute:
 ```go
 production := screenplay.NewProduction(
@@ -656,7 +742,8 @@ production := screenplay.NewProduction(
     screenplay.WithForceAllNarration(),
 )
 ```
-`production.ForceAllNarration()` reports whether it is set.
+`production.ForceAllNarration()` reports whether it is set (`screenplay.DefaultForceAllNarration`,
+`false`, when it is not), and `actor.Muted()` then mutes nothing.
 
 #### Remembering answers to questions
 When you need to ask a question and reuse its answer later, the `remember.The` action
@@ -667,8 +754,8 @@ err := theActor.AttemptsTo(remember.The(StatusCode()).As("statusCode"))
 // Adam attempts to remember the status code as "statusCode"
 statusCode := theActor.Recall[int]("statusCode").OrElse(0)
 ```
-By default the action fails if the question returns a `nil` answer. Use `AllowingNil`
-to store it anyway:
+By default the action fails with `remember.ErrAnswerIsNil` if the question returns a `nil`
+answer. Use `AllowingNil` to store it anyway:
 ```go
 err := theActor.AttemptsTo(remember.The(OptionalData()).As("data").AllowingNil())
 // Adam attempts to remember the optional data as "data" allowing nil
@@ -723,7 +810,8 @@ and makes this default explicit:
 ```go
 err := theActor.AttemptsTo(proceed.ConcurrentlyTo(DoThis(), DoThat()).WaitingForAll())
 ```
-Use `StoppingOnError` to cancel the remaining actions as soon as one of them fails.
+Use `StoppingOnError` (or `StoppingOnFirstError`, which behaves the same and is narrated
+"stopping on first error") to cancel the remaining actions as soon as one of them fails.
 An action still running is canceled through the actor's context: it observes the
 cancellation with `actor.Context()`, as described in "Working with contexts". An
 action not started yet is skipped:
@@ -806,6 +894,10 @@ You can achieve this using `proceed.EitherTo`:
 theActor.Will(proceed.EitherTo(RestoreTheSession()).Or(LogInAs("wanda")))
 // Adam will proceed either to restore the session or log in as wanda
 ```
+Both sides take one or more actions. The alternate actions are performed only when the
+first ones fail, and the error is then the one of the alternate actions. `EitherTo` without
+actions fails with `proceed.ErrNoPerformableProvided`, and without `Or` with
+`proceed.ErrNoAlternateProvided`.
 
 #### Performing an action conditionally
 Whereas `proceed.EitherTo` falls back when an action *fails*, `proceed.To` chooses which
@@ -813,10 +905,11 @@ branch to run based on a *condition being true*. Wrap the action (or actions) wi
 `proceed.To` and attach the condition; only one branch is ever performed:
 ```go
 theActor.AttemptsTo(
-	proceed.To(add.TheHeader("content-type", "application/json")).
-		If(theActor.Knows("hostname")).
-		Otherwise(GuessTheContentType()),
+	proceed.To(ShipTheOrder()).
+		If(order.IsPaid).
+		Otherwise(SendAPaymentReminder()),
 )
+// Adam attempts to proceed to ship the order if the condition holds, otherwise send a payment reminder
 ```
 The condition can be either a **boolean expression** (`If`, or `When`) or
 **what the answer to a question happens to be** (`IfThe`, or `WhenThe`) — the
@@ -972,8 +1065,8 @@ err := theActor.Should(see.The(Text.OfThe(PageTitle)).Should(
 ```
 
 It is possible to check several questions at once, even when they answer with different
-types. Each check is a *term*, built with `term.That` and closed by a verb, and the actor
-sees whether all, at least one, or none of the terms are met:
+types. Each check is a *term*, built with `term.That` (package `action/see/term`) and closed
+by a verb, and the actor sees whether all, at least one, or none of the terms are met:
 ```go
 err := theActor.Should(see.AllOfTheseMet(
 			term.That(profilWidget).Should(contain.Substring("Adam")),
@@ -1117,6 +1210,11 @@ err := theActor.Should(see.The(items.InThe(TodoList)).Should(be.Empty[[]string](
 err := theActor.Should(see.The(items.InThe(TodoList)).ShouldHave(length.Exactly[[]string](5)))
 err := theActor.Should(see.The(items.InThe(TodoList)).ShouldHave(length.Between[[]string](1, 5)))
 err := theActor.Should(see.The(Text.OfAll(items.InThe(TodoList))).Should(contain.AnItemMatching(pattern)))
+```
+`contain.AnItemMatching` takes a compiled `*regexp.Regexp`, and
+`contain.AnItemMatchingPatternString` takes the pattern as a string, like `match.PatternString`:
+```go
+err := theActor.Should(see.The(Text.OfAll(items.InThe(TodoList))).Should(contain.AnItemMatchingPatternString(`^Add tests`)))
 ```
 `contain.Element("...")` is a resolution on a `[]string`: the type of the slice is inferred
 from the element. Use `be.DeepEqualTo` to compare slices, maps and the structs holding them,
@@ -1364,6 +1462,13 @@ screenplay.Given(adam).WasAbleTo(see.The(AccountBalance).Should(be.EqualTo(2)))
 screenplay.When(adam).AttemptsTo(Deposit(100).Dollars())
 screenplay.Then(adam).Should(see.The(AccountBalance).Should(be.EqualTo(102)))
 ```
+`screenplay.And` continues any of them:
+```go
+screenplay.When(adam).AttemptsTo(Deposit(100).Dollars())
+screenplay.And(adam).AttemptsTo(Withdraw(50).Dollars())
+```
+The four functions return the actor they are given: they only make the test read like
+the scenario.
 
 ### Creating your own Performable/Task/Action
 The quickest way to create a performable is `action.FromFunc`. It wraps a plain
@@ -1469,7 +1574,7 @@ is what lets `ShouldNot` simply invert the outcome. See
 resolution that was built wrongly.
 
 ### Reusable builders (the `timing` package)
-The `timing` package holds small, dependency-free building blocks you can reuse
+The `timing` package (`action/timing`) holds small, dependency-free building blocks you can reuse
 when writing your own actions, questions, and resolutions.
 
 `DurationBuilder[T]` gives any builder a fluent time API (for example
@@ -1545,6 +1650,47 @@ This is exactly how `keep.TryingTo` configures its timeout and polling period: i
 stores them in a `Window` and embeds a `WindowBuilder`, which is how the
 same wording drives two different durations.
 
+### Testing your own actions, questions and resolutions
+The `screenplay/fixture` package holds test doubles for the pieces of the pattern. A fake
+performable is narrated with its description and returns the error it was given, a fake
+question answers with the value it was given (or fails with the error it was given), and
+a fake ability can be forgotten:
+```go
+saveTheOrder := fixture.NewFakePerformable("save the order", nil)
+statusCode := fixture.NewFakeQuestion("status code", 200)
+unreachable := fixture.NewFailingFakeQuestion[int]("status code", errConnectionRefused)
+
+adam := screenplay.ActorNamed("Adam").WhoCan(fixture.NewFakeAbility())
+err := adam.AttemptsTo(saveTheOrder, see.The(statusCode).Should(be.EqualTo(200)))
+```
+`statusCode.AnswerWith(500)` changes the answer of a fake question, for example while a
+`wait.UntilThe` is waiting for it.
+
+`fixture.Recorder` is an adapter that records every event, so a test can check what an
+action narrates:
+```go
+recorder := fixture.NewRecorder()
+production := screenplay.NewProduction(screenplay.WithNarrator(screenplay.NewNarrator(recorder)))
+adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
+
+err := adam.AttemptsTo(saveTheOrder)
+messages := recorder.Messages() // "Adam attempts to save the order", once when it begins and once when it ends
+```
+`recorder.Events()` returns the whole `screenplay.Event` of each line.
+
+The `resolution/fixture` package checks a resolution of your own against a value, with a
+`*testing.T`. `AssertMatch` expects the value to satisfy the resolution, `AssertNoMatch`
+expects it not to, and `AssertInvalid` expects the resolution to report that it was built
+wrongly:
+```go
+fixture.AssertMatch(t, DivisibleBy(100), 2000)
+fixture.AssertNoMatch(t, DivisibleBy(100), 2050)
+fixture.AssertInvalid(t, be.Between(10, 1), 5)
+```
+`fixture.NewFakeResolution[int]("be valid", true)` builds a resolution that is always, or
+never, satisfied. Both packages are named `fixture`: a file that imports both needs an
+alias for one of them.
+
 ### Organizing Your Files
 The organization of your test code is important. An easy way to organize the code is to group the different concept together.
 
@@ -1599,10 +1745,14 @@ err := anActor.AttemptsTo(
 )
 err = anActor.Should(see.The(status.CodeOf(last.Of(question.Responses()))).Should(be.EqualTo(200)))
 ```
-Highlights: `send.RequestWithMethod`/`send.GetRequest`/`send.PostRequest`/… with `.To`,
-`.WithBody`, `.WithAuth`/`.WithCredential` and `.Secretly`; the `add.TheHeader`,
-`add.TheHeaders`, `set.TheHeader`, `set.TheHeaders` actions; and the `Responses` and
-`status.CodeOf` questions.
+Highlights: the ability settings `MakeHTTPRequests().WithTimingOutAfter(5).Seconds()` and
+`MakeHTTPRequests().WithAtMost(3).Redirects()`; `send.GetRequest`, `send.PostRequest`,
+`send.PutRequest`, `send.PatchRequest`, `send.DeleteRequest`, `send.HeadRequest`,
+`send.OptionsRequest` and `send.RequestWithMethod`, with `.To`, `.WithBody`,
+`.WithAuth`/`.WithCredential` and `.Secretly`/`.WhichShouldBeKeptSecret`; the `add.TheHeader`,
+`add.TheHeaders`, `set.TheHeader`, `set.TheHeaders` actions, which can be kept secret the same
+way; the `Responses` and `status.CodeOf` questions; and the `StatusCode()`, `Body()` and
+`Headers()` getters of `ability.HTTPResponse`.
 
 ### CLI — [`extensions/cli`](extensions/cli/README.md)
 Drives command-line programs. Give an actor the `RunCLICommands()` ability, then
@@ -1613,9 +1763,11 @@ anActor := screenplay.ActorNamed("Boby").WhoCan(ability.RunCLICommands())
 err := anActor.AttemptsTo(run.TheCommand("echo", "Hello World"))
 err = anActor.Should(see.The(standard.OutputOf(last.Of(question.Responses()))).Should(contain.TheBytes([]byte("Hello World"))))
 ```
-Highlights: the `run.TheCommand` action (with `.InTheWorkingDirectory` and
-`.Interactively`), the `enter.TheText` action, and the `EnvironmentVariableNamed`,
-`exitcode.Of`, `standard.OutputOf`, and `standard.ErrorOf` questions.
+Highlights: the `run.TheCommand` action (with `.InTheWorkingDirectory`, `.WithEnv`,
+`.WithEnvVar` and `.Interactively`), the `enter.TheText` action (with `.AndPressEnter`), the
+`Responses`, `EnvironmentVariableNamed`, `exitcode.Of`, `standard.OutputOf`, and
+`standard.ErrorOf` questions, and the `StdOut()`, `StdErr()`, `ExitCode()` and `Err()` getters
+of `ability.Result`.
 
 ### Filesystem — [`extensions/filesystem`](extensions/filesystem/README.md)
 Drives the file system. Give an actor the `UseTheFileSystem()` ability, then
@@ -1627,9 +1779,12 @@ anActor := screenplay.ActorNamed("Boby").WhoCan(ability.UseTheFileSystem())
 err := anActor.AttemptsTo(create.TheFile("notes.txt").ContainingTheText("Hello World"))
 err = anActor.Should(see.The(question.ContentOfTheFileNamed("notes.txt")).Should(be.DeepEqualTo([]byte("Hello World"))))
 ```
-Highlights: the `create.TheFile`, `remove.TheFile`, `write.TheText`/`write.TheBytes`/`write.TheContent`,
-`overwrite.TheFile`, and `change.TheCurrentDirectoryTo` actions; the `FileNamed`, `DirectoryNamed`,
-and `ContentOfTheFileNamed` questions; and the `Exist` resolution.
+Highlights: the `create.TheFile`, `create.TheTemporaryFile`, `create.TheDirectory` and
+`create.TheTemporaryDirectory` actions (with `.AndSaveNameTo`, and `.ContainingTheText`,
+`.ContainingBytes` or `.Containing` for a file); `write.TheText`/`write.TheBytes`/`write.TheContent`
+with `.AtTheEndOf`; `overwrite.TheFile` with `.WithTheText`, `.WithTheBytes` or `.WithTheContent`;
+`remove.TheFile`, `remove.TheDirectory`, and `change.TheCurrentDirectoryTo`; the `FileNamed`,
+`DirectoryNamed`, and `ContentOfTheFileNamed` questions; and the `Exist` resolution.
 
 ## References
 This package takes some inspiration from several other libraries written in other languages:
