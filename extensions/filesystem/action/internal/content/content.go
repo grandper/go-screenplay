@@ -29,10 +29,10 @@ func Read(reader io.Reader) ([]byte, error) {
 
 // Describe describes the content of an action as its constructor reads,
 // followed by the content itself: the text "Hello", the bytes "Hello". A
-// content that could not be read is described without its value.
+// content that could not be read is described as such, without a value.
 func Describe(kind string, content []byte, err error) string {
 	if err != nil {
-		return "the " + kind
+		return "content that could not be read"
 	}
 
 	return fmt.Sprintf("the %s %s", kind, verdict.Describe(content))

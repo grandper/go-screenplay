@@ -2,12 +2,15 @@ package remember_test
 
 import (
 	"errors"
+	"log" //nolint:depguard // the example narrates through the standard logger
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay/v2/action/remember"
+	"github.com/grandper/go-screenplay/v2/narrator/logadapter"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 	"github.com/grandper/go-screenplay/v2/screenplay/fixture"
 )
@@ -24,7 +27,11 @@ func TestThe(t *testing.T) {
 	})
 
 	t.Run("fails when the question fails", func(t *testing.T) {
-		require.Error(t, adam.AttemptsTo(remember.The(missingStatusCode).As("statusCode")))
+		require.EqualError(
+			t,
+			adam.AttemptsTo(remember.The(missingStatusCode).As("statusCode")),
+			"failed to get the status code",
+		)
 	})
 
 	t.Run("fails when the answer is nil", func(t *testing.T) {
@@ -43,4 +50,16 @@ func TestThe(t *testing.T) {
 		action2 := remember.The(optionalData).As("data").AllowingNil()
 		assert.Equal(t, "remember the optional data as \"data\" allowing nil", action2.String())
 	})
+}
+
+func ExampleThe() {
+	production := screenplay.NewProduction(
+		screenplay.WithNarrator(screenplay.NewNarrator(logadapter.New(log.New(os.Stdout, "", 0)))))
+	adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
+	statusCode := fixture.NewFakeQuestion("status code", 200)
+
+	_ = adam.AttemptsTo(remember.The(statusCode).As("status code"))
+
+	// Output:
+	// Adam attempts to remember the status code as "status code"
 }

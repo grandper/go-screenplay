@@ -3,14 +3,15 @@ package question_test
 import (
 	"os"
 	"path"
+	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/fixture"
-
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/fixture"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/question"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -37,13 +38,24 @@ func TestDirectoryNamedQuestion(t *testing.T) {
 		assert.True(t, directory.Exists())
 	})
 
-	t.Run("returns information for non-existing file", func(t *testing.T) {
+	t.Run("returns information for non-existing directory", func(t *testing.T) {
 		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
 		directory, err := question.DirectoryNamed("foobar").AnsweredBy(theActor)
 		require.NoError(t, err)
 		assert.Equal(t, "foobar", directory.Name())
 		assert.Equal(t, ".", directory.Dir())
 		assert.False(t, directory.Exists())
+	})
+
+	t.Run("fails when a parent of the directory is not a directory", func(t *testing.T) {
+		notes := filepath.Join(t.TempDir(), "notes.txt")
+		require.NoError(t, os.WriteFile(notes, []byte("hello"), 0o600))
+		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
+
+		directory, err := question.DirectoryNamed(filepath.Join(notes, "drafts")).AnsweredBy(theActor)
+
+		require.ErrorIs(t, err, syscall.ENOTDIR)
+		assert.Nil(t, directory)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {

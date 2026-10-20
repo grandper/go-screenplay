@@ -2,6 +2,8 @@ package proceed_test
 
 import (
 	"errors"
+	"log" //nolint:depguard // the example narrates through the standard logger
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,7 +12,11 @@ import (
 	"github.com/grandper/go-screenplay/v2/action"
 	"github.com/grandper/go-screenplay/v2/action/proceed"
 	"github.com/grandper/go-screenplay/v2/action/see/term"
+	"github.com/grandper/go-screenplay/v2/narrator/logadapter"
 	"github.com/grandper/go-screenplay/v2/resolution/be"
+	"github.com/grandper/go-screenplay/v2/resolution/contain"
+	resolutionfixture "github.com/grandper/go-screenplay/v2/resolution/fixture"
+	"github.com/grandper/go-screenplay/v2/resolution/length"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 	"github.com/grandper/go-screenplay/v2/screenplay/fixture"
 )
@@ -146,17 +152,36 @@ func TestTo(t *testing.T) {
 			require.ErrorIs(t, adam.AttemptsTo(conditional), screenplay.ErrInvalidResolution)
 			assert.Equal(t, []string{}, record)
 		}
+
+		// The plural verbs report the mistake with the words the user wrote.
+		logs := fixture.NewFakeQuestion("logs", []string{"ready"})
+
+		reset()
+		err := adam.AttemptsTo(proceed.To(doTask).IfThe(logs).HappenTo())
+		require.ErrorIs(t, err, term.ErrInvalidTerm)
+		require.EqualError(t, err, "invalid term: HappenTo needs at least one resolution")
+		assert.Equal(t, []string{}, record)
+
+		reset()
+		err = adam.AttemptsTo(proceed.To(doTask).IfThe(logs).DoNotHappenToBe(nil))
+		require.ErrorIs(t, err, term.ErrInvalidTerm)
+		require.EqualError(t, err, "invalid term: the resolution at position 0 given to DoNotHappenToBe is nil")
+		assert.Equal(t, []string{}, record)
 	})
 
 	t.Run("returns the error from the performed task", func(t *testing.T) {
 		reset()
-		require.Error(t, adam.AttemptsTo(proceed.To(doTaskAndFail).If(true)))
+		require.EqualError(t, adam.AttemptsTo(proceed.To(doTaskAndFail).If(true)), "failed to do the task")
 		assert.Equal(t, []string{"failed to do the task"}, record)
 	})
 
 	t.Run("returns the error from the performed alternative", func(t *testing.T) {
 		reset()
-		require.Error(t, adam.AttemptsTo(proceed.To(doTask).If(false).Otherwise(doTheAlternativeAndFail)))
+		require.EqualError(
+			t,
+			adam.AttemptsTo(proceed.To(doTask).If(false).Otherwise(doTheAlternativeAndFail)),
+			"failed to do the alternative",
+		)
 		assert.Equal(t, []string{"failed to do the alternative"}, record)
 	})
 
@@ -164,6 +189,57 @@ func TestTo(t *testing.T) {
 		reset()
 		require.NoError(t, adam.AttemptsTo(proceed.To(doTask)))
 		assert.Equal(t, []string{"do the task"}, record)
+	})
+
+	t.Run("guards the action with every verb, singular and plural", func(t *testing.T) {
+		retryTheRequest := createRecordingPerformable("retry the request", nil)
+		statusCode := fixture.NewFakeQuestion("status code", 503)
+		orderList := fixture.NewFakeQuestion("order list", []string{"book", "pen"})
+		logs := fixture.NewFakeQuestion("logs", []string{"ready"})
+		aServerError := resolutionfixture.NewFakeResolution[int]("a server error", true)
+		aSuccess := resolutionfixture.NewFakeResolution[int]("a success", false)
+		complete := resolutionfixture.NewFakeResolution[[]string]("complete", true)
+		empty := resolutionfixture.NewFakeResolution[[]string]("empty", false)
+
+		for _, testCase := range []struct {
+			action screenplay.Performable
+			reads  string
+			holds  bool
+		}{
+			{proceed.To(retryTheRequest).IfThe(statusCode).HappensToBe(aServerError),
+				"proceed to retry the request if the status code happens to be a server error", true},
+			{proceed.To(retryTheRequest).IfThe(orderList).HappensToHave(length.Exactly[[]string](2)),
+				"proceed to retry the request if the order list happens to have length exactly 2", true},
+			{proceed.To(retryTheRequest).IfThe(statusCode).DoesNotHappenToBe(aSuccess),
+				"proceed to retry the request if the status code does not happen to be a success", true},
+			{proceed.To(retryTheRequest).IfThe(orderList).DoesNotHappenToHave(length.Exactly[[]string](2)),
+				"proceed to retry the request if the order list does not happen to have length exactly 2", false},
+			{proceed.To(retryTheRequest).IfThe(statusCode).HappensToBeAnyOf(be.EqualTo(502), be.EqualTo(503)),
+				"proceed to retry the request if the status code happens to be any of: equal to 502, equal to 503", true},
+			{proceed.To(retryTheRequest).IfThe(logs).HappenTo(contain.Element("ready")),
+				`proceed to retry the request if the logs happen to contain element "ready"`, true},
+			{proceed.To(retryTheRequest).IfThe(logs).HappenToBe(complete),
+				"proceed to retry the request if the logs happen to be complete", true},
+			{proceed.To(retryTheRequest).IfThe(logs).HappenToHave(length.Exactly[[]string](1)),
+				"proceed to retry the request if the logs happen to have length exactly 1", true},
+			{proceed.To(retryTheRequest).IfThe(logs).DoNotHappenTo(contain.Element("ready")),
+				`proceed to retry the request if the logs do not happen to contain element "ready"`, false},
+			{proceed.To(retryTheRequest).IfThe(logs).DoNotHappenToBe(empty),
+				"proceed to retry the request if the logs do not happen to be empty", true},
+			{proceed.To(retryTheRequest).IfThe(logs).DoNotHappenToHave(length.Exactly[[]string](1)),
+				"proceed to retry the request if the logs do not happen to have length exactly 1", false},
+			{proceed.To(retryTheRequest).IfThe(logs).HappenToBeAnyOf(complete, empty),
+				"proceed to retry the request if the logs happen to be any of: complete, empty", true},
+		} {
+			reset()
+			assert.Equal(t, testCase.reads, testCase.action.String())
+			require.NoError(t, adam.AttemptsTo(testCase.action))
+			if testCase.holds {
+				assert.Equal(t, []string{"retry the request"}, record)
+			} else {
+				assert.Equal(t, []string{}, record)
+			}
+		}
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
@@ -237,4 +313,18 @@ func TestTo(t *testing.T) {
 		require.NoError(t, adam.AttemptsTo(proceed.To(doTask).When(true)))
 		assert.Equal(t, []string{"do the task"}, record)
 	})
+}
+
+func ExampleTo() {
+	production := screenplay.NewProduction(
+		screenplay.WithNarrator(screenplay.NewNarrator(logadapter.New(log.New(os.Stdout, "", 0)))))
+	adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
+	statusCode := fixture.NewFakeQuestion("status code", 503)
+	retryTheRequest := fixture.NewFakePerformable("retry the request", nil)
+
+	_ = adam.AttemptsTo(proceed.To(retryTheRequest).IfThe(statusCode).HappensTo(be.AtLeast(500)))
+
+	// Output:
+	// Adam attempts to proceed to retry the request if the status code happens to be at least 500
+	//     Adam attempts to retry the request
 }

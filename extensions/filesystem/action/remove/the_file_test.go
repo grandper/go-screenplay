@@ -3,6 +3,7 @@ package remove_test
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/change"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/remove"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/fixture"
 	"github.com/grandper/go-screenplay/v2/screenplay"
@@ -96,6 +98,34 @@ func TestTheFile(t *testing.T) {
 			err := adam.AttemptsTo(remove.TheDirectory("."))
 			require.ErrorIs(t, err, ability.ErrProtectedDirectory)
 			assert.EqualError(t, err, `refused to remove a protected directory: "." is the current working directory`)
+		})
+
+		t.Run("refuses to remove the working directory of the process, however the actor moved", func(t *testing.T) {
+			project := filepath.Join(t.TempDir(), "project")
+			reports := filepath.Join(project, "reports")
+			require.NoError(t, os.MkdirAll(reports, 0o755))
+			t.Chdir(reports)
+
+			bob := screenplay.ActorNamed("Bob").WhoCan(ability.UseTheFileSystem())
+			require.NoError(t, bob.AttemptsTo(change.TheCurrentDirectoryTo(t.TempDir())))
+
+			require.EqualError(
+				t,
+				bob.AttemptsTo(remove.TheDirectory(reports)),
+				fmt.Sprintf(
+					"refused to remove a protected directory: %q is the working directory of the process",
+					reports,
+				),
+			)
+			require.EqualError(
+				t,
+				bob.AttemptsTo(remove.TheDirectory(project)),
+				fmt.Sprintf(
+					"refused to remove a protected directory: %q contains the working directory of the process",
+					project,
+				),
+			)
+			assert.DirExists(t, reports)
 		})
 	})
 

@@ -3,14 +3,15 @@ package question_test
 import (
 	"os"
 	"path"
+	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/fixture"
-
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/fixture"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/question"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -44,6 +45,17 @@ func TestFileNamedQuestion(t *testing.T) {
 		assert.Equal(t, "foo.bar", file.Name())
 		assert.Equal(t, ".", file.Dir())
 		assert.False(t, file.Exists())
+	})
+
+	t.Run("fails when a parent of the file is not a directory", func(t *testing.T) {
+		notes := filepath.Join(t.TempDir(), "notes.txt")
+		require.NoError(t, os.WriteFile(notes, []byte("hello"), 0o600))
+		theActor := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
+
+		file, err := question.FileNamed(filepath.Join(notes, "draft.txt")).AnsweredBy(theActor)
+
+		require.ErrorIs(t, err, syscall.ENOTDIR)
+		assert.Nil(t, file)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {

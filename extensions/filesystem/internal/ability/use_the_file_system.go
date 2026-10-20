@@ -152,7 +152,10 @@ func (a *UseTheFileSystemAbility) ToCreateTemporaryFile(pattern string) (string,
 	return file.Name(), file.Close()
 }
 
-// ToCreateTemporaryFileWithContent creates a new file with the specified name and copies the content from the provided reader.
+// ToCreateTemporaryFileWithContent creates a new temporary file whose name is
+// built from the pattern, copies the content from the provided reader into it,
+// and returns its name. When the content cannot be copied, the file is removed
+// so that nothing is left in the temporary directory.
 func (a *UseTheFileSystemAbility) ToCreateTemporaryFileWithContent(pattern string, reader io.Reader) (string, error) {
 	if a == nil {
 		return "", screenplay.ErrActorMissingAbility
@@ -161,12 +164,12 @@ func (a *UseTheFileSystemAbility) ToCreateTemporaryFileWithContent(pattern strin
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
 	_, err = io.Copy(file, reader)
 	if err != nil {
-		return "", err
+		_ = file.Close()
+		return "", errors.Join(err, os.Remove(file.Name()))
 	}
-	return file.Name(), nil
+	return file.Name(), file.Close()
 }
 
 // createTemporaryFile creates the file in the temporary directory of the
@@ -188,7 +191,10 @@ func (a *UseTheFileSystemAbility) ToCreateFile(filename string) error {
 	return file.Close()
 }
 
-// ToCreateFileWithContent creates a new file with the specified name and copies the content from the provided reader.
+// ToCreateFileWithContent creates a new file with the specified name and copies
+// the content from the provided reader into it. When the content cannot be
+// copied, the file is removed, so that the name is free again and the operation
+// can be performed once more.
 func (a *UseTheFileSystemAbility) ToCreateFileWithContent(filename string, reader io.Reader) error {
 	if a == nil {
 		return screenplay.ErrActorMissingAbility
@@ -197,12 +203,12 @@ func (a *UseTheFileSystemAbility) ToCreateFileWithContent(filename string, reade
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 	_, err = io.Copy(file, reader)
 	if err != nil {
-		return err
+		_ = file.Close()
+		return errors.Join(err, os.Remove(file.Name()))
 	}
-	return nil
+	return file.Close()
 }
 
 // createFile creates the file in one atomic call: O_EXCL makes the kernel refuse
@@ -234,7 +240,11 @@ func refuseSymbolicLink(path string) error {
 	return nil
 }
 
-// ToOverwriteFileWithContent overwrites the content of the specified file with the content from the provided reader.
+// ToOverwriteFileWithContent overwrites the content of the specified file with
+// the content from the provided reader. The content is written to a file next
+// to it, then renamed over it, so that the file keeps its old content when the
+// new one cannot be copied. The file keeps its permissions and gets a new
+// inode: a hard link to it keeps the old content.
 func (a *UseTheFileSystemAbility) ToOverwriteFileWithContent(filename string, reader io.Reader) error {
 	if a == nil {
 		return screenplay.ErrActorMissingAbility
@@ -246,19 +256,31 @@ func (a *UseTheFileSystemAbility) ToOverwriteFileWithContent(filename string, re
 	if err = refuseSymbolicLink(path); err != nil {
 		return err
 	}
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, createdFileMode)
+	info, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	_, err = io.Copy(file, reader)
+	replacement, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*")
 	if err != nil {
 		return err
 	}
-	return nil
+	_, err = io.Copy(replacement, reader)
+	if err == nil {
+		err = replacement.Chmod(info.Mode().Perm())
+	}
+	if err != nil {
+		_ = replacement.Close()
+		return errors.Join(err, os.Remove(replacement.Name()))
+	}
+	if err = replacement.Close(); err != nil {
+		return errors.Join(err, os.Remove(replacement.Name()))
+	}
+	return os.Rename(replacement.Name(), path)
 }
 
 // ToAppendTo appends content from the provided reader to the specified file.
+// When the content cannot be copied, the file is truncated back to its size
+// before the write, so that it holds exactly what it held before.
 func (a *UseTheFileSystemAbility) ToAppendTo(filename string, reader io.Reader) error {
 	if a == nil {
 		return screenplay.ErrActorMissingAbility
@@ -275,9 +297,13 @@ func (a *UseTheFileSystemAbility) ToAppendTo(filename string, reader io.Reader) 
 		return err
 	}
 	defer file.Close()
-	_, err = io.Copy(file, reader)
+	info, err := file.Stat()
 	if err != nil {
 		return err
+	}
+	_, err = io.Copy(file, reader)
+	if err != nil {
+		return errors.Join(err, file.Truncate(info.Size()))
 	}
 	return nil
 }

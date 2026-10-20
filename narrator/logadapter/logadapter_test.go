@@ -15,6 +15,27 @@ import (
 func TestLogAdapter(t *testing.T) {
 	t.Parallel()
 
+	t.Run("writes to the default logger when given none", func(t *testing.T) {
+		// Not parallel: the output of the standard logger is global.
+		var buffer bytes.Buffer
+		previousOutput, previousFlags := log.Writer(), log.Flags()
+		log.SetOutput(&buffer)
+		log.SetFlags(0)
+		t.Cleanup(func() {
+			log.SetOutput(previousOutput)
+			log.SetFlags(previousFlags)
+		})
+
+		adapter := logadapter.New(nil)
+		adapter.Narrate(screenplay.Event{
+			Kind:    screenplay.KindBeat,
+			Phase:   screenplay.PhaseBegin,
+			Message: "Wanda sends a GET request to /birds",
+		})
+
+		assert.Equal(t, "Wanda sends a GET request to /birds\n", buffer.String())
+	})
+
 	t.Run("announces a beat on the way in", func(t *testing.T) {
 		t.Parallel()
 

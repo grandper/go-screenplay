@@ -10,6 +10,13 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
+var (
+	// ErrPollingPeriodMustBeLessThanOrEqualToTimeout is returned when the polling period is greater than the timeout.
+	ErrPollingPeriodMustBeLessThanOrEqualToTimeout = retry.ErrPollingPeriodMustBeLessThanOrEqualToTimeout
+	// ErrPollingPeriodAndTimeoutMustBePositive is returned when the polling period or the timeout is zero or negative.
+	ErrPollingPeriodAndTimeoutMustBePositive = retry.ErrPollingPeriodAndTimeoutMustBePositive
+)
+
 // UntilThe makes an actor wait until the answer to a question happens to be as
 // stated, for no longer than the timeout of the actor's production. Close it
 // with a verb and one or more resolutions:
@@ -127,8 +134,8 @@ func (a *untilTheAction) PerformAs(actor *screenplay.Actor) error {
 	}
 
 	window := retry.WindowFor(actor, timing.NewWindow(0, 0))
-	if retry.Check(window) != nil {
-		return a.neverSeen(actor)
+	if err = retry.Check(window); err != nil {
+		return fmt.Errorf("%s failed to %s: %w", actor.Name(), a, err)
 	}
 
 	if _, err = retry.Until(actor, window, func() error { return a.term.MetBy(actor) }); err != nil {

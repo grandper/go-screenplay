@@ -3,6 +3,7 @@ package proceed_test
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -116,6 +117,63 @@ func TestAsynchronouslyTo(t *testing.T) {
 		errs := asynchronousErrors(t, adam)
 		require.Len(t, errs, 1)
 		assert.Contains(t, errs[0].Error(), "failed to do task 1")
+	})
+
+	t.Run("stopping on error skips the actions that have not started", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		errPaymentServiceDown := errors.New("the payment service is down")
+		var started atomic.Int32
+		checkTheStock := action.FromFunc("check the stock", func(*screenplay.Actor) error {
+			started.Add(1)
+			time.Sleep(50 * time.Millisecond)
+			return nil
+		})
+		chargeTheCard := action.FromFunc("charge the card", func(*screenplay.Actor) error {
+			return errPaymentServiceDown
+		})
+
+		require.NoError(t, adam.AttemptsTo(
+			proceed.AsynchronouslyTo(chargeTheCard, checkTheStock, checkTheStock).StoppingOnError().WithLimit(1)))
+
+		errs := asynchronousErrors(t, adam) // waits for the background actions
+		require.Len(t, errs, 1)
+		require.ErrorIs(t, errs[0], errPaymentServiceDown)
+		assert.Equal(t, int32(0), started.Load())
+	})
+
+	t.Run("the asynchronous errors can be asked for while the actions are still running", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam")
+		finished := make(chan struct{})
+		uploadTheReport := action.FromFunc("upload the report", func(*screenplay.Actor) error {
+			<-finished
+			return nil
+		})
+
+		require.NoError(t, adam.AttemptsTo(proceed.AsynchronouslyTo(uploadTheReport, uploadTheReport)))
+
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			close(finished)
+		}()
+		answers := make(chan []error, 8)
+		failures := make(chan error, 8)
+		var group sync.WaitGroup
+		for range 8 {
+			group.Go(func() {
+				errs, err := adam.AsksFor(asynchronous.Errors())
+				answers <- errs
+				failures <- err
+			})
+		}
+		group.Wait()
+		close(answers)
+		close(failures)
+		for err := range failures {
+			require.NoError(t, err)
+		}
+		for errs := range answers {
+			assert.Empty(t, errs)
+		}
 	})
 
 	t.Run("ignoring errors collects nothing", func(t *testing.T) {

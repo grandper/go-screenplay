@@ -3,6 +3,8 @@ package proceed_test
 import (
 	"errors"
 	"fmt"
+	"log" //nolint:depguard // the example narrates through the standard logger
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,8 +13,12 @@ import (
 	"github.com/grandper/go-screenplay/v2/action"
 	"github.com/grandper/go-screenplay/v2/action/proceed"
 	"github.com/grandper/go-screenplay/v2/action/see/term"
+	"github.com/grandper/go-screenplay/v2/narrator/logadapter"
 	"github.com/grandper/go-screenplay/v2/question"
+	"github.com/grandper/go-screenplay/v2/resolution"
 	"github.com/grandper/go-screenplay/v2/resolution/be"
+	"github.com/grandper/go-screenplay/v2/resolution/contain"
+	"github.com/grandper/go-screenplay/v2/resolution/length"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 	"github.com/grandper/go-screenplay/v2/screenplay/fixture"
 )
@@ -25,6 +31,30 @@ func UploadThePart(index int) *fixture.FakePerformable {
 // SendHTTPRequestNumber is a function of the index whose name holds an acronym.
 func SendHTTPRequestNumber(index int) screenplay.Performable {
 	return fixture.NewFakePerformable(fmt.Sprintf("send HTTP request number %d", index), nil)
+}
+
+// isZero inspects a count for the resolution "zero", which reads after "happens to be".
+func isZero(count int) error {
+	if count != 0 {
+		return errors.New("it is not zero")
+	}
+	return nil
+}
+
+// isEmpty inspects orders for the resolution "empty", which reads after "happen to be".
+func isEmpty(orders []string) error {
+	if len(orders) != 0 {
+		return errors.New("it is not empty")
+	}
+	return nil
+}
+
+// isASingleOrder inspects orders for the resolution "a single order", which reads after "happen to be".
+func isASingleOrder(orders []string) error {
+	if len(orders) != 1 {
+		return errors.New("it is not a single order")
+	}
+	return nil
 }
 
 func TestRepeatedlyTo(t *testing.T) {
@@ -134,6 +164,67 @@ func TestRepeatedlyTo(t *testing.T) {
 			),
 		)
 		assert.Equal(t, []string{"take a message"}, record)
+	})
+
+	t.Run("repeats the action with every verb, singular and plural", func(t *testing.T) {
+		var cart, pending []string
+		orderList := question.FromFunc("order list", func(*screenplay.Actor) ([]string, error) { return cart, nil })
+		pendingOrders := question.FromFunc("pending orders", func(*screenplay.Actor) ([]string, error) {
+			return pending, nil
+		})
+		removeAnItem := action.FromFunc("remove an item", func(*screenplay.Actor) error {
+			cart = cart[1:]
+			record = append(record, "remove an item")
+			return nil
+		})
+		shipAnOrder := action.FromFunc("ship an order", func(*screenplay.Actor) error {
+			pending = pending[1:]
+			record = append(record, "ship an order")
+			return nil
+		})
+		zero := resolution.FromFunc("zero", isZero)
+		empty := resolution.FromFunc("empty", isEmpty)
+		aSingleOrder := resolution.FromFunc("a single order", isASingleOrder)
+
+		for _, testCase := range []struct {
+			action screenplay.Performable
+			reads  string
+			passes int
+		}{
+			{proceed.RepeatedlyTo(takeAMessage).UntilThe(queueLength).HappensToBe(zero),
+				"proceed repeatedly to take a message until the queue length happens to be zero", 2},
+			{proceed.RepeatedlyTo(removeAnItem).UntilThe(orderList).HappensToHave(length.Exactly[[]string](0)),
+				"proceed repeatedly to remove an item until the order list happens to have length exactly 0", 2},
+			{proceed.RepeatedlyTo(takeAMessage).WhileThe(queueLength).DoesNotHappenToBe(zero),
+				"proceed repeatedly to take a message while the queue length does not happen to be zero", 2},
+			{proceed.RepeatedlyTo(removeAnItem).WhileThe(orderList).DoesNotHappenToHave(length.Exactly[[]string](0)),
+				"proceed repeatedly to remove an item while the order list does not happen to have length exactly 0", 2},
+			{proceed.RepeatedlyTo(takeAMessage).UntilThe(queueLength).HappensToBeAnyOf(be.EqualTo(0), be.LessThan(0)),
+				"proceed repeatedly to take a message until the queue length happens to be any of: equal to 0, less than 0", 2},
+			{proceed.RepeatedlyTo(shipAnOrder).WhileThe(pendingOrders).HappenTo(contain.Element("book")),
+				`proceed repeatedly to ship an order while the pending orders happen to contain element "book"`, 1},
+			{proceed.RepeatedlyTo(shipAnOrder).UntilThe(pendingOrders).HappenToBe(empty),
+				"proceed repeatedly to ship an order until the pending orders happen to be empty", 2},
+			{proceed.RepeatedlyTo(shipAnOrder).UntilThe(pendingOrders).HappenToHave(length.Exactly[[]string](0)),
+				"proceed repeatedly to ship an order until the pending orders happen to have length exactly 0", 2},
+			{proceed.RepeatedlyTo(shipAnOrder).UntilThe(pendingOrders).DoNotHappenTo(contain.Element("pen")),
+				`proceed repeatedly to ship an order until the pending orders do not happen to contain element "pen"`, 2},
+			{proceed.RepeatedlyTo(shipAnOrder).WhileThe(pendingOrders).DoNotHappenToBe(empty),
+				"proceed repeatedly to ship an order while the pending orders do not happen to be empty", 2},
+			{proceed.RepeatedlyTo(shipAnOrder).WhileThe(pendingOrders).DoNotHappenToHave(length.Exactly[[]string](0)),
+				"proceed repeatedly to ship an order while the pending orders do not happen to have length exactly 0", 2},
+			{proceed.RepeatedlyTo(shipAnOrder).UntilThe(pendingOrders).HappenToBeAnyOf(empty, aSingleOrder),
+				"proceed repeatedly to ship an order until the pending orders happen to be any of: empty, a single order", 1},
+		} {
+			reset()
+			queue = 2
+			cart = []string{"book", "pen"}
+			pending = []string{"book", "pen"}
+
+			assert.Equal(t, testCase.reads, testCase.action.String())
+			require.NoError(t, adam.AttemptsTo(testCase.action))
+			assert.Len(t, record, testCase.passes)
+		}
 	})
 
 	t.Run("names the pass when the action fails", func(t *testing.T) {
@@ -320,4 +411,19 @@ func TestRepeatedlyTo(t *testing.T) {
 			proceed.RepeatedlyTo(func(int) screenplay.Performable { return nil }).Exactly(3).Times().String(),
 		)
 	})
+}
+
+func ExampleRepeatedlyTo() {
+	production := screenplay.NewProduction(
+		screenplay.WithNarrator(screenplay.NewNarrator(logadapter.New(log.New(os.Stdout, "", 0)))))
+	adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
+	addTheBookToTheCart := fixture.NewFakePerformable("add the book to the cart", nil)
+
+	_ = adam.AttemptsTo(proceed.RepeatedlyTo(addTheBookToTheCart).Exactly(3).Times())
+
+	// Output:
+	// Adam attempts to proceed repeatedly to add the book to the cart exactly 3 times
+	//     Adam attempts to add the book to the cart
+	//     Adam attempts to add the book to the cart
+	//     Adam attempts to add the book to the cart
 }

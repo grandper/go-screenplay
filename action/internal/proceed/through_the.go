@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/grandper/go-screenplay/v2/internal/sentence"
 	"github.com/grandper/go-screenplay/v2/internal/verdict"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -94,7 +95,7 @@ func (a *throughTheAction[T]) PerformAs(theActor *screenplay.Actor) error {
 	for index, item := range items {
 		if err = theActor.AttemptsTo(a.body(item)); err != nil {
 			return fmt.Errorf("%s failed to %s on the %s pass, for %s: %w",
-				theActor.Name(), a, ordinalOf(index+1), verdict.Describe(item), err)
+				theActor.Name(), a, sentence.Rank(index+1), verdict.Describe(item), err)
 		}
 	}
 

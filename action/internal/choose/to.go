@@ -10,14 +10,15 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
-// ordinal renders 1 -> "first", 2 -> "second", ... for the boolean-branch description.
+// ordinal renders 1 -> "first", 2 -> "second", ... for the boolean-branch
+// description; from the sixth on, the rank is written with digits: "6th", "21st".
 func ordinal(position int) string {
 	names := []string{"first", "second", "third", "fourth", "fifth"}
 	if position >= 1 && position <= len(names) {
 		return names[position-1]
 	}
 
-	return fmt.Sprintf("%dth", position)
+	return sentence.Rank(position)
 }
 
 // joinChoices assembles "choose to A when x, to B when y, or to Z otherwise".

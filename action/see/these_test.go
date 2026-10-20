@@ -2,6 +2,8 @@ package see_test
 
 import (
 	"errors"
+	"log" //nolint:depguard // the example narrates through the standard logger
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,8 +11,11 @@ import (
 
 	"github.com/grandper/go-screenplay/v2/action/see"
 	"github.com/grandper/go-screenplay/v2/action/see/term"
+	"github.com/grandper/go-screenplay/v2/narrator/logadapter"
 	"github.com/grandper/go-screenplay/v2/resolution/be"
 	"github.com/grandper/go-screenplay/v2/resolution/contain"
+	resolutionfixture "github.com/grandper/go-screenplay/v2/resolution/fixture"
+	"github.com/grandper/go-screenplay/v2/resolution/length"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 	"github.com/grandper/go-screenplay/v2/screenplay/fixture"
 )
@@ -64,7 +69,7 @@ func TestThese(t *testing.T) {
 				term.That(missingLogs).Should(contain.Substring("order placed")),
 			))
 
-			require.Error(t, err)
+			require.EqualError(t, err, "Adam failed to see that the status code should be equal to 404: got 200")
 			require.NotErrorIs(t, err, errNoLogs)
 		})
 
@@ -147,7 +152,10 @@ func TestThese(t *testing.T) {
 
 		t.Run("fails when there is no term", func(t *testing.T) {
 			t.Parallel()
-			require.Error(t, adam.AttemptsTo(see.AtLeastOneOfTheseMet()))
+			require.EqualError(t,
+				adam.AttemptsTo(see.AtLeastOneOfTheseMet()),
+				"invalid term: see.AtLeastOneOfTheseMet needs at least one term",
+			)
 		})
 
 		t.Run("implements the stringer interface", func(t *testing.T) {
@@ -263,8 +271,9 @@ func TestThese(t *testing.T) {
 				see.ThatAllOfThe(helloAdam, helloEve).Should(contain.Substring("hello"))))
 			require.ErrorIs(t, adam.AttemptsTo(
 				see.ThatAllOfThe[string]().Should(contain.Substring("hello"))), term.ErrInvalidTerm)
-			require.Error(t, adam.AttemptsTo(
-				see.ThatAllOfThe(helloAdam, goodbyeEve).Should(contain.Substring("hello"))))
+			require.EqualError(t, adam.AttemptsTo(
+				see.ThatAllOfThe(helloAdam, goodbyeEve).Should(contain.Substring("hello"))),
+				`Adam failed to see that the login form should contain substring "hello": got "goodbye Eve"`)
 			require.ErrorIs(t, adam.AttemptsTo(
 				see.ThatAllOfThe(helloAdam, missingWidget).Should(contain.Substring("hello"))), errNoWidget)
 
@@ -281,8 +290,11 @@ func TestThese(t *testing.T) {
 				see.ThatAnyOfThe(helloAdam, goodbyeEve).Should(contain.Substring("goodbye"))))
 			require.NoError(t, adam.AttemptsTo(
 				see.ThatAnyOfThe(missingWidget, helloAdam).Should(contain.Substring("hello"))))
-			require.Error(t, adam.AttemptsTo(
-				see.ThatAnyOfThe(helloAdam, helloEve).Should(contain.Substring("goodbye"))))
+			require.EqualError(t, adam.AttemptsTo(
+				see.ThatAnyOfThe(helloAdam, helloEve).Should(contain.Substring("goodbye"))),
+				"Adam failed to see that any of the profile widget, login form should contain substring \"goodbye\":\n"+
+					`- the profile widget should contain substring "goodbye": got "hello Adam"`+"\n"+
+					`- the login form should contain substring "goodbye": got "hello Eve"`)
 
 			assert.Equal(t,
 				"see that any of the profile widget, login form should contain substring \"goodbye\"",
@@ -295,8 +307,10 @@ func TestThese(t *testing.T) {
 
 			require.NoError(t, adam.AttemptsTo(
 				see.ThatNoneOfThe(helloAdam, helloEve).Should(contain.Substring("error"))))
-			require.Error(t, adam.AttemptsTo(
-				see.ThatNoneOfThe(helloAdam, goodbyeEve).Should(contain.Substring("goodbye"))))
+			require.EqualError(t, adam.AttemptsTo(
+				see.ThatNoneOfThe(helloAdam, goodbyeEve).Should(contain.Substring("goodbye"))),
+				`Adam failed to see that none of the profile widget, login form should contain substring "goodbye": `+
+					`"the login form should contain substring "goodbye"" is met: got "goodbye Eve"`)
 			require.ErrorIs(t, adam.AttemptsTo(
 				see.ThatNoneOfThe(helloAdam, missingWidget).Should(contain.Substring("error"))), errNoWidget)
 
@@ -304,6 +318,40 @@ func TestThese(t *testing.T) {
 				"see that none of the profile widget, login form should contain substring \"error\"",
 				see.ThatNoneOfThe(helloAdam, helloEve).Should(contain.Substring("error")).String(),
 			)
+		})
+
+		t.Run("supports every verb", func(t *testing.T) {
+			t.Parallel()
+
+			profileWidget := fixture.NewFakeQuestion("profile widget", "hello Adam")
+			loginForm := fixture.NewFakeQuestion("login form", "hello Eve")
+			aGreeting := resolutionfixture.NewFakeResolution[string]("a greeting", true)
+
+			for _, testCase := range []struct {
+				action  screenplay.Performable
+				failure string // empty when the actor sees it
+			}{
+				{see.ThatAllOfThe(profileWidget, loginForm).ShouldBe(aGreeting), ""},
+				{see.ThatNoneOfThe(profileWidget, loginForm).ShouldHave(length.Exactly[string](0)), ""},
+				{see.ThatAnyOfThe(profileWidget, loginForm).ShouldNotHave(length.Exactly[string](10)), ""},
+				{see.ThatAllOfThe(profileWidget, loginForm).ShouldNot(contain.Substring("Eve")),
+					`Adam failed to see that the login form should not contain substring "Eve": got "hello Eve"`},
+				{see.ThatAnyOfThe(profileWidget, loginForm).ShouldNotBe(aGreeting),
+					"Adam failed to see that any of the profile widget, login form should not be a greeting:\n" +
+						`- the profile widget should not be a greeting: got "hello Adam"` + "\n" +
+						`- the login form should not be a greeting: got "hello Eve"`},
+				{see.ThatNoneOfThe(profileWidget, loginForm).ShouldAnyOf(be.EqualTo("hello Eve"), be.EqualTo("hello Bob")),
+					`Adam failed to see that none of the profile widget, login form should be any of: ` +
+						`equal to "hello Eve", equal to "hello Bob": ` +
+						`"the login form should be any of: equal to "hello Eve", equal to "hello Bob"" is met: got "hello Eve"`},
+			} {
+				err := adam.AttemptsTo(testCase.action)
+				if testCase.failure == "" {
+					require.NoError(t, err)
+				} else {
+					require.EqualError(t, err, testCase.failure)
+				}
+			}
 		})
 
 		t.Run("fail with an invalid term when a question is nil", func(t *testing.T) {
@@ -409,4 +457,22 @@ func TestThese(t *testing.T) {
 		require.ErrorIs(t, err, term.ErrInvalidTerm)
 		assert.EqualError(t, err, "invalid term: see.ThatAllOfThe needs at least one question")
 	})
+}
+
+func ExampleAllOfTheseMet() {
+	production := screenplay.NewProduction(
+		screenplay.WithNarrator(screenplay.NewNarrator(logadapter.New(log.New(os.Stdout, "", 0)))))
+	adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
+	statusCode := fixture.NewFakeQuestion("status code", 200)
+	logs := fixture.NewFakeQuestion("logs", "order placed")
+
+	_ = adam.AttemptsTo(see.AllOfTheseMet(
+		term.That(statusCode).Should(be.EqualTo(200)),
+		term.That(logs).Should(contain.Substring("order placed")),
+	))
+
+	// Output:
+	// Adam attempts to see all of these met
+	//     Adam attempts to see that the status code should be equal to 200
+	//     Adam attempts to see that the logs should contain substring "order placed"
 }

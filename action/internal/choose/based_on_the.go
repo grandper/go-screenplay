@@ -137,11 +137,22 @@ func (a *BasedOnTheAction[T]) String() string {
 
 	choices := strings.TrimPrefix(joinChoices(clauses, a.fallback, a.closing), "choose ")
 
-	return fmt.Sprintf("choose based on the %s %s", a.question, choices)
+	// A nil question is described as "the <nil>", as a term about one is.
+	subject := "<nil>"
+	if a.question != nil {
+		subject = a.question.String()
+	}
+
+	return fmt.Sprintf("choose based on the %s %s", subject, choices)
 }
 
-// PerformAs performs the task or the action as the provided actor.
+// PerformAs performs the task or the action as the provided actor. A nil
+// question can never be answered: the action fails with sentence.ErrInvalidTerm.
 func (a *BasedOnTheAction[T]) PerformAs(theActor *screenplay.Actor) error {
+	if a.question == nil {
+		return fmt.Errorf("%w: the question is nil", sentence.ErrInvalidTerm)
+	}
+
 	value, err := a.question.AnsweredBy(theActor)
 	if err != nil {
 		return err

@@ -18,6 +18,24 @@ import (
 func TestSlogAdapter(t *testing.T) {
 	t.Parallel()
 
+	t.Run("writes to the default logger when given none", func(t *testing.T) {
+		// Not parallel: the default slog logger is global.
+		var buffer bytes.Buffer
+		previous := slog.Default()
+		slog.SetDefault(slog.New(slog.NewJSONHandler(&buffer, nil)))
+		t.Cleanup(func() { slog.SetDefault(previous) })
+
+		adapter := slogadapter.New(nil)
+		adapter.Narrate(screenplay.Event{
+			Kind:    screenplay.KindBeat,
+			Level:   screenplay.LevelInfo,
+			Phase:   screenplay.PhaseBegin,
+			Message: "Wanda sends a GET request to /birds",
+		})
+
+		assert.Contains(t, buffer.String(), `"msg":"Wanda sends a GET request to /birds"`)
+	})
+
 	t.Run("emits a structured record for a beat", func(t *testing.T) {
 		t.Parallel()
 

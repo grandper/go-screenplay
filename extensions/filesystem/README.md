@@ -115,6 +115,16 @@ A reader holding more than 64 MiB is reported when the actor performs the action
 err := anActor.AttemptsTo(create.TheFile("backup.tar").Containing(hugeArchive))
 // failed to read the content: the content exceeds 64 MiB
 ```
+So is a reader that fails: no file is created, the error of the reader is reported, and
+the narration says so instead of quoting a content that never existed:
+```go
+err := anActor.AttemptsTo(create.TheFile("backup.tar").Containing(brokenArchive))
+// Boby attempts to create the file "backup.tar" containing content that could not be read
+// failed to read the content: the disk is gone
+```
+When the file is created but its content cannot be written (a disk that fills up, for
+example), the file is removed: the name is free again, and performing the action once more
+creates the file instead of failing with `ErrFileAlreadyExists`.
 Create a directory (the action fails if the directory already exists):
 ```go
 err := anActor.AttemptsTo(create.TheDirectory("MyDocuments"))
@@ -137,7 +147,8 @@ err := anActor.AttemptsTo(create.TheTemporaryFile("foobar-*.txt").AndSaveNameTo(
 // Boby attempts to create the temporary file "foobar-*.txt"
 ```
 A temporary file or directory is created in the temporary directory of the system,
-never in the actor's current directory, and the name saved is its full path.
+never in the actor's current directory, and the name saved is its full path. A temporary
+file whose content cannot be written is removed, so nothing is left in that directory.
 As with a regular file, you can provide the content from an `io.Reader`, a byte slice,
 or a string:
 ```go
@@ -177,6 +188,10 @@ err := anActor.AttemptsTo(write.TheText("Hello World"))
 err := anActor.AttemptsTo(write.TheContent(nil).AtTheEndOf("foobar.txt"))
 // reader must be provided
 ```
+A reader that fails is narrated "write content that could not be read at the end of
+"foobar.txt"" and reported with its error. When the content cannot be written to the end
+of the file, the file is truncated back to what it held before: "hello " never becomes
+"hello wo".
 
 ### Overwrite a file
 Replace the whole content of a file from an `io.Reader`, a byte slice, or a string:
@@ -199,6 +214,11 @@ performs the action, with `ErrContentNotProvided`:
 err := anActor.AttemptsTo(overwrite.TheFile("foobar.txt"))
 // content must be provided
 ```
+A reader that fails is narrated "overwrite the file "foobar.txt" with content that could
+not be read" and reported with its error. The new content is written to a file next to
+the old one, then renamed over it: when the content cannot be written, the file keeps its
+old content, and when it can, the file keeps its permissions and gets a new inode, so a
+hard link to it keeps the old content.
 
 ### Remove a file or a directory
 ```go

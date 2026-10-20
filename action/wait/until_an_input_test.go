@@ -37,7 +37,7 @@ func TestUntilAnInput(t *testing.T) {
 		r, _, err := os.Pipe()
 		require.NoError(t, err)
 		require.NoError(t, r.Close())
-		require.Error(t, adam.AttemptsTo(wait.UntilAnInputIsProvidedBy(r)))
+		require.ErrorIs(t, adam.AttemptsTo(wait.UntilAnInputIsProvidedBy(r)), os.ErrClosed)
 	})
 
 	t.Run("honors the actor context", func(t *testing.T) {

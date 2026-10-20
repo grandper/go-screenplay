@@ -2,6 +2,8 @@ package see_test
 
 import (
 	"errors"
+	"log" //nolint:depguard // the example narrates through the standard logger
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/grandper/go-screenplay/v2/action/see"
 	"github.com/grandper/go-screenplay/v2/action/see/term"
+	"github.com/grandper/go-screenplay/v2/narrator/logadapter"
 	"github.com/grandper/go-screenplay/v2/resolution/be"
 	"github.com/grandper/go-screenplay/v2/resolution/contain"
 	resolutionfixture "github.com/grandper/go-screenplay/v2/resolution/fixture"
@@ -63,7 +66,10 @@ func TestSeeTheAction(t *testing.T) {
 
 	t.Run("fails the negation when the resolution is satisfied", func(t *testing.T) {
 		t.Parallel()
-		require.Error(t, adam.AttemptsTo(see.The(formField).ShouldNot(be.EqualTo("hello world"))))
+		require.EqualError(t,
+			adam.AttemptsTo(see.The(formField).ShouldNot(be.EqualTo("hello world"))),
+			`Adam failed to see that the form field should not be equal to "hello world": got "hello world"`,
+		)
 	})
 
 	t.Run("sees several resolutions about the same question", func(t *testing.T) {
@@ -73,10 +79,13 @@ func TestSeeTheAction(t *testing.T) {
 			contain.Substring("hello"),
 			contain.Substring("world"),
 		)))
-		require.Error(t, adam.AttemptsTo(see.The(formField).Should(
-			contain.Substring("hello"),
-			contain.Substring("everybody"),
-		)))
+		require.EqualError(t,
+			adam.AttemptsTo(see.The(formField).Should(
+				contain.Substring("hello"),
+				contain.Substring("everybody"),
+			)),
+			`Adam failed to see that the form field should contain substring "everybody": got "hello world"`,
+		)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
@@ -95,33 +104,38 @@ func TestSeeTheAction(t *testing.T) {
 		anything := resolutionfixture.NewFakeResolution[string]("anything", true)
 
 		for _, testCase := range []struct {
-			action screenplay.Performable
-			reads  string
-			passes bool
+			action  screenplay.Performable
+			reads   string
+			failure string // empty when the actor sees it
 		}{
 			{see.The(formField).Should(contain.Substring("hello")),
-				`see that the form field should contain substring "hello"`, true},
+				`see that the form field should contain substring "hello"`, ""},
 			{see.The(formField).ShouldNot(contain.Substring("hello")),
-				`see that the form field should not contain substring "hello"`, false},
+				`see that the form field should not contain substring "hello"`,
+				`Adam failed to see that the form field should not contain substring "hello": got "hello world"`},
 			{see.The(formField).ShouldBe(anything),
-				"see that the form field should be anything", true},
+				"see that the form field should be anything", ""},
 			{see.The(formField).ShouldNotBe(anything),
-				"see that the form field should not be anything", false},
+				"see that the form field should not be anything",
+				`Adam failed to see that the form field should not be anything: got "hello world"`},
 			{see.The(formField).ShouldHave(length.Exactly[string](11)),
-				"see that the form field should have length exactly 11", true},
+				"see that the form field should have length exactly 11", ""},
 			{see.The(formField).ShouldNotHave(length.Exactly[string](11)),
-				"see that the form field should not have length exactly 11", false},
+				"see that the form field should not have length exactly 11",
+				`Adam failed to see that the form field should not have length exactly 11: got "hello world"`},
 			{see.The(formField).ShouldAnyOf(be.EqualTo("hello"), be.EqualTo("hello world")),
-				`see that the form field should be any of: equal to "hello", equal to "hello world"`, true},
+				`see that the form field should be any of: equal to "hello", equal to "hello world"`, ""},
 			{see.The(formField).ShouldAnyOf(be.EqualTo("hello"), be.EqualTo("world")),
-				`see that the form field should be any of: equal to "hello", equal to "world"`, false},
+				`see that the form field should be any of: equal to "hello", equal to "world"`,
+				`Adam failed to see that the form field should be any of: equal to "hello", equal to "world": got "hello world"`},
 		} {
 			assert.Equal(t, testCase.reads, testCase.action.String())
 
-			if testCase.passes {
-				require.NoError(t, adam.AttemptsTo(testCase.action))
+			err := adam.AttemptsTo(testCase.action)
+			if testCase.failure == "" {
+				require.NoError(t, err)
 			} else {
-				require.Error(t, adam.AttemptsTo(testCase.action))
+				require.EqualError(t, err, testCase.failure)
 			}
 		}
 	})
@@ -147,4 +161,16 @@ func TestSeeTheAction(t *testing.T) {
 		require.ErrorContains(t, adam.AttemptsTo(see.The(formField).ShouldNot(broken)),
 			"invalid resolution \"match pattern `hello(`\": error parsing regexp")
 	})
+}
+
+func ExampleThe() {
+	production := screenplay.NewProduction(
+		screenplay.WithNarrator(screenplay.NewNarrator(logadapter.New(log.New(os.Stdout, "", 0)))))
+	adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
+	statusCode := fixture.NewFakeQuestion("status code", 200)
+
+	_ = adam.AttemptsTo(see.The(statusCode).Should(be.EqualTo(200)))
+
+	// Output:
+	// Adam attempts to see that the status code should be equal to 200
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -75,31 +76,46 @@ func TestConcurrentlyTo(t *testing.T) {
 	t.Run("waiting for all joins every error", func(t *testing.T) {
 		reset()
 		err := adam.AttemptsTo(proceed.ConcurrentlyTo(doTask1AndFail, doTask2AndFail).WaitingForAll())
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to do task 1")
-		assert.Contains(t, err.Error(), "failed to do task 2")
+		require.EqualError(t, err, "do task 1: failed to do task 1\ndo task 2: failed to do task 2")
 		assert.Equal(t, []string{"failed to do task 1", "failed to do task 2"}, sortedRecord())
 	})
 
 	t.Run("waiting for all runs every task even when one fails", func(t *testing.T) {
 		reset()
 		err := adam.AttemptsTo(proceed.ConcurrentlyTo(doTask1, doTask2AndFail, doTask3).WaitingForAll())
-		require.Error(t, err)
+		require.EqualError(t, err, "do task 2: failed to do task 2")
 		assert.Equal(t, []string{"do task 1", "do task 3", "failed to do task 2"}, sortedRecord())
 	})
 
 	t.Run("stopping on error returns the error that occurred", func(t *testing.T) {
 		reset()
 		err := adam.AttemptsTo(proceed.ConcurrentlyTo(doTask1AndFail).StoppingOnError())
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to do task 1")
+		require.EqualError(t, err, "failed to do task 1")
+	})
+
+	t.Run("stopping on error skips the actions that have not started", func(t *testing.T) {
+		errPaymentServiceDown := errors.New("the payment service is down")
+		var started atomic.Int32
+		checkTheStock := action.FromFunc("check the stock", func(*screenplay.Actor) error {
+			started.Add(1)
+			time.Sleep(50 * time.Millisecond)
+			return nil
+		})
+		chargeTheCard := action.FromFunc("charge the card", func(*screenplay.Actor) error {
+			return errPaymentServiceDown
+		})
+
+		err := adam.AttemptsTo(proceed.ConcurrentlyTo(chargeTheCard, checkTheStock, checkTheStock, checkTheStock).
+			StoppingOnError().WithLimit(1))
+
+		require.ErrorIs(t, err, errPaymentServiceDown)
+		assert.Equal(t, int32(0), started.Load())
 	})
 
 	t.Run("stopping on first error behaves like stopping on error", func(t *testing.T) {
 		reset()
 		err := adam.AttemptsTo(proceed.ConcurrentlyTo(doTask1AndFail).StoppingOnFirstError())
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to do task 1")
+		require.EqualError(t, err, "failed to do task 1")
 	})
 
 	t.Run("stopping on error succeeds when no task fails", func(t *testing.T) {
@@ -232,7 +248,11 @@ func TestConcurrentlyTo(t *testing.T) {
 			),
 		)
 		// A list made only of nil is empty: the mistake fails when performed, without a panic.
-		require.Error(t, narratedAdam.AttemptsTo(proceed.EitherTo(fixture.NewFakePerformable("retry", nil)).Or(nil)))
+		require.ErrorIs(
+			t,
+			narratedAdam.AttemptsTo(proceed.EitherTo(fixture.NewFakePerformable("retry", nil)).Or(nil)),
+			proceed.ErrNoAlternateProvided,
+		)
 		require.NoError(
 			t,
 			narratedAdam.AttemptsTo(proceed.To(nil, fixture.NewFakePerformable("retry", nil)).Otherwise(nil)),

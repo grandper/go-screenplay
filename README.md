@@ -469,6 +469,20 @@ negative duration fails with `keep.ErrPollingPeriodAndTimeoutMustBePositive`. Wh
 timeout is reached while the first attempt is still running, `keep.TryingTo` fails with
 `keep.ErrNoAttemptCompleted`.
 
+`wait.UntilThe` takes its window from the actor's production, and reports an unusable one
+the same way, at once, with `wait.ErrPollingPeriodMustBeLessThanOrEqualToTimeout` or
+`wait.ErrPollingPeriodAndTimeoutMustBePositive`:
+```go
+production := screenplay.NewProduction(
+    screenplay.WithTimeout(100*time.Millisecond),
+    screenplay.WithPolling(time.Second),
+)
+bob := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Bob")
+
+err := bob.AttemptsTo(wait.UntilThe(FormField).HappensTo(be.EqualTo("ready")))
+// fails: Bob failed to wait until the form field happens to be equal to "ready": polling period must be less than or equal to timeout
+```
+
 When you do not set the window explicitly, `keep.TryingTo` falls back to the actor's
 default timeout and polling interval, and `wait.UntilThe(...)` uses the default
 timeout as well. An actor created on its own uses the package defaults
@@ -1034,6 +1048,8 @@ This reads as *"choose to log success when the status code happens to be equal t
 follow the redirect when the status code happens to be equal to 404, to retry the request
 when …, or to abort the request otherwise"*. Only the first matching branch runs; there is no fall-through.
 The fallback can also be closed by `Default()`, which is narrated "default".
+A `When` branch is narrated by its rank: "when the first condition holds", up to "the
+fifth", then "the 6th", "the 21st".
 
 When every branch switches on the **same** value, `choose.BasedOnThe` names the question
 once and answers it a single time. Each branch is then closed by `WhenIt()` and a verb:
@@ -1049,7 +1065,15 @@ theActor.AttemptsTo(
 The closing `Otherwise()` is optional; without it, an unmatched choice does nothing and
 returns no error. A `When` boolean is evaluated eagerly (where it is written); a `WhenThe`
 branch is evaluated when it is reached, so an earlier matching branch means a later
-branch's question is never asked.
+branch's question is never asked. The same goes for a mistake: a branch built wrongly
+fails the action only when the run reaches it, so a mistake in a branch after the one
+that holds goes unreported:
+```go
+err := theActor.AttemptsTo(
+	choose.To(ReadTheResponse()).When(true).
+		To(AbortTheRequest()).WhenThe(StatusCode).HappensTo(), // never reached: no error
+)
+```
 
 #### Observing things
 The simplest way to ask a question is to use the action `see`.
@@ -1785,6 +1809,18 @@ Highlights: the `create.TheFile`, `create.TheTemporaryFile`, `create.TheDirector
 with `.AtTheEndOf`; `overwrite.TheFile` with `.WithTheText`, `.WithTheBytes` or `.WithTheContent`;
 `remove.TheFile`, `remove.TheDirectory`, and `change.TheCurrentDirectoryTo`; the `FileNamed`,
 `DirectoryNamed`, and `ContentOfTheFileNamed` questions; and the `Exist` resolution.
+
+## Companion repositories
+Two repositories extend the capabilities of the library. Each one is installed on its own,
+and has its own README with the full details:
+- [go-screenplay-narrators](https://github.com/grandper/go-screenplay-narrators) renders the
+  narration through the logging libraries your project already uses: zap, zerolog, logrus,
+  `testing.TB` (next to the failures of testify), godog, and the logger of the AWS SDK for Go v2.
+  Each adapter is its own Go module, so importing one never pulls the dependencies of the others.
+- [go-screenplay-nats](https://github.com/grandper/go-screenplay-nats) drives a NATS server:
+  it gives an actor the ability to communicate with NATS, with actions to connect, subscribe,
+  publish, send requests and receive messages, questions about the connection and the received
+  messages, and an embedded NATS server to run scenarios without an external broker.
 
 ## References
 This package takes some inspiration from several other libraries written in other languages:

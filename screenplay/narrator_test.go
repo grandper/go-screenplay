@@ -236,7 +236,7 @@ func TestNarrator(t *testing.T) {
 			adam := narratedActor(recorder)
 			boom := errors.New("boom")
 
-			require.Error(t, adam.AttemptsTo(fixture.NewFakePerformable("stumbles", boom)))
+			require.ErrorIs(t, adam.AttemptsTo(fixture.NewFakePerformable("stumbles", boom)), boom)
 
 			events := recorder.Events()
 			require.Len(t, events, 2)
@@ -263,6 +263,23 @@ func TestNarrator(t *testing.T) {
 
 			assert.Equal(t, screenplay.PhaseEnd, events[1].Phase)
 			assert.Equal(t, "hello world", events[1].Answer)
+		})
+
+		t.Run("narrates the failure of a question at the error level", func(t *testing.T) {
+			t.Parallel()
+
+			errNoGreeting := errors.New("failed to get the greeting")
+			recorder := fixture.NewRecorder()
+			adam := narratedActor(recorder)
+
+			_, err := adam.Sees(fixture.NewFailingFakeQuestion[string]("greeting", errNoGreeting))
+
+			require.ErrorIs(t, err, errNoGreeting)
+			events := recorder.Events()
+			require.Len(t, events, 2)
+			assert.Equal(t, "Adam asks for the greeting", events[1].Message)
+			assert.Equal(t, screenplay.LevelError, events[1].Level)
+			assert.ErrorIs(t, events[1].Err, errNoGreeting)
 		})
 	})
 }

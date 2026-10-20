@@ -42,7 +42,7 @@ func TestTask(t *testing.T) {
 			logFormField := screenplay.TaskWhere("log the form field",
 				screenplay.Log(missingFormField))
 			assert.Equal(t, "log the form field", logFormField.String())
-			assert.Error(t, adam.AttemptsTo(logFormField))
+			assert.EqualError(t, adam.AttemptsTo(logFormField), "failed to get the field content")
 		})
 	})
 }

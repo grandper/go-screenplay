@@ -167,6 +167,13 @@ A body larger than 64 MiB is reported when the actor performs the action:
 err := anActor.AttemptsTo(send.PostRequest().To("http://www.example.com/upload").WithBody(hugeArchive))
 // failed to read the request body: the request body exceeds 64 MiB
 ```
+So is a body that cannot be read: nothing is sent, the error of the reader is reported,
+and the narration says so instead of quoting a body that never existed:
+```go
+err := anActor.AttemptsTo(send.PostRequest().To("http://www.example.com/upload").WithBody(brokenArchive))
+// Wanda attempts to send a POST request to "http://www.example.com/upload" with a body that could not be read
+// failed to read the request body: the disk is gone
+```
 
 Use basic authentication with `WithCredential` (or its alias `WithAuth`):
 ```go

@@ -2,6 +2,7 @@ package question_test
 
 import (
 	"os"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,6 +39,14 @@ func TestContentOfTheFileNamedQuestion(t *testing.T) {
 		content, err := question.ContentOfTheFileNamed("foo.bar").AnsweredBy(theActor)
 		require.Error(t, err)
 		assert.Nil(t, content)
+	})
+
+	t.Run("fails for a directory", func(t *testing.T) {
+		reports := t.TempDir()
+
+		_, err := question.ContentOfTheFileNamed(reports).AnsweredBy(theActor)
+
+		require.ErrorIs(t, err, syscall.EISDIR)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {

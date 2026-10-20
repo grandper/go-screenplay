@@ -86,7 +86,11 @@ func TestEitherTo(t *testing.T) {
 
 	t.Run("returns an error when all tasks failed", func(t *testing.T) {
 		reset()
-		require.Error(t, adam.AttemptsTo(proceed.EitherTo(doTask1AndFail).Or(doTheAlternativeOfTask1AndFail)))
+		require.EqualError(
+			t,
+			adam.AttemptsTo(proceed.EitherTo(doTask1AndFail).Or(doTheAlternativeOfTask1AndFail)),
+			"failed to do the alternative of task 1",
+		)
 		assert.Equal(t, []string{"failed to do task 1", "failed to do the alternative of task 1"}, record)
 	})
 

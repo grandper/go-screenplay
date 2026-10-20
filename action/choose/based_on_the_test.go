@@ -10,6 +10,8 @@ import (
 	"github.com/grandper/go-screenplay/v2/action/choose"
 	"github.com/grandper/go-screenplay/v2/action/see/term"
 	"github.com/grandper/go-screenplay/v2/resolution/be"
+	resolutionfixture "github.com/grandper/go-screenplay/v2/resolution/fixture"
+	"github.com/grandper/go-screenplay/v2/resolution/length"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 	"github.com/grandper/go-screenplay/v2/screenplay/fixture"
 )
@@ -76,6 +78,40 @@ func TestBasedOnThe(t *testing.T) {
 		assert.Equal(t, []string{}, record)
 	})
 
+	t.Run("does not fail on a branch built wrongly that the run never reaches", func(t *testing.T) {
+		readTheResponse := createRecordingPerformable("read the response", nil)
+		abortTheRequest := createRecordingPerformable("abort the request", nil)
+		statusCode := fixture.NewFakeQuestion("status code", 200)
+
+		for _, unreached := range []screenplay.Performable{
+			choose.BasedOnThe(statusCode).
+				To(readTheResponse).WhenIt().HappensTo(be.EqualTo(200)).
+				To(abortTheRequest).WhenIt().HappensTo(),
+			choose.BasedOnThe(statusCode).
+				To(readTheResponse).WhenIt().HappensTo(be.EqualTo(200)).
+				To(abortTheRequest).WhenIt().HappensTo(be.Between(300, 200)),
+		} {
+			reset()
+			require.NoError(t, adam.AttemptsTo(unreached))
+			assert.Equal(t, []string{"read the response"}, record)
+		}
+	})
+
+	t.Run("fails with an invalid term when the question is nil", func(t *testing.T) {
+		reset()
+		readTheResponse := createRecordingPerformable("read the response", nil)
+		choice := choose.BasedOnThe[int](nil).To(readTheResponse).WhenIt().HappensTo(be.EqualTo(200))
+
+		assert.Equal(t,
+			"choose based on the <nil> to read the response when it happens to be equal to 200",
+			choice.String())
+		err := adam.AttemptsTo(choice)
+
+		require.ErrorIs(t, err, term.ErrInvalidTerm)
+		require.EqualError(t, err, "invalid term: the question is nil")
+		assert.Equal(t, []string{}, record)
+	})
+
 	t.Run("supports every verb to close a branch", func(t *testing.T) {
 		reset()
 		question := fixture.NewFakeQuestion("status code", 503)
@@ -85,6 +121,45 @@ func TestBasedOnThe(t *testing.T) {
 				To(doOtherTask).WhenIt().DoesNotHappenTo(be.LessThan(500)),
 		))
 		assert.Equal(t, []string{"do the other task"}, record)
+
+		retryTheRequest := createRecordingPerformable("retry the request", nil)
+		readTheResponse := createRecordingPerformable("read the response", nil)
+		abortTheRequest := createRecordingPerformable("abort the request", nil)
+		statusCode := fixture.NewFakeQuestion("status code", 503)
+		orderList := fixture.NewFakeQuestion("order list", []string{"book", "pen"})
+		aServerError := resolutionfixture.NewFakeResolution[int]("a server error", true)
+
+		for _, testCase := range []struct {
+			action    screenplay.Performable
+			reads     string
+			performed string
+		}{
+			{choose.BasedOnThe(statusCode).
+				To(retryTheRequest).WhenIt().HappensToBe(aServerError).
+				To(readTheResponse).Otherwise(),
+				"choose based on the status code to retry the request when it happens to be a server error, " +
+					"or to read the response otherwise", "retry the request"},
+			{choose.BasedOnThe(orderList).
+				To(readTheResponse).WhenIt().HappensToHave(length.Exactly[[]string](0)).
+				To(abortTheRequest).Otherwise(),
+				"choose based on the order list to read the response when it happens to have length exactly 0, " +
+					"or to abort the request otherwise", "abort the request"},
+			{choose.BasedOnThe(statusCode).
+				To(readTheResponse).WhenIt().DoesNotHappenToBe(aServerError).
+				To(retryTheRequest).Otherwise(),
+				"choose based on the status code to read the response when it does not happen to be a server error, " +
+					"or to retry the request otherwise", "retry the request"},
+			{choose.BasedOnThe(orderList).
+				To(readTheResponse).WhenIt().DoesNotHappenToHave(length.Exactly[[]string](0)).
+				To(abortTheRequest).Otherwise(),
+				"choose based on the order list to read the response when it does not happen to have length exactly 0, " +
+					"or to abort the request otherwise", "read the response"},
+		} {
+			reset()
+			assert.Equal(t, testCase.reads, testCase.action.String())
+			require.NoError(t, adam.AttemptsTo(testCase.action))
+			assert.Equal(t, []string{testCase.performed}, record)
+		}
 	})
 
 	t.Run("performs the fallback when no branch matches", func(t *testing.T) {

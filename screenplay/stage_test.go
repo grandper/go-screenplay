@@ -1,6 +1,7 @@
 package screenplay_test
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
@@ -122,6 +123,17 @@ func TestStage(t *testing.T) {
 			require.NoError(t, stage.DrawTheCurtain())
 
 			assert.Equal(t, 0, adam.NumAbilities())
+			assert.False(t, stage.AnActorIsOnStage())
+		})
+
+		t.Run("reports the actor who could not exit and still empties the stage", func(t *testing.T) {
+			t.Parallel()
+
+			errConnectionClosed := errors.New("the database connection is already closed")
+			stage := screenplay.SetTheStage(screenplay.CastOfStandardActors())
+			stage.ActorNamed("Adam").WhoCan(queryTheDatabaseAbility{errForget: errConnectionClosed})
+
+			require.ErrorIs(t, stage.DrawTheCurtain(), errConnectionClosed)
 			assert.False(t, stage.AnActorIsOnStage())
 		})
 

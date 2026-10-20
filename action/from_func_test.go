@@ -26,7 +26,7 @@ func TestFromFunc(t *testing.T) {
 	})
 	assert.Implements(t, (*screenplay.Performable)(nil), failToDoSomething)
 	assert.Equal(t, "fail to do something", failToDoSomething.String())
-	require.Error(t, adam.AttemptsTo(failToDoSomething))
+	require.ErrorIs(t, adam.AttemptsTo(failToDoSomething), assert.AnError)
 
 	t.Run("and questions", func(t *testing.T) {
 		t.Run("performs the task with the answers from the questions", func(t *testing.T) {
@@ -160,6 +160,17 @@ func TestFromFunc(t *testing.T) {
 				fixture.NewFakeQuestion("URL", "https://example.com"),
 			)
 			require.ErrorIs(t, adam.AttemptsTo(performable), action.ErrTaskFuncMustReturnTask)
+		})
+
+		t.Run("returns ErrTaskFuncMustReturnTask when taskFunc returns a nil Performable", func(t *testing.T) {
+			performable := action.FromFuncAndQuestions(
+				"connect to %s",
+				func(*screenplay.Actor, string) screenplay.Performable { return nil },
+				fixture.NewFakeQuestion("URL", "https://example.com"),
+			)
+			err := adam.AttemptsTo(performable)
+			require.ErrorIs(t, err, action.ErrTaskFuncMustReturnTask)
+			require.EqualError(t, err, "taskFunc must return a Performable")
 		})
 
 		t.Run("returns the underlying error when a question fails to answer", func(t *testing.T) {

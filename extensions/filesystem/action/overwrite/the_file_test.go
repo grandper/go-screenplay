@@ -1,10 +1,13 @@
 package overwrite_test
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/iotest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -68,6 +71,23 @@ func TestTheFile(t *testing.T) {
 					AttemptsTo(overwrite.TheFile(fixture.CreateFilename(t)).WithTheContent(strings.NewReader("some text"))),
 				screenplay.ErrActorMissingAbility,
 			)
+		})
+
+		t.Run("fails when the content cannot be read", func(t *testing.T) {
+			errDiskGone := errors.New("the disk is gone")
+			notes := filepath.Join(t.TempDir(), "notes.txt")
+			require.NoError(t, os.WriteFile(notes, []byte("draft 1"), 0o600))
+
+			overwriteTheNotes := overwrite.TheFile(notes).WithTheContent(iotest.ErrReader(errDiskGone))
+
+			assert.Equal(t, fmt.Sprintf("overwrite the file %q with content that could not be read", notes),
+				overwriteTheNotes.String())
+			err := adam.AttemptsTo(overwriteTheNotes)
+			require.ErrorIs(t, err, errDiskGone)
+			require.EqualError(t, err, "failed to read the content: the disk is gone")
+			content, err := os.ReadFile(notes)
+			require.NoError(t, err)
+			assert.Equal(t, "draft 1", string(content))
 		})
 	})
 

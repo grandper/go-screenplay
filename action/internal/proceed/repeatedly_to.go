@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
-	"strconv"
 	"strings"
 	"unicode"
 
@@ -274,7 +273,7 @@ func (a *repeatedlyToAction[B]) PerformAs(theActor *screenplay.Actor) error {
 		}
 
 		if err != nil {
-			return fmt.Errorf("%s failed to %s on the %s pass: %w", theActor.Name(), a, ordinalOf(pass), err)
+			return fmt.Errorf("%s failed to %s on the %s pass: %w", theActor.Name(), a, sentence.Rank(pass), err)
 		}
 
 		if !goesOn {
@@ -419,24 +418,6 @@ func timesOf(count int) string {
 	}
 
 	return fmt.Sprintf("%d times", count)
-}
-
-// ordinalOf writes the rank of a pass: "1st", "2nd", "3rd", "4th", "11th", "21st".
-func ordinalOf(pass int) string {
-	rank := strconv.Itoa(pass)
-
-	switch {
-	case strings.HasSuffix(rank, "11"), strings.HasSuffix(rank, "12"), strings.HasSuffix(rank, "13"):
-		return rank + "th"
-	case strings.HasSuffix(rank, "1"):
-		return rank + "st"
-	case strings.HasSuffix(rank, "2"):
-		return rank + "nd"
-	case strings.HasSuffix(rank, "3"):
-		return rank + "rd"
-	default:
-		return rank + "th"
-	}
 }
 
 // repeatedlyToAction implements the screenplay.Performable interface.

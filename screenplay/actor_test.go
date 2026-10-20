@@ -216,6 +216,13 @@ func TestActor(t *testing.T) {
 		assert.Equal(t, 0, adam.NumAbilities())
 	})
 
+	t.Run("fails to exit when an ability cannot be forgotten", func(t *testing.T) {
+		errConnectionClosed := errors.New("the database connection is already closed")
+		adam := screenplay.ActorNamed("Adam").WhoCan(queryTheDatabaseAbility{errForget: errConnectionClosed})
+
+		require.EqualError(t, adam.Exit(), "the database connection is already closed")
+	})
+
 	t.Run("should perform ordered cleanup tasks in order", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		var record []int
@@ -260,7 +267,7 @@ func TestActor(t *testing.T) {
 		}
 		adam.HasOrderedCleanupTasks(task1, task2)
 		adam.WithOrderedCleanupTasks(task3)
-		require.Error(t, adam.Exit())
+		require.EqualError(t, adam.Exit(), "failed to perform task 2")
 		assert.Equal(t, []int{1}, record)
 	})
 
@@ -308,7 +315,7 @@ func TestActor(t *testing.T) {
 		}
 		adam.HasIndependentCleanupTasks(task1, task2)
 		adam.WithIndependentCleanupTasks(task3)
-		require.Error(t, adam.Exit())
+		require.EqualError(t, adam.Exit(), "failed to perform task 2")
 		assert.Equal(t, []int{1, 3}, record)
 	})
 
@@ -322,7 +329,7 @@ func TestActor(t *testing.T) {
 		adam.HasOrderedCleanupTasks(ordered)
 
 		err := adam.Exit()
-		require.Error(t, err)
+		require.EqualError(t, err, "independent task failed")
 		assert.Equal(t, []int{2}, record, "ordered task must run even though independent task failed")
 	})
 
@@ -337,7 +344,7 @@ func TestActor(t *testing.T) {
 
 			adam.HasIndependentCleanupTasks(task1, task2, task3)
 
-			require.Error(t, adam.Exit())
+			require.EqualError(t, adam.Exit(), "task 2 failed")
 			assert.Equal(t, []int{1, 3}, record)
 
 			// Second Exit must not replay any task — the list was cleared despite the error.
@@ -359,7 +366,7 @@ func TestActor(t *testing.T) {
 
 	t.Run("should return an error when he failed to perform a task", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
-		require.Error(t, adam.AttemptsTo(openTheHomePageButFailed))
+		require.EqualError(t, adam.AttemptsTo(openTheHomePageButFailed), "the actor failed to perform the task")
 	})
 
 	t.Run("should ignore nil actions", func(t *testing.T) {
@@ -379,7 +386,7 @@ func TestActor(t *testing.T) {
 
 	t.Run("should ignore nil actions but still report the error of a failing action", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
-		require.Error(t, adam.AttemptsTo(nil, openTheHomePageButFailed))
+		require.EqualError(t, adam.AttemptsTo(nil, openTheHomePageButFailed), "the actor failed to perform the task")
 	})
 
 	thePhoneNumber := fixture.NewFakeQuestion("phone number", "0123456789")
@@ -398,7 +405,7 @@ func TestActor(t *testing.T) {
 	t.Run("should asks a question and fail to get an answer", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		answer, err := adam.AsksFor(thePhoneNumberButAnErrorOccurred)
-		require.Error(t, err)
+		require.EqualError(t, err, "cannot find the phone number")
 		assert.Empty(t, answer)
 	})
 
@@ -412,7 +419,7 @@ func TestActor(t *testing.T) {
 	t.Run("should fail to see something", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		answer, err := adam.Sees(thePhoneNumberButAnErrorOccurred)
-		require.Error(t, err)
+		require.EqualError(t, err, "cannot find the phone number")
 		assert.Empty(t, answer)
 	})
 
@@ -442,7 +449,7 @@ func TestActor(t *testing.T) {
 			t.Run(name+" returns the error when an action fails", func(t *testing.T) {
 				adam := screenplay.ActorNamed("Adam")
 				require.NoError(t, perform(adam, openTheHomePage))
-				require.Error(t, perform(adam, openTheHomePageButFailed))
+				require.EqualError(t, perform(adam, openTheHomePageButFailed), "the actor failed to perform the task")
 			})
 		}
 	})
@@ -621,4 +628,14 @@ type flyInTheSkyAbility struct {
 
 func (fits flyInTheSkyAbility) Forget() error {
 	return fits.err
+}
+
+// queryTheDatabaseAbility is an ability whose connection may already be closed
+// when the actor exits, so that Forget fails with errForget.
+type queryTheDatabaseAbility struct {
+	errForget error
+}
+
+func (qtd queryTheDatabaseAbility) Forget() error {
+	return qtd.errForget
 }

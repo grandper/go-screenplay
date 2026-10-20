@@ -1,19 +1,21 @@
 package write_test
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/iotest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/fixture"
-
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/ability"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action"
 	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/write"
+	"github.com/grandper/go-screenplay/v2/extensions/filesystem/internal/fixture"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
 
@@ -58,6 +60,23 @@ func TestTheContent(t *testing.T) {
 					AttemptsTo(write.TheContent(strings.NewReader("some text")).AtTheEndOf("file.txt")),
 				screenplay.ErrActorMissingAbility,
 			)
+		})
+
+		t.Run("fails when the content cannot be read", func(t *testing.T) {
+			errDiskGone := errors.New("the disk is gone")
+			notes := filepath.Join(t.TempDir(), "notes.txt")
+			require.NoError(t, os.WriteFile(notes, []byte("hello "), 0o600))
+
+			writeTheNotes := write.TheContent(iotest.ErrReader(errDiskGone)).AtTheEndOf(notes)
+
+			assert.Equal(t, fmt.Sprintf("write content that could not be read at the end of %q", notes),
+				writeTheNotes.String())
+			err := adam.AttemptsTo(writeTheNotes)
+			require.ErrorIs(t, err, errDiskGone)
+			require.EqualError(t, err, "failed to read the content: the disk is gone")
+			content, err := os.ReadFile(notes)
+			require.NoError(t, err)
+			assert.Equal(t, "hello ", string(content))
 		})
 	})
 

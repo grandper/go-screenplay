@@ -26,7 +26,7 @@ func TestLogAction(t *testing.T) {
 	})
 
 	t.Run("fails when the question fails", func(t *testing.T) {
-		require.Error(t, adam.AttemptsTo(screenplay.Log(missingFormField)))
+		require.EqualError(t, adam.AttemptsTo(screenplay.Log(missingFormField)), "failed to get the field content")
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {

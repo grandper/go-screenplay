@@ -1,12 +1,12 @@
 package ability_test
 
 import (
+	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,13 +22,11 @@ func TestUseTheFileSystem(t *testing.T) {
 
 	useTheFileSystem := ability.UseTheFileSystem()
 
-	count := 0
-	var mutex sync.Mutex
-	getFilename := func() string {
-		mutex.Lock()
-		defer mutex.Unlock()
-		count++
-		return "foobar" + strconv.Itoa(count) + ".txt"
+	// getFilename returns the name of a file that does not exist, in a directory
+	// the test owns and removes.
+	getFilename := func(t *testing.T) string {
+		t.Helper()
+		return filepath.Join(t.TempDir(), "notes.txt")
 	}
 
 	t.Run("should provide the current path", func(t *testing.T) {
@@ -59,11 +57,15 @@ func TestUseTheFileSystem(t *testing.T) {
 		})
 
 		t.Run("fails if the path does not exist", func(t *testing.T) {
-			require.Error(t, useTheFileSystem.ToChangeDirectory("foobar"))
+			require.ErrorIs(t, useTheFileSystem.ToChangeDirectory("foobar"), os.ErrNotExist)
 		})
 
 		t.Run("fails if the path is not a directory", func(t *testing.T) {
-			require.Error(t, useTheFileSystem.ToChangeDirectory("use_the_file_system.go"))
+			require.EqualError(
+				t,
+				useTheFileSystem.ToChangeDirectory("use_the_file_system.go"),
+				"chdir use_the_file_system.go: not a directory",
+			)
 		})
 
 		t.Run("without changing the working directory of the process", func(t *testing.T) {
@@ -115,7 +117,7 @@ func TestUseTheFileSystem(t *testing.T) {
 		})
 
 		t.Run("the file does not exist", func(t *testing.T) {
-			exists, errExist := useTheFileSystem.ToTellIfTheFileExists(getFilename())
+			exists, errExist := useTheFileSystem.ToTellIfTheFileExists(getFilename(t))
 			require.NoError(t, errExist)
 			assert.False(t, exists)
 		})
@@ -137,34 +139,31 @@ func TestUseTheFileSystem(t *testing.T) {
 
 	t.Run("should provide a way to create a temporary file", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
-			filename, err := useTheFileSystem.ToCreateTemporaryFile("foo*.txt")
+			filename, err := useTheFileSystem.ToCreateTemporaryFile("notes-*.txt")
 			require.NoError(t, err)
+			t.Cleanup(func() { assert.NoError(t, os.Remove(filename)) })
 
 			exists, err := useTheFileSystem.ToTellIfTheFileExists(filename)
 			require.NoError(t, err)
 			assert.True(t, exists)
 		})
 
-		t.Run("fails if the file exists", func(t *testing.T) {
-			filename, err := useTheFileSystem.ToCreateTemporaryFile("foo*.txt")
-			require.NoError(t, err)
+		t.Run("fails if the pattern holds a path separator", func(t *testing.T) {
+			pattern := filepath.Join(t.TempDir(), "notes-*.txt")
 
-			_, err = useTheFileSystem.ToCreateTemporaryFile(filename)
-			require.Error(t, err)
+			_, err := useTheFileSystem.ToCreateTemporaryFile(pattern)
+			require.EqualError(t, err, fmt.Sprintf("createtemp %s: pattern contains path separator", pattern))
 		})
 	})
 
 	t.Run("creates a temporary file with content", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
 			filename, err := useTheFileSystem.ToCreateTemporaryFileWithContent(
-				"foo*.txt",
+				"notes-*.txt",
 				strings.NewReader("hello world"),
 			)
 			require.NoError(t, err)
-
-			defer func() {
-				assert.NoError(t, os.Remove(filename))
-			}()
+			t.Cleanup(func() { assert.NoError(t, os.Remove(filename)) })
 
 			content, err := useTheFileSystem.ToRead(filename)
 			require.NoError(t, err)
@@ -174,42 +173,37 @@ func TestUseTheFileSystem(t *testing.T) {
 		t.Run("in the temporary directory, whatever the files of the current directory", func(t *testing.T) {
 			// A file of the same name in the current directory is unrelated: the
 			// temporary file gets a random suffix in the temporary directory.
-			filename := getFilename()
-			require.NoError(t, useTheFileSystem.ToCreateFile(filename))
-			defer func() {
-				assert.NoError(t, os.Remove(filename))
-			}()
+			other := ability.UseTheFileSystem()
+			require.NoError(t, other.ToChangeDirectory(t.TempDir()))
+			require.NoError(t, other.ToCreateFile("notes.txt"))
 
-			temporary, err := useTheFileSystem.ToCreateTemporaryFileWithContent(
-				filename,
-				strings.NewReader("hello world"),
-			)
+			temporary, err := other.ToCreateTemporaryFileWithContent("notes.txt", strings.NewReader("hello world"))
 			require.NoError(t, err)
-			defer func() {
-				assert.NoError(t, os.Remove(temporary))
-			}()
+			t.Cleanup(func() { assert.NoError(t, os.Remove(temporary)) })
 
-			assert.NotEqual(t, filename, temporary)
+			assert.NotEqual(t, "notes.txt", filepath.Base(temporary))
 			systemTemporaryDirectory := os.TempDir() //nolint:usetesting // the ability writes there
 			assert.Equal(t, filepath.Clean(systemTemporaryDirectory), filepath.Dir(temporary))
 		})
 
-		t.Run("fails if the content cannot be copied", func(t *testing.T) {
-			filename, err := useTheFileSystem.ToCreateTemporaryFileWithContent("foo*.txt", &failingReader{})
-			require.Error(t, err)
+		t.Run("fails if the content cannot be copied, and leaves no temporary file", func(t *testing.T) {
+			t.Setenv("TMPDIR", t.TempDir())
+
+			filename, err := useTheFileSystem.ToCreateTemporaryFileWithContent("notes-*.txt", &failingReader{})
+
+			require.ErrorIs(t, err, os.ErrInvalid)
 			assert.Empty(t, filename)
+			entries, err := os.ReadDir(os.TempDir()) //nolint:usetesting // the ability writes there
+			require.NoError(t, err)
+			assert.Empty(t, entries)
 		})
 	})
 
 	t.Run("overwrites a file with content", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
-			filename := getFilename()
+			filename := getFilename(t)
 			err := useTheFileSystem.ToCreateFileWithContent(filename, strings.NewReader("hello world"))
 			require.NoError(t, err)
-
-			defer func() {
-				assert.NoError(t, os.Remove(filename))
-			}()
 
 			err = useTheFileSystem.ToOverwriteFileWithContent(filename, strings.NewReader("bye"))
 			require.NoError(t, err)
@@ -220,31 +214,40 @@ func TestUseTheFileSystem(t *testing.T) {
 		})
 
 		t.Run("fails if the file does not exist", func(t *testing.T) {
-			err := useTheFileSystem.ToOverwriteFileWithContent(getFilename(), strings.NewReader("hello world"))
-			require.Error(t, err)
+			err := useTheFileSystem.ToOverwriteFileWithContent(getFilename(t), strings.NewReader("hello world"))
+			require.ErrorIs(t, err, os.ErrNotExist)
 		})
 
-		t.Run("fails if the content cannot be copied", func(t *testing.T) {
-			filename := getFilename()
-			err := useTheFileSystem.ToCreateFileWithContent(filename, strings.NewReader("hello world"))
+		t.Run("fails if the content cannot be copied, and keeps the old content", func(t *testing.T) {
+			notes := getFilename(t)
+			require.NoError(t, os.WriteFile(notes, []byte("draft 1"), 0o640))
+
+			require.ErrorIs(t, useTheFileSystem.ToOverwriteFileWithContent(notes, &failingReader{}), os.ErrInvalid)
+
+			content, err := os.ReadFile(notes)
 			require.NoError(t, err)
+			assert.Equal(t, "draft 1", string(content))
+			entries, err := os.ReadDir(filepath.Dir(notes))
+			require.NoError(t, err)
+			assert.Len(t, entries, 1, "no replacement file is left next to it")
+		})
 
-			defer func() {
-				assert.NoError(t, os.Remove(filename))
-			}()
+		t.Run("keeps the permissions of the file it overwrites", func(t *testing.T) {
+			notes := getFilename(t)
+			require.NoError(t, os.WriteFile(notes, []byte("draft 1"), 0o640))
 
-			err = useTheFileSystem.ToOverwriteFileWithContent(filename, &failingReader{})
-			require.Error(t, err)
+			require.NoError(t, useTheFileSystem.ToOverwriteFileWithContent(notes, strings.NewReader("draft 2")))
+
+			info, err := os.Stat(notes)
+			require.NoError(t, err)
+			assert.Equal(t, fs.FileMode(0o640), info.Mode().Perm())
 		})
 	})
 
 	t.Run("creates a temporary directory", func(t *testing.T) {
-		dir, err := useTheFileSystem.ToCreateTemporaryDirectory("foobar")
+		dir, err := useTheFileSystem.ToCreateTemporaryDirectory("notes-*")
 		require.NoError(t, err)
-
-		defer func() {
-			assert.NoError(t, useTheFileSystem.ToRemoveDirectory(dir))
-		}()
+		t.Cleanup(func() { assert.NoError(t, useTheFileSystem.ToRemoveDirectory(dir)) })
 
 		exists, err := useTheFileSystem.ToTellIfTheDirectoryExists(dir)
 		require.NoError(t, err)
@@ -253,13 +256,9 @@ func TestUseTheFileSystem(t *testing.T) {
 
 	t.Run("creates a file", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
-			filename := getFilename()
+			filename := getFilename(t)
 			err := useTheFileSystem.ToCreateFile(filename)
 			require.NoError(t, err)
-
-			defer func() {
-				assert.NoError(t, os.Remove(filename))
-			}()
 
 			exists, err := useTheFileSystem.ToTellIfTheFileExists(filename)
 			require.NoError(t, err)
@@ -267,30 +266,25 @@ func TestUseTheFileSystem(t *testing.T) {
 		})
 
 		t.Run("fails if the file cannot be created", func(t *testing.T) {
-			err := useTheFileSystem.ToCreateFile("/foobar.txt")
-			require.Error(t, err)
+			readOnly := t.TempDir()
+			require.NoError(t, os.Chmod(readOnly, 0o500))
+
+			err := useTheFileSystem.ToCreateFile(filepath.Join(readOnly, "notes.txt"))
+			require.ErrorIs(t, err, os.ErrPermission)
 		})
 
 		t.Run("fails if the file already exists", func(t *testing.T) {
-			filename := getFilename()
+			filename := getFilename(t)
 			err := useTheFileSystem.ToCreateFile(filename)
 			require.NoError(t, err)
-
-			defer func() {
-				assert.NoError(t, os.Remove(filename))
-			}()
 
 			err = useTheFileSystem.ToCreateFile(filename)
 			require.ErrorIs(t, err, ability.ErrFileAlreadyExists)
 		})
 
 		t.Run("readable and writable by its owner only", func(t *testing.T) {
-			filename := getFilename()
+			filename := getFilename(t)
 			require.NoError(t, useTheFileSystem.ToCreateFile(filename))
-
-			defer func() {
-				assert.NoError(t, os.Remove(filename))
-			}()
 
 			info, err := os.Stat(filename)
 			require.NoError(t, err)
@@ -301,52 +295,49 @@ func TestUseTheFileSystem(t *testing.T) {
 	t.Run("never writes through a symbolic link", func(t *testing.T) {
 		// A dangling link: the target does not exist, so a naive existence check
 		// would see "no file" and a naive write would create the target.
-		newDanglingLink := func(t *testing.T) (string, string) {
+		newDanglingLink := func(t *testing.T) string {
 			t.Helper()
-			target := getFilename()
-			link := getFilename()
+			dir := t.TempDir()
+			target := filepath.Join(dir, "notes.txt")
+			link := filepath.Join(dir, "link.txt")
 			require.NoError(t, os.Symlink(target, link))
 			t.Cleanup(func() {
-				assert.NoError(t, os.Remove(link))
 				_, err := os.Lstat(target)
 				assert.ErrorIs(t, err, os.ErrNotExist, "the target of the link must not have been created")
 			})
-			return link, target
+			return link
 		}
 
 		t.Run("when creating a file", func(t *testing.T) {
-			link, _ := newDanglingLink(t)
+			link := newDanglingLink(t)
 			err := useTheFileSystem.ToCreateFile(link)
 			require.ErrorIs(t, err, ability.ErrFileAlreadyExists)
 		})
 
 		t.Run("when creating a file with content", func(t *testing.T) {
-			link, _ := newDanglingLink(t)
+			link := newDanglingLink(t)
 			err := useTheFileSystem.ToCreateFileWithContent(link, strings.NewReader("owned"))
 			require.ErrorIs(t, err, ability.ErrFileAlreadyExists)
 		})
 
 		t.Run("when overwriting a file", func(t *testing.T) {
-			link, _ := newDanglingLink(t)
+			link := newDanglingLink(t)
 			err := useTheFileSystem.ToOverwriteFileWithContent(link, strings.NewReader("owned"))
 			require.ErrorIs(t, err, ability.ErrSymbolicLink)
 		})
 
 		t.Run("when appending to a file", func(t *testing.T) {
-			link, _ := newDanglingLink(t)
+			link := newDanglingLink(t)
 			err := useTheFileSystem.ToAppendTo(link, strings.NewReader("owned"))
 			require.ErrorIs(t, err, ability.ErrSymbolicLink)
 		})
 
 		t.Run("even when the link points to an existing file", func(t *testing.T) {
-			target := getFilename()
+			dir := t.TempDir()
+			target := filepath.Join(dir, "notes.txt")
 			require.NoError(t, useTheFileSystem.ToCreateFileWithContent(target, strings.NewReader("original")))
-			link := getFilename()
+			link := filepath.Join(dir, "link.txt")
 			require.NoError(t, os.Symlink(target, link))
-			t.Cleanup(func() {
-				assert.NoError(t, os.Remove(link))
-				assert.NoError(t, os.Remove(target))
-			})
 
 			require.ErrorIs(
 				t,
@@ -363,13 +354,9 @@ func TestUseTheFileSystem(t *testing.T) {
 
 	t.Run("creates a file with content", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
-			filename := getFilename()
+			filename := getFilename(t)
 			err := useTheFileSystem.ToCreateFileWithContent(filename, strings.NewReader("hello world"))
 			require.NoError(t, err)
-
-			defer func() {
-				assert.NoError(t, os.Remove(filename))
-			}()
 
 			exists, err := useTheFileSystem.ToTellIfTheFileExists(filename)
 			require.NoError(t, err)
@@ -381,28 +368,29 @@ func TestUseTheFileSystem(t *testing.T) {
 		})
 
 		t.Run("fails if the file cannot be created", func(t *testing.T) {
-			err := useTheFileSystem.ToCreateFileWithContent("/foobar.txt", strings.NewReader("hello world"))
-			require.Error(t, err)
+			readOnly := t.TempDir()
+			require.NoError(t, os.Chmod(readOnly, 0o500))
+
+			err := useTheFileSystem.ToCreateFileWithContent(
+				filepath.Join(readOnly, "notes.txt"),
+				strings.NewReader("hello world"),
+			)
+			require.ErrorIs(t, err, os.ErrPermission)
 		})
 
-		t.Run("fails if the content cannot be copied", func(t *testing.T) {
-			filename := getFilename()
-			defer func() {
-				assert.NoError(t, useTheFileSystem.ToRemoveFile(filename))
-			}()
+		t.Run("fails if the content cannot be copied, and leaves no file under the name", func(t *testing.T) {
+			notes := getFilename(t)
 
-			err := useTheFileSystem.ToCreateFileWithContent(filename, &failingReader{})
-			require.Error(t, err)
+			require.ErrorIs(t, useTheFileSystem.ToCreateFileWithContent(notes, &failingReader{}), os.ErrInvalid)
+
+			assert.NoFileExists(t, notes)
+			require.NoError(t, useTheFileSystem.ToCreateFileWithContent(notes, strings.NewReader("hello")))
 		})
 
 		t.Run("fails if the file already exists", func(t *testing.T) {
-			filename := getFilename()
+			filename := getFilename(t)
 			err := useTheFileSystem.ToCreateFile(filename)
 			require.NoError(t, err)
-
-			defer func() {
-				assert.NoError(t, os.Remove(filename))
-			}()
 
 			err = useTheFileSystem.ToCreateFileWithContent(filename, strings.NewReader("hello world"))
 			require.ErrorIs(t, err, ability.ErrFileAlreadyExists)
@@ -411,13 +399,9 @@ func TestUseTheFileSystem(t *testing.T) {
 
 	t.Run("appends to a file", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
-			filename := getFilename()
+			filename := getFilename(t)
 			err := useTheFileSystem.ToCreateFileWithContent(filename, strings.NewReader("hello"))
 			require.NoError(t, err)
-
-			defer func() {
-				assert.NoError(t, os.Remove(filename))
-			}()
 
 			err = useTheFileSystem.ToAppendTo(filename, strings.NewReader(" world"))
 			require.NoError(t, err)
@@ -428,27 +412,26 @@ func TestUseTheFileSystem(t *testing.T) {
 		})
 
 		t.Run("fails if the file does not exist", func(t *testing.T) {
-			err := useTheFileSystem.ToAppendTo(getFilename(), strings.NewReader(" world"))
-			require.Error(t, err)
+			err := useTheFileSystem.ToAppendTo(getFilename(t), strings.NewReader(" world"))
+			require.ErrorIs(t, err, os.ErrNotExist)
 		})
 
-		t.Run("fails if the content cannot be appended", func(t *testing.T) {
-			filename := getFilename()
-			err := useTheFileSystem.ToCreateFileWithContent(filename, strings.NewReader("hello"))
+		t.Run("fails if the content cannot be appended, and keeps the file as it was", func(t *testing.T) {
+			notes := getFilename(t)
+			require.NoError(t, os.WriteFile(notes, []byte("hello "), 0o600))
+			halfWritten := io.MultiReader(strings.NewReader("wo"), &failingReader{})
+
+			require.ErrorIs(t, useTheFileSystem.ToAppendTo(notes, halfWritten), os.ErrInvalid)
+
+			content, err := os.ReadFile(notes)
 			require.NoError(t, err)
-
-			defer func() {
-				assert.NoError(t, os.Remove(filename))
-			}()
-
-			err = useTheFileSystem.ToAppendTo(filename, &failingReader{})
-			require.Error(t, err)
+			assert.Equal(t, "hello ", string(content))
 		})
 	})
 
 	t.Run("should remove files", func(t *testing.T) {
-		filename, err := useTheFileSystem.ToCreateTemporaryFile("foo*.bar")
-		require.NoError(t, err)
+		filename := getFilename(t)
+		require.NoError(t, useTheFileSystem.ToCreateFile(filename))
 
 		exists, err := useTheFileSystem.ToTellIfTheFileExists(filename)
 		require.NoError(t, err)
@@ -462,8 +445,13 @@ func TestUseTheFileSystem(t *testing.T) {
 	})
 
 	t.Run("create and remove directory", func(t *testing.T) {
-		require.NoError(t, useTheFileSystem.ToCreateDirectory("test", fs.ModePerm))
-		require.NoError(t, useTheFileSystem.ToRemoveDirectory("test"))
+		docs := filepath.Join(t.TempDir(), "docs")
+
+		require.NoError(t, useTheFileSystem.ToCreateDirectory(docs, fs.ModePerm))
+		assert.DirExists(t, docs)
+
+		require.NoError(t, useTheFileSystem.ToRemoveDirectory(docs))
+		assert.NoDirExists(t, docs)
 	})
 
 	t.Run("refuses to remove a protected directory", func(t *testing.T) {
@@ -494,14 +482,18 @@ func TestUseTheFileSystem(t *testing.T) {
 	})
 
 	t.Run("removes a sibling directory whose name starts like the current one", func(t *testing.T) {
-		// "/path/to/go-screenplay-copy" contains the cwd "/path/to/go-screenplay"
+		// "/path/to/project-sibling" contains the current directory "/path/to/project"
 		// as a string prefix but not as a directory: it must not be protected.
-		sibling := currentFolder + "-sibling"
-		require.NoError(t, os.Mkdir(sibling, fs.ModePerm))
-		require.NoError(t, useTheFileSystem.ToRemoveDirectory(sibling))
+		project := filepath.Join(t.TempDir(), "project")
+		require.NoError(t, os.Mkdir(project, fs.ModePerm))
+		other := ability.UseTheFileSystem()
+		require.NoError(t, other.ToChangeDirectory(project))
 
-		_, err := os.Stat(sibling)
-		assert.ErrorIs(t, err, os.ErrNotExist)
+		sibling := project + "-sibling"
+		require.NoError(t, os.Mkdir(sibling, fs.ModePerm))
+		require.NoError(t, other.ToRemoveDirectory(sibling))
+
+		assert.NoDirExists(t, sibling)
 	})
 
 	t.Run("should be able to forget", func(t *testing.T) {

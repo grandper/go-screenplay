@@ -1,10 +1,13 @@
 package create_test
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"testing/iotest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -91,6 +94,32 @@ func TestTheFile(t *testing.T) {
 			assert.Equal(t, "Hello World", string(content))
 		})
 
+		t.Run("fails when the content cannot be read", func(t *testing.T) {
+			errDiskGone := errors.New("the disk is gone")
+			notes := filepath.Join(t.TempDir(), "notes.txt")
+
+			createTheNotes := create.TheFile(notes).Containing(iotest.ErrReader(errDiskGone))
+
+			assert.Equal(t, fmt.Sprintf("create the file %q containing content that could not be read", notes),
+				createTheNotes.String())
+			err := adam.AttemptsTo(createTheNotes)
+			require.ErrorIs(t, err, errDiskGone)
+			require.EqualError(t, err, "failed to read the content: the disk is gone")
+			assert.NoFileExists(t, notes)
+		})
+
+		t.Run("ignores a nil content", func(t *testing.T) {
+			notes := filepath.Join(t.TempDir(), "notes.txt")
+
+			createTheNotes := create.TheFile(notes).Containing(nil)
+
+			assert.Equal(t, fmt.Sprintf("create the file %q", notes), createTheNotes.String())
+			require.NoError(t, adam.AttemptsTo(createTheNotes))
+			content, err := os.ReadFile(notes)
+			require.NoError(t, err)
+			assert.Empty(t, content)
+		})
+
 		t.Run("implements the stringer interface", func(t *testing.T) {
 			filename := fixture.CreateFilename(t)
 			action1 := create.TheFile(filename)
@@ -112,6 +141,7 @@ func TestTheFile(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
 			var filename string
 			require.NoError(t, adam.AttemptsTo(create.TheTemporaryFile("test-*.txt").AndSaveNameTo(&filename)))
+			t.Cleanup(func() { assert.NoError(t, os.Remove(filename)) })
 			assert.Contains(t, filename, "test-")
 		})
 
@@ -125,10 +155,20 @@ func TestTheFile(t *testing.T) {
 						AndSaveNameTo(&filename),
 				),
 			)
+			t.Cleanup(func() { assert.NoError(t, os.Remove(filename)) })
 			assert.Contains(t, filename, "test-")
 			content, err := os.ReadFile(filename)
 			require.NoError(t, err)
 			assert.Equal(t, "Hello World", string(content))
+		})
+
+		t.Run("fails when the temporary file pattern holds a path separator", func(t *testing.T) {
+			require.EqualError(t,
+				adam.AttemptsTo(create.TheTemporaryFile("reports/notes-*.txt")),
+				"createtemp reports/notes-*.txt: pattern contains path separator")
+			require.EqualError(t,
+				adam.AttemptsTo(create.TheTemporaryFile("reports/notes-*.txt").ContainingTheText("hello")),
+				"createtemp reports/notes-*.txt: pattern contains path separator")
 		})
 	})
 
@@ -177,7 +217,14 @@ func TestTheFile(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
 			var dir string
 			require.NoError(t, adam.AttemptsTo(create.TheTemporaryDirectory("test-*").AndSaveNameTo(&dir)))
+			t.Cleanup(func() { assert.NoError(t, os.Remove(dir)) })
 			assert.Contains(t, dir, "test-")
+		})
+
+		t.Run("fails when the temporary directory pattern holds a path separator", func(t *testing.T) {
+			require.EqualError(t,
+				adam.AttemptsTo(create.TheTemporaryDirectory("reports/2026-*")),
+				"mkdirtemp reports/2026-*: pattern contains path separator")
 		})
 	})
 }

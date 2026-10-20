@@ -9,7 +9,6 @@ import (
 	"net/url"
 
 	"github.com/grandper/go-screenplay/v2/extensions/http/action/internal/verdict"
-
 	impl "github.com/grandper/go-screenplay/v2/extensions/http/internal/ability"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 )
@@ -131,11 +130,12 @@ func (a *RequestAction) String() string {
 		return "send a secret HTTP request"
 	}
 	if a.hasBody {
-		body := verdict.Describe(string(a.body))
 		if a.bodyErr != nil {
-			body = verdict.Describe("failed to read the body")
+			return fmt.Sprintf("send a %s request to %s with a body that could not be read",
+				a.method, verdict.Describe(a.url))
 		}
-		return fmt.Sprintf("send a %s request to %s with body %s", a.method, verdict.Describe(a.url), body)
+		return fmt.Sprintf("send a %s request to %s with body %s",
+			a.method, verdict.Describe(a.url), verdict.Describe(string(a.body)))
 	}
 	return fmt.Sprintf("send a %s request to %s", a.method, verdict.Describe(a.url))
 }

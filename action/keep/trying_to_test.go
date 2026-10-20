@@ -3,6 +3,8 @@ package keep_test
 import (
 	"context"
 	"errors"
+	"log" //nolint:depguard // the example narrates through the standard logger
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -14,6 +16,7 @@ import (
 	"github.com/grandper/go-screenplay/v2/action"
 	"github.com/grandper/go-screenplay/v2/action/keep"
 	"github.com/grandper/go-screenplay/v2/action/proceed"
+	"github.com/grandper/go-screenplay/v2/narrator/logadapter"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 	"github.com/grandper/go-screenplay/v2/screenplay/fixture"
 )
@@ -48,18 +51,17 @@ func TestTryingTo(t *testing.T) {
 		err := adam.AttemptsTo(
 			keep.TryingTo(failing).For(100).Milliseconds().PollingEvery(10).Milliseconds(),
 		)
-		require.Error(t, err)
 		assert.ErrorIs(t, err, underlyingErr)
 	})
 
 	t.Run("deduplicates repeated errors in the timeout message", func(t *testing.T) {
 		underlyingErr := errors.New("always the same error")
-		failing := fixture.NewFakePerformable("failing action", underlyingErr)
+		failing := fixture.NewFakePerformable("open the home page", underlyingErr)
 
 		err := adam.AttemptsTo(
 			keep.TryingTo(failing).For(100).Milliseconds().PollingEvery(10).Milliseconds(),
 		)
-		require.Error(t, err)
+		require.ErrorIs(t, err, underlyingErr)
 
 		// The error message should contain the unique error exactly once.
 		errMsg := err.Error()
@@ -71,7 +73,7 @@ func TestTryingTo(t *testing.T) {
 
 	t.Run("reads the timeout and polling from the production when not overridden", func(t *testing.T) {
 		underlyingErr := errors.New("still failing")
-		failing := fixture.NewFakePerformable("failing action", underlyingErr)
+		failing := fixture.NewFakePerformable("open the home page", underlyingErr)
 
 		production := screenplay.NewProduction(
 			screenplay.WithTimeout(100*time.Millisecond),
@@ -81,7 +83,7 @@ func TestTryingTo(t *testing.T) {
 		bob := stage.ActorNamed("Bob")
 
 		err := bob.AttemptsTo(keep.TryingTo(failing))
-		require.Error(t, err)
+		require.ErrorIs(t, err, underlyingErr)
 		// The timeout in the message reflects the production's timeout (0.1s), not
 		// the DefaultTimeout of 2s.
 		assert.Contains(t, err.Error(), "for 100ms")
@@ -89,7 +91,7 @@ func TestTryingTo(t *testing.T) {
 
 	t.Run("explicit overrides win over the production timeout and polling", func(t *testing.T) {
 		underlyingErr := errors.New("still failing")
-		failing := fixture.NewFakePerformable("failing action", underlyingErr)
+		failing := fixture.NewFakePerformable("open the home page", underlyingErr)
 
 		production := screenplay.NewProduction(
 			screenplay.WithTimeout(10*time.Second),
@@ -101,8 +103,23 @@ func TestTryingTo(t *testing.T) {
 		err := bob.AttemptsTo(
 			keep.TryingTo(failing).For(100).Milliseconds().PollingEvery(10).Milliseconds(),
 		)
-		require.Error(t, err)
+		require.ErrorIs(t, err, underlyingErr)
 		assert.Contains(t, err.Error(), "for 100ms")
+	})
+
+	t.Run("stops on the try where the action first succeeds", func(t *testing.T) {
+		var tries atomic.Int32
+		openTheHomePage := action.FromFunc("open the home page", func(*screenplay.Actor) error {
+			if tries.Add(1) < 3 {
+				return errors.New("the home page is not ready")
+			}
+			return nil
+		})
+
+		require.NoError(t, adam.AttemptsTo(
+			keep.TryingTo(openTheHomePage).For(1).Second().PollingEvery(10).Milliseconds()))
+
+		assert.Equal(t, int32(3), tries.Load())
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
@@ -181,7 +198,6 @@ func TestTryingTo(t *testing.T) {
 		failing := fixture.NewFakePerformable("open the home page", errors.New("not yet"))
 
 		err := adam.AttemptsTo(keep.TryingTo(failing).For(50).Milliseconds().PollingEvery(10).Milliseconds())
-		require.Error(t, err)
 		assert.Regexp(
 			t,
 			`^Adam kept trying to open the home page for 50ms \(\d+ tries\) without success: not yet$`,
@@ -201,4 +217,17 @@ func TestTryingTo(t *testing.T) {
 		_ = adam.AttemptsTo(keep.TryingTo(slow).For(200).Milliseconds().PollingEvery(20).Milliseconds())
 		assert.LessOrEqual(t, attempts.Load(), int32(5))
 	})
+}
+
+func ExampleTryingTo() {
+	production := screenplay.NewProduction(
+		screenplay.WithNarrator(screenplay.NewNarrator(logadapter.New(log.New(os.Stdout, "", 0)))))
+	adam := production.SetTheStage(screenplay.CastOfStandardActors()).ActorNamed("Adam")
+	openTheHomePage := fixture.NewFakePerformable("open the home page", nil)
+
+	_ = adam.AttemptsTo(keep.TryingTo(openTheHomePage))
+
+	// Output:
+	// Adam attempts to keep trying to open the home page
+	//     Adam attempts to open the home page
 }

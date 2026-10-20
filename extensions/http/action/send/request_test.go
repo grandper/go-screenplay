@@ -1,11 +1,14 @@
 package send_test
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"testing/iotest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -131,6 +134,55 @@ func TestRequest(t *testing.T) {
 		)
 	})
 
+	t.Run("ignores a nil body", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
+			assert.Equal(t, http.NoBody, request.Body)
+		}))
+		defer server.Close()
+		wanda := screenplay.ActorNamed("Wanda").WhoCan(ability.MakeHTTPRequests())
+
+		sendTheOrder := send.PostRequest().To(server.URL).WithBody(nil)
+
+		assert.Equal(t, fmt.Sprintf("send a POST request to %q", server.URL), sendTheOrder.String())
+		require.NoError(t, wanda.AttemptsTo(sendTheOrder))
+	})
+
+	t.Run("fails when the body cannot be read", func(t *testing.T) {
+		errDiskGone := errors.New("the disk is gone")
+		wanda := screenplay.ActorNamed("Wanda").WhoCan(ability.MakeHTTPRequests())
+
+		sendTheOrder := send.PostRequest().To("https://www.example.com").WithBody(iotest.ErrReader(errDiskGone))
+
+		assert.Equal(t,
+			`send a POST request to "https://www.example.com" with a body that could not be read`,
+			sendTheOrder.String())
+		err := wanda.AttemptsTo(sendTheOrder)
+		require.ErrorIs(t, err, errDiskGone)
+		require.EqualError(t, err, "failed to read the request body: the disk is gone")
+	})
+
+	t.Run("fails when the response body is cut short", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Length", "100")
+			_, _ = w.Write([]byte("hello"))
+		}))
+		defer server.Close()
+		wanda := screenplay.ActorNamed("Wanda").WhoCan(ability.MakeHTTPRequests())
+
+		err := wanda.AttemptsTo(send.GetRequest().To(server.URL))
+
+		require.ErrorIs(t, err, io.ErrUnexpectedEOF)
+		require.EqualError(t, err, "failed to create a new HTTPResponse: unexpected EOF")
+	})
+
+	t.Run("fails to send a request to an invalid URL", func(t *testing.T) {
+		wanda := screenplay.ActorNamed("Wanda").WhoCan(ability.MakeHTTPRequests())
+
+		err := wanda.AttemptsTo(send.GetRequest().To("http://exa mple.com"))
+
+		require.EqualError(t, err, `parse "http://exa mple.com": invalid character " " in host name`)
+	})
+
 	t.Run("fails to send request if the actor does not have the ability MakeHttpRequest", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam")
 		assert.Error(t, adam.AttemptsTo(send.GetRequest().To("https://www.google.com")))
@@ -168,6 +220,17 @@ func TestRequest(t *testing.T) {
 		assert.NotContains(t, err.Error(), "SECRET")
 		assert.NotContains(t, err.Error(), "/login")
 		assert.Contains(t, err.Error(), "failed to send a secret HTTP request")
+	})
+
+	t.Run("reports the cause of a failed secret request that has no URL in its error", func(t *testing.T) {
+		wanda := screenplay.ActorNamed("Wanda").WhoCan(ability.MakeHTTPRequests())
+
+		err := wanda.AttemptsTo(
+			send.RequestWithMethod("FETCH").To("https://api.example.com/orders?token=s3cr3t").Secretly(),
+		)
+
+		require.ErrorIs(t, err, ability.ErrInvalidHTTPMethod)
+		require.EqualError(t, err, `failed to send a secret HTTP request: "FETCH" is not a valid HTTP method`)
 	})
 
 	t.Run("keeps the URL in the error of a failed request that is not secret", func(t *testing.T) {
