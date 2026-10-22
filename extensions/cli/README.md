@@ -4,36 +4,6 @@ This extension lets an actor drive command-line programs. It bundles the ability
 run CLI commands together with the actions and questions that go with it, so you test
 a command-line tool with the same screenplay vocabulary you use everywhere else.
 
-## Packages
-The symbols shown below live in the extension's sub-packages:
-
-| Package | Import path | Provides |
-|---------|-------------|----------|
-| `ability` | `github.com/grandper/go-screenplay/v2/extensions/cli/ability` | `RunCLICommands`, `Result`, `SuccessExitCode`, `ErrNoCommandCurrentlyRunning` |
-| `action` | `github.com/grandper/go-screenplay/v2/extensions/cli/action` | `ErrEmptyCommandName` |
-| `run` | `github.com/grandper/go-screenplay/v2/extensions/cli/action/run` | `TheCommand` |
-| `enter` | `github.com/grandper/go-screenplay/v2/extensions/cli/action/enter` | `TheText` |
-| `question` | `github.com/grandper/go-screenplay/v2/extensions/cli/question` | `EnvironmentVariableNamed`, `Responses`, `ErrEnvironmentVariableNotFound` |
-| `exitcode` | `github.com/grandper/go-screenplay/v2/extensions/cli/question/exitcode` | `Of`, `ErrResultIsNil` |
-| `standard` | `github.com/grandper/go-screenplay/v2/extensions/cli/question/standard` | `OutputOf`, `ErrorOf`, `ErrResultIsNil` |
-
-Assertions are written with the core screenplay packages (`action/see`,
-`resolution/be`, `resolution/contain`, `resolution/length`, `question/last`, ...).
-The actions are written with their package, which is their verb: `run.TheCommand(...)`
-reads "run the command". For readability the examples below drop the package
-qualifiers on the other extension constructors; import the packages above and qualify
-them as `ability.RunCLICommands()`, and so on. The extension's `question` package shares
-its name with the core one: when a file uses both, keep the core name and alias the
-extension package with the `cli` prefix:
-```go
-import (
-	"github.com/grandper/go-screenplay/v2/action/keep"
-	"github.com/grandper/go-screenplay/v2/extensions/cli/action/run"
-)
-
-err := anActor.AttemptsTo(keep.TryingTo(run.TheCommand("ls")))
-```
-
 ## The ability
 This extension introduces a single ability: running CLI commands. Give it to an actor
 with `WhoCan`:

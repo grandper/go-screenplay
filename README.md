@@ -7,14 +7,6 @@
 
 `go-screenplay` is a package that brings the *screenplay* pattern to Golang.
 
-**Main features:**
-
-- Implementation of the *Screenplay* Pattern in Golang.
-- Utilities to use *Given-When-Then* instruction in tests.
-- Natural-language-enabling syntactic sugar
-- Questions and resolutions typed with generics: an assertion that cannot hold does not compile.
-- Assertions that read as English sentences, and that report failures in the same words.
-
 ## Installation
 
 ```bash
@@ -98,7 +90,7 @@ Inside an action or a question, use the actor's ability in one chained
 statement that names the ability, then calls the operation:
 ```go
 func (a *QueryDatabaseAction) PerformAs(actor *screenplay.Actor) error {
-	return screenplay.UseAnAbilityOf(actor).That(UseADatabase()).Execute(a.query)
+	return screenplay.UseAnAbilityOf(actor).That(UseADatabase()).ToExecute(a.query)
 }
 ```
 The argument of `That` is a pointer to an initialized ability, used for its type.
@@ -107,7 +99,7 @@ actor never learned it. Every method of an ability guards a nil receiver and
 returns `screenplay.ErrActorMissingAbility`, so the operation reports the error
 and the chain never breaks:
 ```go
-func (db *UseADatabaseAbility) Execute(query string) error {
+func (db *UseADatabaseAbility) ToExecute(query string) error {
 	if db == nil {
 		return screenplay.ErrActorMissingAbility
 	}
@@ -1744,74 +1736,25 @@ ability together with the actions, questions, and resolutions that go with it, s
 you can drive a specific kind of system-under-test with the same screenplay
 vocabulary. Every extension has its own README with the full list of what it ships.
 
-An extension keeps its implementation in `internal` folders inside its own folder
-(`action/internal` for its actions, `internal` for what its actions and questions
-share), so the folder holds everything the extension needs. A test gives the ability to an actor and performs
-the actions; it cannot call an operation of the ability, which would never be narrated:
-```go
-adam := screenplay.ActorNamed("Adam").WhoCan(ability.UseTheFileSystem())
-err := adam.AttemptsTo(remove.TheDirectory("orders"))
-// Adam attempts to remove the directory "orders"
-
-ability.UseTheFileSystem().ToRemoveDirectory("orders")
-// ability.UseTheFileSystem().ToRemoveDirectory undefined (type screenplay.Ability has no field or method ToRemoveDirectory)
-```
-
-### HTTP — [`extensions/http`](extensions/http/README.md)
-Drives REST APIs. Give an actor the `MakeHTTPRequests()` ability, then send
-requests and ask about the responses:
-```go
-anActor := screenplay.ActorNamed("Wanda").WhoCan(ability.MakeHTTPRequests())
-
-err := anActor.AttemptsTo(
-	add.TheHeader("Accept", "application/json"),
-	send.GetRequest().To("https://api.example.com/birds"),
-)
-err = anActor.Should(see.The(status.CodeOf(last.Of(question.Responses()))).Should(be.EqualTo(200)))
-```
-Highlights: the ability settings `MakeHTTPRequests().WithTimingOutAfter(5).Seconds()` and
-`MakeHTTPRequests().WithAtMost(3).Redirects()`; `send.GetRequest`, `send.PostRequest`,
-`send.PutRequest`, `send.PatchRequest`, `send.DeleteRequest`, `send.HeadRequest`,
-`send.OptionsRequest` and `send.RequestWithMethod`, with `.To`, `.WithBody`,
-`.WithAuth`/`.WithCredential` and `.Secretly`/`.WhichShouldBeKeptSecret`; the `add.TheHeader`,
-`add.TheHeaders`, `set.TheHeader`, `set.TheHeaders` actions, which can be kept secret the same
-way; the `Responses` and `status.CodeOf` questions; and the `StatusCode()`, `Body()` and
-`Headers()` getters of `ability.HTTPResponse`.
-
-### CLI — [`extensions/cli`](extensions/cli/README.md)
-Drives command-line programs. Give an actor the `RunCLICommands()` ability, then
-run commands, enter input, and assert on the result:
-```go
-anActor := screenplay.ActorNamed("Boby").WhoCan(ability.RunCLICommands())
-
-err := anActor.AttemptsTo(run.TheCommand("echo", "Hello World"))
-err = anActor.Should(see.The(standard.OutputOf(last.Of(question.Responses()))).Should(contain.TheBytes([]byte("Hello World"))))
-```
-Highlights: the `run.TheCommand` action (with `.InTheWorkingDirectory`, `.WithEnv`,
-`.WithEnvVar` and `.Interactively`), the `enter.TheText` action (with `.AndPressEnter`), the
-`Responses`, `EnvironmentVariableNamed`, `exitcode.Of`, `standard.OutputOf`, and
-`standard.ErrorOf` questions, and the `StdOut()`, `StdErr()`, `ExitCode()` and `Err()` getters
-of `ability.Result`.
-
-### Filesystem — [`extensions/filesystem`](extensions/filesystem/README.md)
-Drives the file system. Give an actor the `UseTheFileSystem()` ability, then
-create, write at the end of, overwrite, and remove files and directories, and assert on
-their existence and content:
-```go
-anActor := screenplay.ActorNamed("Boby").WhoCan(ability.UseTheFileSystem())
-
-err := anActor.AttemptsTo(create.TheFile("notes.txt").ContainingTheText("Hello World"))
-err = anActor.Should(see.The(question.ContentOfTheFileNamed("notes.txt")).Should(be.DeepEqualTo([]byte("Hello World"))))
-```
-Highlights: the `create.TheFile`, `create.TheTemporaryFile`, `create.TheDirectory` and
-`create.TheTemporaryDirectory` actions (with `.AndSaveNameTo`, and `.ContainingTheText`,
-`.ContainingBytes` or `.Containing` for a file); `write.TheText`/`write.TheBytes`/`write.TheContent`
-with `.AtTheEndOf`; `overwrite.TheFile` with `.WithTheText`, `.WithTheBytes` or `.WithTheContent`;
-`remove.TheFile`, `remove.TheDirectory`, and `change.TheCurrentDirectoryTo`; the `FileNamed`,
-`DirectoryNamed`, and `ContentOfTheFileNamed` questions; and the `Exist` resolution.
+Three extensions ship with the library. Each one has its own README with the full details:
+- [http](extensions/http/README.md) drives REST APIs: it gives an actor the ability to make
+  HTTP requests, with settings for the timeout and the number of redirects, actions to send
+  requests with any method, a body and credentials that can be kept secret, and to add or set
+  headers, questions about the responses and their status code, and the status code, body and
+  headers of each response.
+- [cli](extensions/cli/README.md) drives command-line programs: it gives an actor the ability
+  to run CLI commands, with actions to run a command in a working directory, with environment
+  variables or interactively, and to enter text while it runs, questions about the results,
+  the environment variables, the exit code, the standard output and the standard error, and
+  the standard output, standard error, exit code and error of each result.
+- [filesystem](extensions/filesystem/README.md) drives the file system: it gives an actor the
+  ability to use the file system, with actions to create files and directories, including
+  temporary ones, write at the end of a file, overwrite it, remove files and directories and
+  change the current directory, questions about a file, a directory and the content of a file,
+  and a resolution to see that they exist.
 
 ## Companion repositories
-Two repositories extend the capabilities of the library. Each one is installed on its own,
+Four repositories extend the capabilities of the library. Each one is installed on its own,
 and has its own README with the full details:
 - [go-screenplay-narrators](https://github.com/grandper/go-screenplay-narrators) renders the
   narration through the logging libraries your project already uses: zap, zerolog, logrus,
@@ -1821,6 +1764,16 @@ and has its own README with the full details:
   it gives an actor the ability to communicate with NATS, with actions to connect, subscribe,
   publish, send requests and receive messages, questions about the connection and the received
   messages, and an embedded NATS server to run scenarios without an external broker.
+- [go-screenplay-etcd](https://github.com/grandper/go-screenplay-etcd) drives an etcd cluster:
+  it gives an actor the ability to use etcd, with actions to put and remove keys, watch them,
+  acquire and release locks and campaign in elections, questions about the values, keys,
+  revisions, time to live, events, leaders, endpoints and alarms of the cluster, and an
+  embedded etcd server to run scenarios without an external cluster.
+- [go-screenplay-udp](https://github.com/grandper/go-screenplay-udp) drives a UDP connection:
+  it gives an actor the ability to communicate over UDP, with actions to listen on an address
+  or a multicast group, connect to a peer, send datagrams and receive them, questions about the
+  received datagrams and the local address, and in-process UDP peers, such as an echo server,
+  to run scenarios without an external system.
 
 ## References
 This package takes some inspiration from several other libraries written in other languages:

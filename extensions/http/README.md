@@ -4,36 +4,6 @@ This extension lets an actor drive REST APIs. It bundles the ability to make HTT
 requests together with the actions, questions, and resolutions that go with it, so
 you test an API with the same screenplay vocabulary you use everywhere else.
 
-## Packages
-The symbols shown below live in the extension's sub-packages:
-
-| Package | Import path | Provides |
-|---------|-------------|----------|
-| `ability` | `github.com/grandper/go-screenplay/v2/extensions/http/ability` | `MakeHTTPRequests`, `HTTPResponse`, `ErrInvalidHTTPMethod`, `ErrResponseIsNil` |
-| `action` | `github.com/grandper/go-screenplay/v2/extensions/http/action` | `ErrInvalidHeaders` |
-| `send` | `github.com/grandper/go-screenplay/v2/extensions/http/action/send` | `RequestWithMethod` (and the per-method shortcuts `GetRequest`, `PostRequest`, ...) |
-| `add` | `github.com/grandper/go-screenplay/v2/extensions/http/action/add` | `TheHeader`, `TheHeaders` |
-| `set` | `github.com/grandper/go-screenplay/v2/extensions/http/action/set` | `TheHeader`, `TheHeaders` |
-| `question` | `github.com/grandper/go-screenplay/v2/extensions/http/question` | `Responses` |
-| `status` | `github.com/grandper/go-screenplay/v2/extensions/http/question/status` | `CodeOf`, `ErrResponseIsNil` |
-
-Assertions are written with the core screenplay packages (`action/see`,
-`resolution/be`, `resolution/contain`, `question/last`, ...). The actions are written
-with their package, which is their verb: `send.GetRequest()` reads "send GET request".
-For readability the examples below drop the package qualifiers on the other extension
-constructors; import the packages above and qualify them as `ability.MakeHTTPRequests()`,
-and so on. The extension's `question` package shares its name with the core one: when a
-file uses both, keep the core name and alias the extension package with the `http`
-prefix:
-```go
-import (
-	"github.com/grandper/go-screenplay/v2/action/keep"
-	"github.com/grandper/go-screenplay/v2/extensions/http/action/send"
-)
-
-err := anActor.AttemptsTo(keep.TryingTo(send.GetRequest().To(url)))
-```
-
 ## The ability
 This extension introduces a single ability: making HTTP requests. Give it to an actor
 with `WhoCan`:

@@ -5,39 +5,6 @@ file system together with the actions, questions, and resolutions that go with i
 you test file-system interactions with the same screenplay vocabulary you use
 everywhere else.
 
-## Packages
-The symbols shown below live in the extension's sub-packages:
-
-| Package | Import path | Provides |
-|---------|-------------|----------|
-| `ability` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/ability` | `UseTheFileSystem`, `ErrFileAlreadyExists`, `ErrSymbolicLink`, `ErrProtectedDirectory` |
-| `action` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action` | `ErrFilenameNotProvided`, `ErrDirectoryNameNotProvided`, `ErrReaderNotProvided`, `ErrContentNotProvided`, `ErrFileDoesNotExist`, `ErrDirectoryDoesNotExist` |
-| `create` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action/create` | `TheFile`, `TheTemporaryFile`, `TheDirectory`, `TheTemporaryDirectory` |
-| `remove` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action/remove` | `TheFile`, `TheDirectory` |
-| `write` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action/write` | `TheText`, `TheBytes`, `TheContent` |
-| `overwrite` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action/overwrite` | `TheFile` |
-| `change` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/action/change` | `TheCurrentDirectoryTo` |
-| `question` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/question` | `FileNamed`, `DirectoryNamed`, `ContentOfTheFileNamed`, `File`, `Directory`, `NewFile`, `NewDirectory` |
-| `resolution` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/resolution` | `Exist` |
-| `fixture` | `github.com/grandper/go-screenplay/v2/extensions/filesystem/question/fixture` | `CreateFakeExistingFile`, `CreateFakeMissingFile`, `CreateFakeExistingDirectory`, `CreateFakeMissingDirectory` |
-
-Assertions are written with the core screenplay packages (`action/see`,
-`resolution/be`, ...) alongside this extension's `resolution.Exist`. The actions are
-written with their package, which is their verb: `create.TheFile("notes.txt")` reads
-"create the file notes.txt". For readability the examples below drop the package
-qualifiers on the other extension constructors; import the packages above and qualify
-them as `ability.UseTheFileSystem()`, and so on. The extension's `question`/`resolution`
-packages share their name with the core ones: when a file uses both, keep the core name
-and alias the extension package with the `filesystem` prefix:
-```go
-import (
-	"github.com/grandper/go-screenplay/v2/action/keep"
-	"github.com/grandper/go-screenplay/v2/extensions/filesystem/action/remove"
-)
-
-err := anActor.AttemptsTo(keep.TryingTo(remove.TheFile("notes.txt")))
-```
-
 ## The ability
 This extension introduces a single ability: using the file system. Give it to an actor
 with `WhoCan`:
